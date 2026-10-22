@@ -34,6 +34,8 @@ func NewNotes(database *gorm.DB, validator *validation.Validator) *Notes {
 }
 
 // Create validates and stores one note in a service-owned transaction.
+// framework:command notes.create
+// framework:mcp notes_create readonly=false destructive=false
 func (s *Notes) Create(ctx context.Context, input requests.CreateNoteInput) (CreateNoteOutput, error) {
 	input.Body = strings.TrimSpace(input.Body)
 	if err := s.validator.Struct(input); err != nil {
@@ -56,6 +58,8 @@ func (s *Notes) Create(ctx context.Context, input requests.CreateNoteInput) (Cre
 }
 
 // List validates the request and returns notes in creation order.
+// framework:command notes.list
+// framework:mcp notes_list readonly=true destructive=false
 func (s *Notes) List(ctx context.Context, input requests.ListNotesInput) (ListNotesOutput, error) {
 	if err := s.validator.Struct(input); err != nil {
 		return ListNotesOutput{}, fmt.Errorf("validate list notes input: %w", err)
