@@ -74,6 +74,20 @@ sensitive group. `ReportUnexpected` is the single adapter-boundary helper for
 unexpected failures. It records operation and component fields while omitting
 normal cancellation and deadline errors.
 
+## Runtime resource ownership
+
+[`app/bootstrap`](../app/bootstrap/bootstrap.go) registers providers without
+opening resources. Its `Start` method receives paths resolved at the desktop or
+CLI edge, opens logging first, opens the one shared database pool, applies the
+embedded forward migrations, and only then publishes readiness. Database and
+logger resources participate in dependency-ordered disposal.
+
+A failed startup publishes one cause-preserving `unavailable` result and rolls
+back every resource that opened. Migration errors name the failing SQL file,
+while operational logs replace the complete database path with a placeholder.
+Runtime shutdown and failed-start rollback each have one-shot guards; repeated
+shutdown does not close the shared pool twice.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
