@@ -1,0 +1,150 @@
+package generator
+
+import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestGenerateInitialRepeatAndCheck(t *testing.T) {
+	t.Parallel()
+	directory := generatorFixture(t)
+
+	checked, err := Generate(context.Background(), GenerateConfig{Dir: directory, Check: true})
+	var stale *StaleError
+	if !errors.As(err, &stale) || len(checked.Changed) != 3 || len(stale.Files) != 3 {
+		t.Fatalf("initial check = %+v, %v", checked, err)
+	}
+	for _, name := range checked.Files {
+		if _, err := os.Stat(filepath.Join(directory, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("check wrote %s: %v", name, err)
+		}
+	}
+
+	generated, err := Generate(context.Background(), GenerateConfig{Dir: directory})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generated.Files) != 3 || len(generated.Changed) != 3 {
+		t.Fatalf("initial generation = %+v", generated)
+	}
+	contents := map[string][]byte{}
+	for _, name := range generated.Files {
+		// #nosec G304 -- names are the generator's fixed owned-file set in a temporary fixture.
+		content, err := os.ReadFile(filepath.Join(directory, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(string(content), generatedHeader) {
+			t.Fatalf("%s lacks generated header", name)
+		}
+		contents[name] = content
+	}
+
+	desktop := string(contents["app/desktop/framework_generated.go"])
+	if !strings.Contains(desktop, "type CreateResponse struct") || !strings.Contains(desktop, "func NewNotes") ||
+		!strings.Contains(desktop, "func (a *Notes) Create") || strings.Contains(desktop, "func (a *Notes) Inspect") {
+		t.Fatalf("desktop output:\n%s", desktop)
+	}
+	bindings := string(contents["framework_bindings_generated.go"])
+	if !strings.Contains(bindings, "mygo.Bind(desktop.NewNotes") {
+		t.Fatalf("bindings output:\n%s", bindings)
+	}
+	tools := string(contents["app/mcp/framework_generated.go"])
+	for _, want := range []string{`Name:        "fixture_create"`, `Name:        "fixture_inspect"`, "ReadOnly:    true"} {
+		if !strings.Contains(tools, want) {
+			t.Fatalf("MCP output lacks %q:\n%s", want, tools)
+		}
+	}
+
+	repeated, err := Generate(context.Background(), GenerateConfig{Dir: directory})
+	if err != nil || len(repeated.Changed) != 0 {
+		t.Fatalf("repeated generation = %+v, %v", repeated, err)
+	}
+	for name, before := range contents {
+		// #nosec G304 -- names are the generator's fixed owned-file set in a temporary fixture.
+		after, err := os.ReadFile(filepath.Join(directory, name))
+		if err != nil || string(after) != string(before) {
+			t.Fatalf("%s changed on repeated generation: %v", name, err)
+		}
+	}
+
+	stalePath := filepath.Join(directory, "app/desktop/framework_generated.go")
+	staleContent := append([]byte(nil), contents["app/desktop/framework_generated.go"]...)
+	staleContent = append(staleContent, []byte("// stale\n")...)
+	if err := os.WriteFile(stalePath, staleContent, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := Generate(context.Background(), GenerateConfig{Dir: directory, Check: true})
+	if !errors.As(err, &stale) || len(result.Changed) != 1 || result.Changed[0] != "app/desktop/framework_generated.go" {
+		t.Fatalf("stale check = %+v, %v", result, err)
+	}
+	// #nosec G304 -- stalePath is inside the temporary fixture.
+	afterCheck, err := os.ReadFile(stalePath)
+	if err != nil || string(afterCheck) != string(staleContent) {
+		t.Fatalf("check changed stale file: %v", err)
+	}
+}
+
+func TestGenerateRefusesUnownedFile(t *testing.T) {
+	t.Parallel()
+	directory := generatorFixture(t)
+	target := filepath.Join(directory, "app", "desktop", "framework_generated.go")
+	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("package desktop\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Generate(context.Background(), GenerateConfig{Dir: directory})
+	if err == nil || !strings.Contains(err.Error(), "refuse to replace non-generated file") {
+		t.Fatalf("error = %v", err)
+	}
+	// #nosec G304 -- target is inside the temporary fixture.
+	content, readErr := os.ReadFile(target)
+	if readErr != nil || string(content) != "package desktop\n" {
+		t.Fatalf("unowned file changed: %q, %v", content, readErr)
+	}
+}
+
+func generatorFixture(t *testing.T) string {
+	t.Helper()
+	directory := t.TempDir()
+	serviceDirectory := filepath.Join(directory, "app", "services")
+	if err := os.MkdirAll(serviceDirectory, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/project\n\ngo 1.27.1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	const source = `package services
+
+import "context"
+
+type Input struct{}
+type CreateOutput struct{}
+type InspectOutput struct{}
+type Notes struct{}
+
+// Create creates a fixture.
+// framework:command fixture.create
+// framework:mcp fixture_create readonly=false destructive=false
+func (s *Notes) Create(ctx context.Context, input Input) (CreateOutput, error) {
+	return CreateOutput{}, nil
+}
+
+// Inspect inspects a fixture without a desktop command.
+// framework:mcp fixture_inspect readonly=true destructive=false
+func (s *Notes) Inspect(ctx context.Context, input Input) (InspectOutput, error) {
+	return InspectOutput{}, nil
+}
+`
+	if err := os.WriteFile(filepath.Join(serviceDirectory, "service.go"), []byte(source), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return directory
+}

@@ -330,6 +330,21 @@ of source traversal order. The reference note Create/List methods now opt into
 both desktop and MCP generation; unmarked exported methods remain private to
 the Go application and outside generated transports.
 
+## Generated adapters
+
+`framework generate` discovers annotated services without importing application
+bootstrap code, renders all output in memory, formats Go source, and then owns
+exactly three files: `app/desktop/framework_generated.go`,
+`framework_bindings_generated.go`, and `app/mcp/framework_generated.go`.
+Desktop output contains only opted-in commands, concrete wire responses, and
+readiness-gated service calls. The root registration stays explicit, while MCP
+output is limited to selected tool metadata and declared effects.
+
+Generation refuses to replace a file without its generated header and
+preflights the complete set before writing. `framework generate --check`
+reports stale or missing output without writes. A repeated run is byte-identical;
+hand-written transport support belongs outside the three generated files.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

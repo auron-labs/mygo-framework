@@ -14,7 +14,7 @@ export interface CreateNoteOutput {
   note: Note;
 }
 
-/** CreateNoteResponse is the concrete desktop response for creating a note. */
+/** CreateNoteResponse is the concrete desktop response for Create. */
 export interface CreateNoteResponse {
   data: CreateNoteOutput | null;
   problem: Problem | null;
@@ -32,7 +32,7 @@ export interface ListNotesOutput {
   notes: Note[];
 }
 
-/** ListNotesResponse is the concrete desktop response for listing notes. */
+/** ListNotesResponse is the concrete desktop response for List. */
 export interface ListNotesResponse {
   data: ListNotesOutput | null;
   problem: Problem | null;
@@ -52,13 +52,13 @@ export interface Problem {
 
 // ---- Services ----
 
-/** Notes exposes only note operations to MyGo. */
+/** Notes exposes only generated feature operations to MyGo. */
 export const Notes = {
-  /** Create creates a note through the shared application service. */
+  /** Create validates and stores one note in a service-owned transaction. */
   create(input: CreateNoteInput): Promise<CreateNoteResponse> {
     return call("Notes.Create", input);
   },
-  /** List lists notes through the shared application service. */
+  /** List validates the request and returns notes in creation order. */
   list(input: ListNotesInput): Promise<ListNotesResponse> {
     return call("Notes.List", input);
   },
