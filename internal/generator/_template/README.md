@@ -9,7 +9,8 @@ and the frontend toolchain. `framework new` initializes the repository so MyGo
 can attach supported VCS metadata to its generated Go build.
 
 ```sh
-bun install
+bun install --frozen-lockfile
+framework doctor
 framework dev
 ```
 
@@ -46,3 +47,21 @@ Both commands use the same application profile as the desktop app. Pass
 `--data-directory PATH` before `db` to operate on a portable or test profile.
 `db status` opens an existing database read-only and never applies migrations;
 only `db up` changes the schema.
+
+## Verify and build
+
+Run the focused project checks before committing:
+
+```sh
+framework generate --check
+go test ./...
+CGO_ENABLED=0 go test ./...
+bun run test:web
+bun run typecheck
+```
+
+Build the packaged desktop application through the pinned MyGo CLI:
+
+```sh
+framework build
+```
