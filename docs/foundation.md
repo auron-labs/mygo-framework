@@ -376,6 +376,22 @@ developers can implement or extend the service and provider normally. Tests also
 remain feature-extensible: they continue to assert the Notes contract and core
 runtime graph without assuming Notes is the only generated feature.
 
+## New projects
+
+`framework new NAME` creates one supported MyGo web application in a normalized
+child directory and initializes its Git repository. Creation refuses an existing
+target and removes a newly created directory if copying or Git initialization
+fails. The embedded 39-file template rewrites the module, display name, package
+name, and reverse-DNS identifier, then formats Go files so generated import order
+remains current for every module name.
+
+The template pins Go dependencies in a tidy `go.mod`/`go.sum`, pins Bun 1.4.2,
+MyGo 0.5.5, TypeScript 7.0.2, and Vite 8.3.5, and includes the lockfile. It ships
+the explicit bootstrap/runtime, embedded Goose migration, Notes vertical slice,
+generated Go and TypeScript bindings, framework-neutral form/request helpers,
+tests, README quick start, and `AGENTS.md` feature boundaries. No template
+variants or hidden dependency installation are provided.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
