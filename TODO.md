@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: none
-- Current item: M1.1 — scaffold the pinned plain MyGo web notes application
-- Last verification: documentation-only checklist review; no runtime checks yet
-- Next action: implement M1.1 and keep generation free of startup side effects
+- Current item: M1.2 — add the shared SQLite/GORM/Goose database probe
+- Last verification: M1.1 Go, race, vet, TypeScript, build, and generation checks pass
+- Next action: implement the embedded notes migration and real store/reload probe
 
 ## Working rules
 
@@ -30,6 +30,7 @@ and verification evidence before the next item starts.
 | Item | Command or check | Result |
 | --- | --- | --- |
 | Checklist | Compared every task group with `PLAN.md` sections and milestones | Pass |
+| M1.1 | `go test ./...`; `go test -race ./...`; `go vet ./...`; `bun run typecheck`; `bun run build:web`; `bun run generate` twice with binding diff; browser render at 960×640 and 480×640 with keyboard focus | Pass; desktop webview runtime remains a later platform check |
 
 ## Milestone 1 — verify the foundation
 
@@ -37,7 +38,7 @@ Reference: [`PLAN.md` — Milestone 1](PLAN.md#milestone-1-verify-the-foundation
 [`PLAN.md` — selected packages](PLAN.md#selected-packages), and
 [`PLAN.md` — MyGo registration and startup](PLAN.md#registration-and-startup).
 
-- [ ] **M1.1** Scaffold a pinned plain MyGo web notes application with the
+- [x] **M1.1** Scaffold a pinned plain MyGo web notes application with the
   supported entry point, frontend layout, checked-in lockfile, and explicit
   bindings that perform no storage, logging, migration, keyring, or listener
   work before `App.Run`.

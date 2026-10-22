@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyGo Framework Notes</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">MyGo framework example</p>
+        <h1>Notes</h1>
+        <p class="intro">Capture a thought and keep the list close at hand.</p>
+      </header>
+
+      <section aria-labelledby="new-note-heading" class="composer">
+        <h2 id="new-note-heading">New note</h2>
+        <form id="note-form">
+          <label for="note-body">What do you want to remember?</label>
+          <div class="field-row">
+            <input id="note-body" name="body" autocomplete="off" required />
+            <button type="submit">Add note</button>
+          </div>
+          <p id="form-error" class="error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section aria-labelledby="notes-heading" class="collection">
+        <div class="section-heading">
+          <h2 id="notes-heading">Your notes</h2>
+          <span id="note-count" class="count" aria-label="0 notes">0</span>
+        </div>
+        <p id="empty-state" class="empty">No notes yet. Add your first one above.</p>
+        <ol id="note-list" class="note-list"></ol>
+      </section>
+
+      <p id="status" class="visually-hidden" aria-live="polite"></p>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
