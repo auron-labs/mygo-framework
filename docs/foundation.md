@@ -263,6 +263,25 @@ stays attached to the input with `aria-invalid`. A controlled browser pass held
 one create request while dispatching two submissions, observed one transport
 call, then verified the successful reset and safe transport-failure state.
 
+## Outbound HTTP client
+
+[`httpclient`](../httpclient/httpclient.go) configures the pinned stable Resty
+v2.17.2 client without copying its API. A validated optional base URL, a
+30-second default or caller-supplied timeout, JSON accept/content headers,
+caller headers, and an optional `http.RoundTripper` are applied once. Retries
+are explicitly zero by default. `Resty` returns the underlying client, while
+`Request` is the narrow framework entry point that attaches the caller's
+context and a metric operation.
+
+Every received response returns an error for status 400 or above while keeping
+the Resty response available for typed error decoding. The error includes only
+operation, method, host, and status. Response and transport outcomes record
+operation, host, status, and duration through `slog`; authorization values,
+URLs, and request or response bodies are never added. Focused tests cover a
+real JSON `httptest` round trip, status errors and log redaction, caller-supplied
+transport behavior, invalid configuration, native client access, and the
+zero-retry default.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
