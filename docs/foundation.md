@@ -15,6 +15,7 @@ It describes unreleased repository behavior, not a published compatibility promi
 | GORM | 1.31.2 |
 | Goose | 3.29.0 |
 | validator | 10.30.5 |
+| samber/do | 2.1.0 |
 
 These were tagged releases on 22 October 2026. The MyGo packages use the same
 release to keep the generated client and Go runtime compatible.
