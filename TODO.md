@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.8 — connect the web UI to persisted notes
-- Last verification: M2.7 full/race/CGO-free suites, vet/lint/tidy, TypeScript, web build, and deterministic generation pass
-- Next action: render starting, failure, empty, validation, and persisted-note UI states
+- Current item: M2.9 — add app-lifetime work and bounded quit shutdown
+- Last verification: M2.8 TypeScript/web builds and rendered 960×640 plus 480×640 state checks pass
+- Next action: add one cancellable worker and non-blocking idempotent quit-stage cleanup
 
 ## Working rules
 
@@ -43,6 +43,7 @@ and verification evidence before the next item starts.
 | M2.5 | Runtime/database integration and race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; migrations persist through restart, failed SQL is named and reported unavailable, rollback closes opened resources, and shutdown is one-time |
 | M2.6 | Note service, bootstrap, and safe GORM logging unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; entry validation, context cancellation, transaction rollback, restart persistence, and payload-free ORM diagnostics are asserted |
 | M2.7 | Desktop adapter unit/race tests; full Go and CGO-free suites; vet/lint/tidy; TypeScript check; web build; repeated MyGo generation and artifact scan | Pass; readiness gates resolution, wire responses are concrete, only create/list are exported, internal failures log once, and generation has no runtime side effects |
+| M2.8 | `bun run typecheck`; `bun run build:web`; rendered browser checks at 960×640 and 480×640 with controlled MyGo responses | Pass; starting, unavailable, empty, server-validation, created-note, focus, count, disabled-control, and responsive states render correctly |
 
 ## Milestone 1 — verify the foundation
 
@@ -94,7 +95,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
   and service-owned transaction boundaries.
 - [x] **M2.7** Add the narrow MyGo notes adapter with concrete per-operation wire
   responses, readiness checks, and no exported lifecycle/provider methods.
-- [ ] **M2.8** Connect the web UI to create/list notes and render starting,
+- [x] **M2.8** Connect the web UI to create/list notes and render starting,
   startup-failure, empty, validation-error, and persisted-note states.
 - [ ] **M2.9** Add one cancellable app-lifetime background operation and bounded,
   idempotent quit-stage shutdown that stops work before releasing services and
