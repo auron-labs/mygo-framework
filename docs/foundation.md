@@ -18,6 +18,17 @@ It describes unreleased repository behavior, not a published compatibility promi
 These were tagged releases on 22 October 2026. The MyGo packages use the same
 release to keep the generated client and Go runtime compatible.
 
+## Compatibility corrections
+
+The MyGo 0.5.5 initializer selected the latest Go module, which was 0.6.2.
+The generated npm packages remained on 0.5.5. The repository now pins the Go
+module, CLI, and runtime packages to 0.5.5 instead of accepting that mismatch.
+
+The current gormlite release is a separate Go module at
+`github.com/ncruces/go-sqlite3/gormlite`. It is pinned to 0.34.0 alongside the
+0.35.6 SQLite driver. Its `OpenDB` API accepts the existing `sql.DB`, so the
+plan's shared-pool design works without an adapter or a second connection.
+
 ## Shared SQLite pool
 
 [`internal/database`](../internal/database/database.go) owns one `sql.DB`.
