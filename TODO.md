@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: none
-- Current item: M1.2 — add the shared SQLite/GORM/Goose database probe
-- Last verification: M1.1 Go, race, vet, TypeScript, build, and generation checks pass
-- Next action: implement the embedded notes migration and real store/reload probe
+- Current item: M1.3 — add the concrete desktop response and generation proof
+- Last verification: M1.2 probe, full Go suite, focused race test, vet, and tidy pass
+- Next action: generate one structured `Data`/`Problem` response without opening storage
 
 ## Working rules
 
@@ -31,6 +31,7 @@ and verification evidence before the next item starts.
 | --- | --- | --- |
 | Checklist | Compared every task group with `PLAN.md` sections and milestones | Pass |
 | M1.1 | `go test ./...`; `go test -race ./...`; `go vet ./...`; `bun run typecheck`; `bun run build:web`; `bun run generate` twice with binding diff; browser render at 960×640 and 480×640 with keyboard focus | Pass; desktop webview runtime remains a later platform check |
+| M1.2 | `go run ./cmd/dbprobe -database <temp>/notes.db -note "probe survives reopen"`; `go test ./...`; `go test -race ./internal/database`; `go vet ./...`; `go mod tidy -diff` | Pass; probe stored and reloaded note 1 after closing the first pool |
 
 ## Milestone 1 — verify the foundation
 
@@ -42,7 +43,7 @@ Reference: [`PLAN.md` — Milestone 1](PLAN.md#milestone-1-verify-the-foundation
   supported entry point, frontend layout, checked-in lockfile, and explicit
   bindings that perform no storage, logging, migration, keyring, or listener
   work before `App.Run`.
-- [ ] **M1.2** Add the non-GUI SQLite probe using one `database/sql` pool shared
+- [x] **M1.2** Add the non-GUI SQLite probe using one `database/sql` pool shared
   by ncruces gormlite and Goose, an embedded notes migration, and a real
   store/reload integration test.
 - [ ] **M1.3** Add one concrete `Data`/`Problem` desktop response and prove MyGo
