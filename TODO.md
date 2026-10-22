@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 5 — CLI and desktop generation
-- Current item: M6.5 — prove the complete MCP round trip and lifecycle
-- Last verification: M6.4 typed MCP problem results, cancellation propagation, committed note callbacks, generated event bindings, and fresh-project acceptance
-- Next action: exercise one real HTTP SDK client across listing, validation, mutation visibility, boundary rejection, shared storage, and ordered shutdown
+- Completed milestone: milestone 6 — MCP generation and runtime
+- Current item: M7.1 — run cross-platform compile and available OS runtime smoke checks
+- Last verification: M6.5 real HTTP SDK discovery/calls, structured validation, shared UI-visible mutation, boundary rejection, and listener-before-database shutdown
+- Next action: compile supported Windows, macOS, and Linux targets with CGO disabled and run the startup/create/restart/shutdown flow on available OS runners
 
 ## Working rules
 
@@ -70,6 +70,7 @@ and verification evidence before the next item starts.
 | M6.2 | Focused MCP listener/config/bootstrap/generator tests; opt-in fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; MCP stays disabled by default, enabled launches bind only `127.0.0.1`, stateless serving begins after readiness, generated resolvers capture the existing service instance, shutdown releases the listener before graph disposal, and a fresh generated app builds |
 | M6.3 | Real loopback HTTP security tests and race run; startup disclosure/config tests; template checks; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; missing/wrong bearer credentials return 401, SDK Host and Go cross-origin checks return 403, tokens differ per launch and never enter normal logs, and details print only when the explicit disclosure switch is enabled |
 | M6.4 | Typed SDK problem/cancellation and committed-change callback tests; generated event/type checks; 32 web tests and production build; fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; domain failures carry safe text plus structured field details without zero-valued success output, cancellations reach services, and committed desktop or MCP writes publish one generated MyGo event that refreshes open pages |
+| M6.5 | Real bearer-authenticated Streamable HTTP SDK acceptance and 20-run repeat; MCP boundary rejection regression; full Go/race/CGO-free suites; vet/lint/tidy; 32 web tests and production build; `generate --check` | Pass; the client listed only annotated tools, received structured field failures, created through the one shared service, exposed the committed note through the desktop/UI read path, and shutdown closed the listener while the active handler still had a live database before final disposal |
 
 ## Milestone 1 — verify the foundation
 
@@ -231,7 +232,7 @@ and [`PLAN.md` — MCP integration](PLAN.md#mcp-integration).
 - [x] **M6.4** Map domain failures to MCP error results with concise text and
   structured field details, propagate cancellation, and publish the example's
   note-change event through a small UI callback adapter rather than an event bus.
-- [ ] **M6.5** Prove one real SDK client list/call round trip, annotated-only
+- [x] **M6.5** Prove one real SDK client list/call round trip, annotated-only
   exposure, validation failures, UI-visible mutation, rejected Host/origin/token,
   no second store, and listener shutdown before shared service disposal.
 
