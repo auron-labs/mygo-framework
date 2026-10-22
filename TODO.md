@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.6 — implement `framework new NAME`
-- Last verification: M5.5 vertical feature scaffold passes unit/race, disposable-project build/tests, clean check/repeat generation, and implementation-preservation checks
-- Next action: create one supported pinned MyGo web project template with explicit bootstrap, forms, migrations, and project guidance
+- Current item: M5.7 — implement MyGo delegation commands
+- Last verification: M5.6 embedded template passes focused tests and fresh-project Go/generation/tidy plus frozen frontend install/tests/build and MyGo binding checks
+- Next action: run framework generation/check exactly once for dev/build/doctor, delegate to pinned MyGo tooling, and document manual regeneration without a second watcher
 
 ## Working rules
 
@@ -62,6 +62,7 @@ and verification evidence before the next item starts.
 | M5.3 | Initial/repeat/stale/ownership generator tests; `framework generate --check`; deterministic MyGo generation; full Go/race/CGO-free suites; vet/lint; 16 web tests and production build | Pass; formatted owned files generate before imports exist, repeat byte-identically, preserve hand-written support, expose narrow desktop responses/registrations, and emit only selected MCP metadata stubs |
 | M5.4 | Focused scaffold and CLI tests/race; real binary in an empty project; duplicate/unsafe-name/hand-written-file checks; full Go/race/CGO-free suites; vet/lint; `generate --check` | Pass; service, request, model, migration, and command files use normalized fixed paths, exclusive creation, deterministic five-digit migration order, and preserve the first migration identity on retries |
 | M5.5 | Feature preflight/rollback/regeneration tests; disposable copy `make feature Widget`; full copied-project Go suite; `generate --check`; repeat generation and service SHA-256 comparison | Pass; five hand-written model/request/service/provider/migration files compile with four generated provider/adapter/registration files, and regeneration leaves implementation bytes intact |
+| M5.6 | Focused creation/refusal/cancellation tests; real `new` projects; `generate --check`; Go compile/tidy; frozen Bun install; 16 web tests; production build; repeated MyGo binding hash | Pass; one 39-file Git-initialized web template rewrites project identity, pins Go/JS dependencies, includes explicit bootstrap/migrations/forms/guidance, and produces current Go and TypeScript bindings |
 
 ## Milestone 1 — verify the foundation
 
@@ -191,7 +192,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
 - [x] **M5.5** Add the primary feature scaffold for the approved request, service,
   model, migration, adapter/provider shape, followed by generation, while
   preserving existing feature implementation on regeneration.
-- [ ] **M5.6** Implement `framework new NAME` for one supported MyGo web template
+- [x] **M5.6** Implement `framework new NAME` for one supported MyGo web template
   with pinned dependencies, explicit bootstrap, the form helper, migrations,
   generated project guidance, and no speculative template variants.
 - [ ] **M5.7** Implement `framework dev`, `build`, and `doctor` by running the
