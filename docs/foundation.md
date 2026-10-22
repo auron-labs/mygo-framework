@@ -144,19 +144,37 @@ while cleanup is active. Completion or deadline expiry triggers one guarded
 re-entry into MyGo quit, allowing `App.Run` to return only after cleanup finishes
 or reaches its bound.
 
+## Milestone 2 acceptance
+
+The packaged Linux app was exercised in a real WebKitGTK window under an
+isolated Xvfb/DBus session. The empty state rendered, an empty submission showed
+the field error, and a valid submission persisted `persists after restart`.
+SIGTERM completed through the registered quit stage with exit status 0 in 110
+milliseconds. Relaunching against the same user-data directory reopened the
+database and rendered the saved note.
+
+Launching the packaged app with an invalid configuration root kept the window
+open, displayed the unavailable state, and disabled submission; its later
+SIGTERM also exited 0. Request-cancellation checks remain in the GUI-independent
+service and desktop-adapter suites, while the packaged flow verifies that the
+real bindings, storage lifecycle, and visible states work together.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
 
 ```text
 go test ./...
-go test -race ./internal/database
+go test -race ./...
 CGO_ENABLED=0 go test ./...
 CGO_ENABLED=0 go build -o /tmp/mygo-framework-app .
 CGO_ENABLED=0 go build -o /tmp/mygo-framework-dbprobe ./cmd/dbprobe
 /tmp/mygo-framework-dbprobe -database "<temp>/notes database.db" -note "WAL and CGO-free"
 go vet ./...
 golangci-lint run ./...
+bun run typecheck
+bun run build:web
+bun run generate # repeated with an identical generated-client hash
 ```
 
 The database integration test asserts the pool identity, connection limit,
