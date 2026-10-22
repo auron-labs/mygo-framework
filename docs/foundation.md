@@ -311,6 +311,25 @@ and an injected generation command from an empty working directory. The real
 binary produced 16,333 bytes of Bash completion without creating a database,
 log, or any other file in that directory.
 
+## Service discovery
+
+[`internal/generator`](../internal/generator/discovery.go) uses
+`go/packages` from x/tools v0.52.0 with syntax and type information; it never
+imports or executes application constructors. Only methods with an explicit
+`framework:command` or `framework:mcp` doc marker are returned. The supported
+signature is deliberately one shape: a non-generic service method accepting
+`context.Context` and one named struct value, then returning one named struct
+value and `error`.
+
+Discovery records package, service, method, description, input/output identity,
+source position, command name, and optional MCP name plus explicit readonly and
+destructive booleans. Contradictory effects, malformed markers, unsupported
+signatures, missing descriptions, and duplicate command or tool names fail with
+file/line diagnostics. Results sort by package, service, and method regardless
+of source traversal order. The reference note Create/List methods now opt into
+both desktop and MCP generation; unmarked exported methods remain private to
+the Go application and outside generated transports.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

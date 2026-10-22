@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.2 — discover annotated service methods
-- Last verification: M5.1 CLI tests, real binary help/version/completion probes, and full normal/race/CGO-free/static suites pass
-- Next action: add go/packages/type-based annotation discovery with stable diagnostics and ordering
+- Current item: M5.3 — generate adapters and registrations
+- Last verification: M5.2 discovery tests/race and full normal/race/CGO-free/static suites pass
+- Next action: generate formatted narrow desktop adapters, concrete responses, explicit registrations, and selected MCP stubs with check mode
 
 ## Working rules
 
@@ -58,6 +58,7 @@ and verification evidence before the next item starts.
 | M4.4 | 4 focused HTTP client tests and race run; full Go and CGO-free suites; vet/lint/tidy | Pass; Resty v2.17.2 applies validated URL/timeout/header/transport configuration, JSON round trips, status errors, safe metrics, native-client access, and zero retries by default |
 | M4.5 | Local `httptest` timeout, caller-cancellation, read-retry, write-gate tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; both cancellation sources reached server contexts, reads stopped at the configured bound, writes ran once unless explicitly enabled, and Resty's raw retry logger is suppressed |
 | M5.1 | Focused root/help/version/completion/extension tests; actual `framework` binary build and isolated-directory probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; public help is stable, four shell completions stream to stdout, context reaches extensions, errors render once, and no runtime storage/log artifacts appear |
+| M5.2 | Real note-service discovery plus temporary-module marker/signature/duplicate diagnostics; focused race; full Go/race/CGO-free suites; vet/lint/tidy | Pass; only explicit command/MCP markers are selected, effects and named struct types are validated, results sort stably, and failures carry file/line positions without executing application code |
 
 ## Milestone 1 — verify the foundation
 
@@ -173,7 +174,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
 - [x] **M5.1** Add the Cobra `framework` root with stable help, flags, completion,
   and extension points while proving help and generator commands do not start
   runtime services or open application storage.
-- [ ] **M5.2** Implement go/packages/type-based annotation discovery for the one
+- [x] **M5.2** Implement go/packages/type-based annotation discovery for the one
   supported service signature with command/MCP opt-in markers, descriptions,
   effect metadata, stable ordering, and file/line diagnostics for unsupported or
   duplicate declarations.
