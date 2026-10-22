@@ -9,6 +9,7 @@ require (
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/samber/do/v2 v2.1.0
+	go.etcd.io/bbolt v1.5.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/gorm v1.31.2
 )

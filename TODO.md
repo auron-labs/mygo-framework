@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 2 — runtime and one complete feature
-- Current item: M3.4 — implement the optional bbolt settings adapter
-- Last verification: M3.3 overlay unit/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
-- Next action: add the isolated bbolt adapter with bounded locking and the common persistence contract
+- Current item: M3.5 — define and adapt secret storage
+- Last verification: M3.4 bbolt contract/race/lock tests plus full/race/CGO-free suites, vet/lint/tidy and default-import audit pass
+- Next action: add the SecretStore contract, memory test adapter, and namespaced MyGo Secrets adapter
 
 ## Working rules
 
@@ -49,6 +49,7 @@ and verification evidence before the next item starts.
 | M3.1 | Settings unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; registered generic keys preserve defaults and explicit zero values, reject unknown or invalid data contextually, validate before writes, and use no mutable cache |
 | M3.2 | Shared SQLite adapter contract and race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; the versioned `mygo_framework_settings` table persists exact JSON across reopen, copies bytes, honors cancellation, supports concurrent access, and borrows the sole application pool |
 | M3.3 | Overlay unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; reads enforce flag → environment → persistence → default precedence, explicit zero overrides survive, construction never writes, and mutations target persistence only |
+| M3.4 | Shared bbolt adapter contract and race tests; real process-lock contention; full Go/race/CGO-free suites; vet/lint/tidy; default app dependency audit | Pass; one bucket owns copied JSON, close is idempotent, a second open returns an actionable timeout inside the one-second bound, and bbolt is absent from the default app graph |
 
 ## Milestone 1 — verify the foundation
 
@@ -124,7 +125,7 @@ Reference: [`PLAN.md` — Milestone 3](PLAN.md#milestone-3-configuration-and-sec
 - [x] **M3.3** Implement explicit flag/environment overlays with
   flag → environment → persisted → default precedence and prove overrides never
   persist silently.
-- [ ] **M3.4** Implement the optional bbolt adapter with one bucket, copied read
+- [x] **M3.4** Implement the optional bbolt adapter with one bucket, copied read
   bytes, bounded lock timeout, actionable busy errors, one close owner, and the
   same adapter contract tests without adding it to the default app import graph.
 - [ ] **M3.5** Define the injectable `SecretStore`, add a memory test adapter, and
