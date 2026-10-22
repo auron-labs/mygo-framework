@@ -494,6 +494,26 @@ busy timeout, foreign-key mode, WAL mode, idempotent close, migration, and
 close/reopen persistence. The probe also stored and reloaded a note from a path
 containing a space while running from a `CGO_ENABLED=0` build.
 
+## Cross-platform compilation
+
+The complete package graph was cross-compiled on 22 October 2026 with Go
+1.27.3 and `CGO_ENABLED=0`. Each target used an isolated build cache and
+`go build ./...`; this is compile evidence only unless the runtime column says
+otherwise.
+
+| Target | Compile | Runtime evidence in this check |
+| --- | --- | --- |
+| Linux/amd64 | Pass | Not rerun here; this Ubuntu 25.10 host is exercised in M7.2 |
+| Linux/arm64 | Pass | Unavailable: no Linux/arm64 runner |
+| macOS/amd64 | Pass | Unavailable: no macOS runner |
+| macOS/arm64 | Pass | Unavailable: no macOS runner |
+| Windows/amd64 | Pass | Unavailable: no Windows runner |
+| Windows/arm64 | Pass | Unavailable: no Windows/arm64 runner |
+
+The host `go test -race ./...` check passed separately on Linux/amd64. Race
+execution is not inferred from cross-compilation, and none of the macOS,
+Windows, or non-host architecture binaries were executed on this Linux runner.
+
 ## Baseline measurements
 
 The baseline was measured on Ubuntu 25.10 with Linux 6.17.0-41-generic. The
