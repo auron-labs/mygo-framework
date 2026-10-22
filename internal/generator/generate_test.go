@@ -46,7 +46,8 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 
 	desktop := string(contents["app/desktop/framework_generated.go"])
 	if !strings.Contains(desktop, "type CreateResponse struct") || !strings.Contains(desktop, "func NewNotes") ||
-		!strings.Contains(desktop, "func (a *Notes) Create") || strings.Contains(desktop, "func (a *Notes) Inspect") {
+		!strings.Contains(desktop, "func (a *Notes) Create") || strings.Contains(desktop, "func (a *Notes) Inspect") ||
+		strings.Contains(desktop, "func NewSearch") {
 		t.Fatalf("desktop output:\n%s", desktop)
 	}
 	bindings := string(contents["framework_bindings_generated.go"])
@@ -54,7 +55,10 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 		t.Fatalf("bindings output:\n%s", bindings)
 	}
 	providers := string(contents["app/bootstrap/framework_generated.go"])
-	for _, want := range []string{"registerGeneratedServices", "provideNotes", "resolveRequiredServices", "ResolveNotes"} {
+	for _, want := range []string{
+		"registerGeneratedServices", "provideNotes", "provideSearch", "resolveRequiredServices", "ResolveNotes",
+		"func (b *Bootstrap) mcpResolvers(injector do.Injector)", "resolvers.Notes", "resolvers.Search",
+	} {
 		if !strings.Contains(providers, want) {
 			t.Fatalf("bootstrap output lacks %q:\n%s", want, providers)
 		}
@@ -65,10 +69,13 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 		`Name:        "fixture_create"`,
 		`Description: "Create creates a fixture."`,
 		`Name:        "fixture_inspect"`,
+		`Name:        "fixture_lookup"`,
 		"ReadOnlyHint:    true",
 		"DestructiveHint: boolPointer(false)",
 		"sdk.ToolHandlerFor[services.Input, services.CreateOutput]",
 		"output, err := service.Create(ctx, input)",
+		"MCP resolver Notes is required",
+		"MCP resolver Search is required",
 	} {
 		if !strings.Contains(tools, want) {
 			t.Fatalf("MCP output lacks %q:\n%s", want, tools)
@@ -151,7 +158,9 @@ import "context"
 type Input struct{}
 type CreateOutput struct{}
 type InspectOutput struct{}
+type SearchOutput struct{}
 type Notes struct{}
+type Search struct{}
 
 // Create creates a fixture.
 // framework:command fixture.create
@@ -169,6 +178,12 @@ func (s *Notes) Inspect(ctx context.Context, input Input) (InspectOutput, error)
 // Hidden is an ordinary exported method without MCP exposure.
 func (s *Notes) Hidden(ctx context.Context, input Input) (InspectOutput, error) {
 	return InspectOutput{}, nil
+}
+
+// Lookup searches the fixture without a desktop command.
+// framework:mcp fixture_lookup readonly=true destructive=false
+func (s *Search) Lookup(ctx context.Context, input Input) (SearchOutput, error) {
+	return SearchOutput{}, nil
 }
 `
 	if err := os.WriteFile(filepath.Join(serviceDirectory, "service.go"), []byte(source), 0o600); err != nil {

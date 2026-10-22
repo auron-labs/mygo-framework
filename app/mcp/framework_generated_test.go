@@ -1,3 +1,4 @@
+// Package mcp tests the generated MCP registrations with the official SDK.
 package mcp
 
 import (

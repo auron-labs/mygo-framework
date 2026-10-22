@@ -81,8 +81,10 @@ type bindingData struct {
 
 type providerData struct {
 	Header       string
+	MCPPath      string
 	ServicesPath string
 	Services     []serviceData
+	MCPServices  []serviceData
 }
 
 type toolData struct {
@@ -183,8 +185,10 @@ func renderGeneratedFiles(methods []Method) ([]generatedFile, error) {
 	}
 	providers, err := renderGo(providersTemplate, providerData{
 		Header:       generatedHeader,
+		MCPPath:      modulePath + "/app/mcp",
 		ServicesPath: modulePath + "/app/services",
-		Services:     services,
+		Services:     selectedServices(methods, func(method Method) bool { return method.Command != "" || method.MCP != nil }),
+		MCPServices:  selectedServices(methods, func(method Method) bool { return method.MCP != nil }),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("render bootstrap providers: %w", err)
@@ -199,6 +203,27 @@ func renderGeneratedFiles(methods []Method) ([]generatedFile, error) {
 		{path: "framework_bindings_generated.go", content: bindings},
 		{path: filepath.ToSlash(filepath.Join("app", "mcp", "framework_generated.go")), content: tools},
 	}, nil
+}
+
+func selectedServices(methods []Method, include func(Method) bool) []serviceData {
+	selected := map[string]serviceData{}
+	for _, method := range methods {
+		if !include(method) {
+			continue
+		}
+		selected[method.Service] = serviceData{
+			Name:         method.Service,
+			Type:         "services." + method.Service,
+			Resolver:     "Resolve" + method.Service,
+			RuntimeLabel: strings.ToLower(method.Service),
+		}
+	}
+	services := make([]serviceData, 0, len(selected))
+	for _, service := range selected {
+		services = append(services, service)
+	}
+	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
+	return services
 }
 
 func renderDesktop(modulePath string, methods []Method) ([]byte, []serviceData, error) {
@@ -482,6 +507,7 @@ const providersTemplate = `{{.Header}}package bootstrap
 import (
 	"fmt"
 	"log/slog"
+	appMCP "{{.MCPPath}}"
 	services "{{.ServicesPath}}"
 
 	"github.com/samber/do/v2"
@@ -491,6 +517,18 @@ func registerGeneratedServices(bootstrap *Bootstrap) {
 {{- range .Services }}
 	do.Provide(bootstrap.injector, provide{{.Name}})
 {{- end }}
+}
+
+func (b *Bootstrap) mcpResolvers(injector do.Injector) (appMCP.Resolvers, error) {
+	resolvers := appMCP.Resolvers{}
+{{- range .MCPServices }}
+	{{.RuntimeLabel}}, err := do.Invoke[*services.{{.Name}}](injector)
+	if err != nil {
+		return appMCP.Resolvers{}, fmt.Errorf("resolve {{.RuntimeLabel}} MCP service: %w", err)
+	}
+	resolvers.{{.Name}} = func() (*services.{{.Name}}, error) { return {{.RuntimeLabel}}, nil }
+{{- end }}
+	return resolvers, nil
 }
 
 func (b *Bootstrap) resolveRequiredServices() error {
@@ -539,6 +577,15 @@ type Resolvers struct {
 {{- range .Services }}
 	{{.Name}} func() (*{{.Type}}, error)
 {{- end }}
+}
+
+func (r Resolvers) validate() error {
+{{- range .Services }}
+	if r.{{.Name}} == nil {
+		return fmt.Errorf("MCP resolver {{.Name}} is required")
+	}
+{{- end }}
+	return nil
 }
 
 // RegisterGeneratedTools registers only explicitly annotated service methods.
