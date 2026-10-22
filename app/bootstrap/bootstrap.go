@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"mygo-framework/app/services"
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
 	"mygo-framework/logging"
@@ -58,6 +59,7 @@ func New() *Bootstrap {
 	do.Provide(bootstrap.injector, provideLogger)
 	do.Provide(bootstrap.injector, bootstrap.provideDatabaseResource)
 	do.Provide(bootstrap.injector, provideDatabase)
+	do.Provide(bootstrap.injector, provideNotes)
 
 	return bootstrap
 }
@@ -146,6 +148,9 @@ func (b *Bootstrap) resolveRequired() error {
 	}
 	if _, err := do.Invoke[*database.Database](b.injector); err != nil {
 		return fmt.Errorf("resolve application database: %w", err)
+	}
+	if _, err := do.Invoke[*services.Notes](b.injector); err != nil {
+		return fmt.Errorf("resolve notes service: %w", err)
 	}
 
 	return nil
@@ -244,6 +249,7 @@ func (b *Bootstrap) provideDatabaseResource(injector do.Injector) (*databaseReso
 	if err != nil {
 		return nil, fmt.Errorf("open runtime database: %w", err)
 	}
+	database.GORM.Logger = logging.NewGORM(logger)
 	logger.InfoContext(ctx, "database ready",
 		slog.String("operation", "database.open"),
 		slog.String("component", "database"),
@@ -274,4 +280,17 @@ func provideDatabase(injector do.Injector) (*database.Database, error) {
 	}
 
 	return resource.database, nil
+}
+
+func provideNotes(injector do.Injector) (*services.Notes, error) {
+	database, err := do.Invoke[*database.Database](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve database for notes service: %w", err)
+	}
+	validator, err := do.Invoke[*validation.Validator](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve validator for notes service: %w", err)
+	}
+
+	return services.NewNotes(database.GORM, validator), nil
 }

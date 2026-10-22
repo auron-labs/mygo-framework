@@ -16,6 +16,7 @@ import (
 	"github.com/ncruces/go-sqlite3/gormlite"
 	"github.com/pressly/goose/v3"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -69,6 +70,7 @@ func Open(ctx context.Context, path string, migrations fs.FS) (_ *Database, err 
 
 	database.GORM, err = gorm.Open(gormlite.OpenDB(sqlDB), &gorm.Config{
 		DisableAutomaticPing: true,
+		Logger:               logger.Discard,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open GORM over SQLite database %q: %w", path, err)

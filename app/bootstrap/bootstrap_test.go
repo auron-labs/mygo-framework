@@ -3,7 +3,8 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"mygo-framework/app/models"
+	"mygo-framework/app/requests"
+	"mygo-framework/app/services"
 	"mygo-framework/internal/database"
 	"mygo-framework/problem"
 	appRuntime "mygo-framework/runtime"
@@ -37,8 +38,8 @@ func TestStartEagerlyConstructsRequiredGraph(t *testing.T) {
 		}
 	})
 
-	if got := len(bootstrap.injector.ListInvokedServices()); got != 7 {
-		t.Fatalf("invoked services after start = %d, want 7", got)
+	if got := len(bootstrap.injector.ListInvokedServices()); got != 8 {
+		t.Fatalf("invoked services after start = %d, want 8", got)
 	}
 	if got := bootstrap.Readiness().State(); got != appRuntime.StateReady {
 		t.Fatalf("readiness state = %d, want ready", got)
@@ -67,8 +68,14 @@ func TestRuntimeMigrationPersistsAndDatabaseDisposesOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve first database: %v", err)
 	}
-	want := models.Note{Body: "persists through runtime restart"}
-	if err := firstDatabase.GORM.WithContext(t.Context()).Create(&want).Error; err != nil {
+	firstService, err := do.Invoke[*services.Notes](first.injector)
+	if err != nil {
+		t.Fatalf("resolve first notes service: %v", err)
+	}
+	created, err := firstService.Create(t.Context(), requests.CreateNoteInput{
+		Body: "persists through runtime restart",
+	})
+	if err != nil {
 		t.Fatalf("create note: %v", err)
 	}
 	if err := first.Shutdown(t.Context()); err != nil {
@@ -90,16 +97,16 @@ func TestRuntimeMigrationPersistsAndDatabaseDisposesOnce(t *testing.T) {
 			t.Errorf("shutdown second runtime: %v", err)
 		}
 	})
-	secondDatabase, err := do.Invoke[*database.Database](second.injector)
+	secondService, err := do.Invoke[*services.Notes](second.injector)
 	if err != nil {
-		t.Fatalf("resolve second database: %v", err)
+		t.Fatalf("resolve second notes service: %v", err)
 	}
-	var got models.Note
-	if err := secondDatabase.GORM.WithContext(t.Context()).First(&got, want.ID).Error; err != nil {
-		t.Fatalf("reload note: %v", err)
+	listed, err := secondService.List(t.Context(), requests.ListNotesInput{})
+	if err != nil {
+		t.Fatalf("list reopened notes: %v", err)
 	}
-	if got.Body != want.Body {
-		t.Fatalf("reloaded body = %q, want %q", got.Body, want.Body)
+	if len(listed.Notes) != 1 || listed.Notes[0].Body != created.Note.Body {
+		t.Fatalf("reopened notes = %#v, want %#v", listed.Notes, created.Note)
 	}
 }
 
