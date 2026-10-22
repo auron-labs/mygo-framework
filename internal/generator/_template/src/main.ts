@@ -1,6 +1,6 @@
 import { createForm, type FormState } from "./framework/form";
 import { runRequest } from "./framework/request";
-import { Notes, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
+import { Notes, events, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
 
 const formElement = document.querySelector<HTMLFormElement>("#note-form")!;
 const input = document.querySelector<HTMLInputElement>("#note-body")!;
@@ -95,6 +95,7 @@ const loadNotes = async () => {
 };
 
 noteForm.subscribe(renderForm);
+const stopNoteChanges = events.notesChanged.on(() => void loadNotes());
 
 formElement.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -110,17 +111,18 @@ formElement.addEventListener("submit", async (event) => {
   }
 
   noteForm.reset();
-  if (await loadNotes()) {
-    status.textContent = "Note added.";
-    input.focus();
-  }
+	status.textContent = "Note added.";
+	input.focus();
 });
 
 input.addEventListener("input", () => {
   noteForm.setField("body", input.value);
 });
 
-window.addEventListener("pagehide", () => noteForm.dispose(), { once: true });
+window.addEventListener("pagehide", () => {
+	noteForm.dispose();
+	stopNoteChanges();
+}, { once: true });
 
 showStarting();
 void loadNotes();

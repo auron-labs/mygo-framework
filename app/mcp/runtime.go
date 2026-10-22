@@ -100,13 +100,14 @@ func NewRuntime(
 		return nil, fmt.Errorf("bind MCP loopback listener: %w", err)
 	}
 	sdkServer := sdk.NewServer(&sdk.Implementation{Name: name, Version: "1"}, &sdk.ServerOptions{Logger: logger})
-	RegisterGeneratedTools(sdkServer, resolvers)
+	RegisterGeneratedTools(sdkServer, resolvers, logger)
 	protection := http.NewCrossOriginProtection()
 	handler := sdk.NewStreamableHTTPHandler(
 		func(*http.Request) *sdk.Server { return sdkServer },
 		&sdk.StreamableHTTPOptions{
-			Stateless: true,
-			Logger:    logger,
+			Stateless:                    true,
+			Logger:                       logger,
+			PropagateRequestCancellation: true,
 		},
 	)
 	token := rand.Text()

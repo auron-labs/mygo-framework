@@ -22,15 +22,19 @@ type ListNotesOutput struct {
 	Notes []models.Note `json:"notes" jsonschema:"Notes in creation order."`
 }
 
+// NoteChanged publishes a committed note change to application adapters.
+type NoteChanged func(context.Context, models.Note)
+
 // Notes implements the reference application's note features.
 type Notes struct {
-	database  *gorm.DB
-	validator *validation.Validator
+	database    *gorm.DB
+	validator   *validation.Validator
+	noteChanged NoteChanged
 }
 
 // NewNotes constructs the note service from direct dependencies.
-func NewNotes(database *gorm.DB, validator *validation.Validator) *Notes {
-	return &Notes{database: database, validator: validator}
+func NewNotes(database *gorm.DB, validator *validation.Validator, noteChanged NoteChanged) *Notes {
+	return &Notes{database: database, validator: validator, noteChanged: noteChanged}
 }
 
 // Create validates and stores one note in a service-owned transaction.
@@ -53,6 +57,7 @@ func (s *Notes) Create(ctx context.Context, input requests.CreateNoteInput) (Cre
 	}); err != nil {
 		return CreateNoteOutput{}, fmt.Errorf("create note transaction: %w", err)
 	}
+	s.noteChanged(ctx, output.Note)
 
 	return output, nil
 }

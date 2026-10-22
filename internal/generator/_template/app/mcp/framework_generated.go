@@ -5,6 +5,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	requests "mygo-framework/app/requests"
 	services "mygo-framework/app/services"
@@ -25,23 +26,23 @@ func (r Resolvers) validate() error {
 }
 
 // RegisterGeneratedTools registers only explicitly annotated service methods.
-func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers) {
-	sdk.AddTool(server, &sdk.Tool{
+func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers, logger *slog.Logger) {
+	registerTool(server, &sdk.Tool{
 		Name:        "notes_create",
 		Description: "Create validates and stores one note in a service-owned transaction.",
 		Annotations: &sdk.ToolAnnotations{
 			ReadOnlyHint:    false,
 			DestructiveHint: boolPointer(false),
 		},
-	}, toolNotesCreate(resolvers.Notes))
-	sdk.AddTool(server, &sdk.Tool{
+	}, logger, toolNotesCreate(resolvers.Notes))
+	registerTool(server, &sdk.Tool{
 		Name:        "notes_list",
 		Description: "List validates the request and returns notes in creation order.",
 		Annotations: &sdk.ToolAnnotations{
 			ReadOnlyHint:    true,
 			DestructiveHint: boolPointer(false),
 		},
-	}, toolNotesList(resolvers.Notes))
+	}, logger, toolNotesList(resolvers.Notes))
 }
 
 func toolNotesCreate(resolve func() (*services.Notes, error)) sdk.ToolHandlerFor[requests.CreateNoteInput, services.CreateNoteOutput] {

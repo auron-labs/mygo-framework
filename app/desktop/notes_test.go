@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"mygo-framework/app/bootstrap"
+	"mygo-framework/app/models"
 	"mygo-framework/app/requests"
 	"mygo-framework/app/services"
 	"mygo-framework/database/migrations"
@@ -106,7 +107,7 @@ func TestNotesLogsUnexpectedFailureOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	service := services.NewNotes(openedDatabase.GORM, validation.New())
+	service := services.NewNotes(openedDatabase.GORM, validation.New(), func(context.Context, models.Note) {})
 	if err := openedDatabase.Close(); err != nil {
 		t.Fatalf("close database: %v", err)
 	}
