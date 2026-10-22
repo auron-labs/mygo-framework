@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 3 — configuration and secrets
-- Current item: M4.5 — prove HTTP cancellation and retry boundaries
-- Last verification: M4.4 HTTP client tests/race, full Go and CGO-free suites, vet, lint, and tidy pass
-- Next action: prove timeout/cancellation propagation and explicit bounded retry behavior without implicit write retries
+- Completed milestone: milestone 4 — forms and HTTP helpers
+- Current item: M5.1 — add the framework CLI root
+- Last verification: M4.5 local timeout/cancellation/retry tests and full normal/race/CGO-free/static suites pass
+- Next action: add the Cobra root while keeping help and generation paths independent of runtime startup
 
 ## Working rules
 
@@ -56,6 +56,7 @@ and verification evidence before the next item starts.
 | M4.2 | 6 focused form tests and 16 total web tests; strict TypeScript check; production frontend build | Pass; copied observable state tracks values/dirty/touched/errors, reset establishes a new baseline, duplicate submit shares one promise, pending always clears, and reset/dispose suppress stale completion |
 | M4.3 | 16 web tests; strict TypeScript check; production frontend build; controlled browser validation, held duplicate submission, success/reset, and transport-failure flows | Pass; the vanilla notes UI uses the helpers, maps field errors accessibly, issues one create for simultaneous submits, resets after success, and shows one safe runtime alert on transport failure |
 | M4.4 | 4 focused HTTP client tests and race run; full Go and CGO-free suites; vet/lint/tidy | Pass; Resty v2.17.2 applies validated URL/timeout/header/transport configuration, JSON round trips, status errors, safe metrics, native-client access, and zero retries by default |
+| M4.5 | Local `httptest` timeout, caller-cancellation, read-retry, write-gate tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; both cancellation sources reached server contexts, reads stopped at the configured bound, writes ran once unless explicitly enabled, and Resty's raw retry logger is suppressed |
 
 ## Milestone 1 — verify the foundation
 
@@ -158,7 +159,7 @@ Reference: [`PLAN.md` — Milestone 4](PLAN.md#milestone-4-forms-and-http-helper
 - [x] **M4.4** Add the configured Resty v2 client with context, timeout, base URL,
   headers, JSON behavior, consistent HTTP errors, safe request metrics, supplied
   test transport, underlying-client access, and retries disabled by default.
-- [ ] **M4.5** Prove timeout/cancellation propagation, explicit bounded retry
+- [x] **M4.5** Prove timeout/cancellation propagation, explicit bounded retry
   behavior, and that writes are never retried without explicit configuration by
   using a local `httptest` server.
 
