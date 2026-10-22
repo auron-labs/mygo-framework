@@ -198,6 +198,21 @@ fixed one-second lock timeout; contention preserves bbolt's timeout sentinel and
 adds an actionable busy message. It passes the shared persistence contract and
 remains absent from the default application's dependency graph.
 
+## Secret storage
+
+`secrets.SecretStore` is a framework-neutral, injectable get/set/delete
+boundary with a stable missing-secret sentinel and caller-owned byte slices.
+The concurrency-safe memory implementation exists only as an explicit test
+adapter; it is never selected as a fallback.
+
+The MyGo adapter delegates exclusively to the operating-system credential store
+under the stable `<application>/<environment>` service namespace. Namespace
+parts must be non-empty and cannot contain the reserved separator or NUL. The
+adapter maps missing values to the framework sentinel while preserving MyGo's
+original missing error, and wrapping preserves `errors.ErrUnsupported` when an
+OS credential store is unavailable. A shared contract verifies empty secrets,
+overwrite/delete behavior, byte ownership, cancellation, and concurrent use.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

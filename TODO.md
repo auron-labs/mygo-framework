@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 2 — runtime and one complete feature
-- Current item: M3.5 — define and adapt secret storage
-- Last verification: M3.4 bbolt contract/race/lock tests plus full/race/CGO-free suites, vet/lint/tidy and default-import audit pass
-- Next action: add the SecretStore contract, memory test adapter, and namespaced MyGo Secrets adapter
+- Current item: M3.6 — prove milestone 3 configuration and secrets
+- Last verification: M3.5 shared secret contract/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
+- Next action: run both settings backends, overlays, lock contention, and available keystore smoke coverage as one acceptance pass
 
 ## Working rules
 
@@ -50,6 +50,7 @@ and verification evidence before the next item starts.
 | M3.2 | Shared SQLite adapter contract and race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; the versioned `mygo_framework_settings` table persists exact JSON across reopen, copies bytes, honors cancellation, supports concurrent access, and borrows the sole application pool |
 | M3.3 | Overlay unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; reads enforce flag → environment → persistence → default precedence, explicit zero overrides survive, construction never writes, and mutations target persistence only |
 | M3.4 | Shared bbolt adapter contract and race tests; real process-lock contention; full Go/race/CGO-free suites; vet/lint/tidy; default app dependency audit | Pass; one bucket owns copied JSON, close is idempotent, a second open returns an actionable timeout inside the one-second bound, and bbolt is absent from the default app graph |
+| M3.5 | Shared memory/MyGo secret contract and race tests; namespace and error-identity tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; copied secrets support missing/empty/delete/concurrent behavior, namespaces are stable, MyGo missing and OS-unavailable errors remain detectable, and no plaintext fallback exists |
 
 ## Milestone 1 — verify the foundation
 
@@ -128,7 +129,7 @@ Reference: [`PLAN.md` — Milestone 3](PLAN.md#milestone-3-configuration-and-sec
 - [x] **M3.4** Implement the optional bbolt adapter with one bucket, copied read
   bytes, bounded lock timeout, actionable busy errors, one close owner, and the
   same adapter contract tests without adding it to the default app import graph.
-- [ ] **M3.5** Define the injectable `SecretStore`, add a memory test adapter, and
+- [x] **M3.5** Define the injectable `SecretStore`, add a memory test adapter, and
   add a stable app/environment-namespaced MyGo Secrets adapter that preserves
   missing and OS-unavailable errors without plaintext fallback.
 - [ ] **M3.6** Prove both settings backends survive restart, reject invalid data,
