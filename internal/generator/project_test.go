@@ -18,11 +18,11 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Path != filepath.Join(parent, "acme-notes") || result.Files < 35 {
+	if result.Path != filepath.Join(parent, "acme-notes") || result.Files < 55 {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.5.5", "gorm.io/gorm v1.31.2"},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.5.5", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
 		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.5.5"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
@@ -35,11 +35,19 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		"internal/appctl/database.go":                {"InspectMigrations", "Migrate"},
 		"internal/appctl/root.go":                    {"data-directory"},
 		"database/migrations/00001_create_notes.sql": {"-- +goose Up", "CREATE TABLE notes"},
-		"src/framework/form.ts":                      {"export const createForm"},
-		"src/main.ts":                                {"events.notesChanged.on", "stopNoteChanges"},
-		"AGENTS.md":                                  {"framework make feature NAME", "Never hand-edit"},
-		"framework_bindings_generated.go":            {generatedHeader, `"acme-notes/app/bootstrap"`},
-		".git/HEAD":                                  {"ref: refs/heads/"},
+		"database/migrations/00002_create_mygo_framework_settings.sql": {"-- +goose Up", "CREATE TABLE mygo_framework_settings"},
+		"settings/settings.go":            {`package settings`, "func Get[T any]", "func Set[T any]"},
+		"settings/sqlite/sqlite.go":       {`"acme-notes/settings"`, "type Store struct"},
+		"settings/bbolt/bbolt.go":         {`"acme-notes/settings"`, "openTimeout = time.Second"},
+		"secrets/secrets.go":              {"type SecretStore interface", "ErrNotFound"},
+		"secrets/mygo/mygo.go":            {`"acme-notes/secrets"`, "mygoplatform.Secrets.Service"},
+		"secrets/memory/memory.go":        {`"acme-notes/secrets"`, "type Store struct"},
+		"httpclient/httpclient.go":        {"github.com/go-resty/resty/v2", "DefaultTimeout", "RetryOptions"},
+		"src/framework/form.ts":           {"export const createForm"},
+		"src/main.ts":                     {"events.notesChanged.on", "stopNoteChanges"},
+		"AGENTS.md":                       {"framework make feature NAME", "Never hand-edit"},
+		"framework_bindings_generated.go": {generatedHeader, `"acme-notes/app/bootstrap"`},
+		".git/HEAD":                       {"ref: refs/heads/"},
 	}
 	for path, expected := range checks {
 		assertFileContainsAll(t, result.Path, path, expected...)

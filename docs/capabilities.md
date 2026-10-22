@@ -4,6 +4,11 @@ This matrix maps the requested framework capabilities to the current source and
 direct verification. The status describes this repository on 22 October 2026;
 it is not a claim about an external release.
 
+The generated project template includes the SQLite and bbolt settings stores,
+memory and MyGo secret adapters, outbound HTTP client, and settings migration.
+The final fresh-project acceptance compiles and exercises those copied packages
+so their availability does not depend on the framework checkout.
+
 | Capability | Implementation | Direct evidence | Status and limits |
 | --- | --- | --- | --- |
 | Persistent configuration | Typed keys and uncached values in [`settings`](../settings/settings.go), flag/environment overlays in [`settings/overlay.go`](../settings/overlay.go), default SQLite storage, and optional bbolt storage | Contract, restart, invalid-data, precedence, concurrency, and process-lock tests in [`settings`](../settings/acceptance_test.go), [`settings/sqlite`](../settings/sqlite/sqlite_test.go), and [`settings/bbolt`](../settings/bbolt/bbolt_test.go) | Implemented and verified. SQLite is the reference-app default; bbolt is opt-in. |
@@ -21,6 +26,27 @@ it is not a claim about an external release.
 | MCP generation and runtime | Explicit service annotations generate official SDK tools; an optional authenticated loopback runtime shares the desktop graph in [`app/mcp`](../app/mcp) | Real SDK list/call, schema, validation, bearer, Host, origin, shared-service, UI-change, and shutdown-order tests in [`app/bootstrap/mcp_acceptance_test.go`](../app/bootstrap/mcp_acceptance_test.go) and [`app/mcp`](../app/mcp/runtime_test.go) | Implemented. Disabled by default; each enabled launch uses a new bearer token and `127.0.0.1` listener. |
 | Startup and shutdown | Synchronized readiness, rollback, app-lifetime context, and bounded MyGo quit stage in [`runtime`](../runtime) and [`app/desktop`](../app/desktop/quit.go) | Readiness, worker, quit re-entry, idempotence, deadline, and disposal-order tests plus packaged Linux smoke | Implemented and verified on Linux/amd64. |
 | Cross-platform build and desktop runtime | MyGo packaging with a CGO-free Go package graph | All packages compiled for Linux, macOS, and Windows on amd64 and arm64; Linux packaged startup/create/restart/shutdown was exercised through WebKitGTK | Compile-verified for six targets. Runtime-verified only on Linux/amd64; no macOS, Windows, or Linux/arm64 runner was available. |
+
+## Definition-of-done audit
+
+| Required outcome | Final evidence | Result |
+| --- | --- | --- |
+| A fresh application builds through MyGo | The compiled CLI created a 55-file app, added Bookmark, installed the frozen Bun graph, regenerated both adapter layers, passed `go build ./...`, and produced the Linux executable, Debian package, and tarball through `framework build` | Pass |
+| The application opens a usable UI | The fresh packaged app opened a 960×640 WebKitGTK window under Xvfb, accepted keyboard input through its real form, rendered `fresh audit persists`, and kept the form usable | Pass on Linux/amd64 |
+| Application records and settings persist | The UI-created note rendered again after process restart. Fresh-project acceptance stored typed settings through the shared SQLite pool and the optional bbolt adapter | Pass |
+| The application can use OS-protected secrets | The generated project compiles the MyGo adapter and exercises the same `SecretStore` contract through its memory adapter; root adapter tests preserve missing and unavailable errors and forbid plaintext fallback | Implemented with real-store limitation below |
+| Forms validate and recover correctly | All 16 fresh-project request/form tests passed, including field mapping, duplicate submission, thrown transport errors, reset, and stale completion | Pass |
+| Services can make cancellable HTTP requests | Fresh-project acceptance called a local JSON server through the copied configured client; root tests cover timeout, caller cancellation, safe metrics, and retry policy | Pass |
+| Shutdown is clean and bounded | The fresh packaged app received SIGTERM after its window appeared and exited with status 0. Root lifecycle and MCP tests cover re-entry, deadlines, listener ordering, active-handler drain, and one-time database disposal | Pass |
+| Explicit services can become MCP tools | Bookmark gained an explicit MCP marker; generation exposed `bookmarks_create` beside the two Notes tools, and an official SDK client created `MCP bookmark` through the fresh app's authenticated loopback endpoint | Pass |
+| UI and MCP share ordinary application services | Notes UI/MCP acceptance asserts pointer identity and UI-visible MCP mutation; generated Bookmark uses the same provider/resolver path | Pass |
+| No Goravel dependency or mandatory UI server exists | Dependency inspection finds neither Goravel nor generator/CLI/`x/tools` packages in the runtime graph. The normal UI uses MyGo bindings; MCP remains disabled by default | Pass |
+| Generators make a second feature without losing hand-written code | Fresh-project acceptance scaffolds Bookmark, preserves an appended implementation marker across repeated generation, detects deliberate stale output without writing, then repairs it | Pass |
+
+The fresh runtime graph contains 365 packages and no generator, CLI, or
+`golang.org/x/tools` package. Normal, race, and CGO-free repository suites,
+static analysis, 32 web tests, production web build, generated-file freshness,
+module tidiness, and a 100-run CGO-free MCP shutdown stress check all pass.
 
 ## Recorded platform limitations
 

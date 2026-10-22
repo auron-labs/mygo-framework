@@ -83,11 +83,13 @@ func TestMCPAcceptance(t *testing.T) {
 		t.Fatalf("read MCP connection details: %v", err)
 	}
 
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	t.Cleanup(transport.CloseIdleConnections)
 	httpClient := &http.Client{
 		Timeout: 5 * time.Second,
 		Transport: bearerTransport{
 			token: details.BearerToken,
-			base:  http.DefaultTransport,
+			base:  transport,
 		},
 	}
 	client := sdk.NewClient(&sdk.Implementation{Name: "acceptance", Version: "test"}, nil)
@@ -172,6 +174,8 @@ func TestMCPAcceptance(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("active MCP call did not finish during graceful shutdown")
 	}
+	_ = session.Close()
+	transport.CloseIdleConnections()
 	select {
 	case err := <-shutdown:
 		if err != nil {
