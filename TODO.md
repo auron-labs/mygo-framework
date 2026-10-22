@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.6 — implement create/list note services
-- Last verification: M2.5 full/race/CGO-free suites, vet, lint, and tidy pass
-- Next action: add direct-dependency note services with validation and transaction ownership
+- Current item: M2.7 — add the narrow MyGo notes adapter
+- Last verification: M2.6 full/race/CGO-free suites, vet, lint, and tidy pass
+- Next action: map readiness and service results into concrete desktop responses
 
 ## Working rules
 
@@ -41,6 +41,7 @@ and verification evidence before the next item starts.
 | M2.3 | Bootstrap graph unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; required providers resolve eagerly, missing registrations retain cause, and dependent resources dispose first |
 | M2.4 | Logging unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; development and packaged sinks work, sensitive fields are redacted, and cancellation produces no error record |
 | M2.5 | Runtime/database integration and race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; migrations persist through restart, failed SQL is named and reported unavailable, rollback closes opened resources, and shutdown is one-time |
+| M2.6 | Note service, bootstrap, and safe GORM logging unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; entry validation, context cancellation, transaction rollback, restart persistence, and payload-free ORM diagnostics are asserted |
 
 ## Milestone 1 — verify the foundation
 
@@ -87,7 +88,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 - [x] **M2.5** Move the proven database/migration path behind the runtime owner,
   apply embedded forward migrations before readiness, and test migration
   persistence, failure reporting, rollback cleanup, and one-time disposal.
-- [ ] **M2.6** Implement ordinary create/list note service methods with direct
+- [x] **M2.6** Implement ordinary create/list note service methods with direct
   constructor dependencies, context-aware GORM calls, service-entry validation,
   and service-owned transaction boundaries.
 - [ ] **M2.7** Add the narrow MyGo notes adapter with concrete per-operation wire

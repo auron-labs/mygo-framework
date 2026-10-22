@@ -88,6 +88,20 @@ while operational logs replace the complete database path with a placeholder.
 Runtime shutdown and failed-start rollback each have one-shot guards; repeated
 shutdown does not close the shared pool twice.
 
+## Note service path
+
+[`app/services`](../app/services/notes.go) contains the transport-independent
+note feature. Its constructor receives GORM and the shared validator directly.
+Create and list accept concrete inputs from `app/requests`, validate at the
+public service entry point, and use the caller's context for every database
+operation. Create owns its GORM transaction; an error after insertion rolls the
+write back before it reaches an adapter.
+
+The runtime installs a GORM handler backed by the configured `slog.Logger`.
+It records safe component, operation, duration, and row-count diagnostics but
+never SQL text or parameter values. Query errors continue to the adapter for
+the single unexpected-failure record.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
