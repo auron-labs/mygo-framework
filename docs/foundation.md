@@ -422,6 +422,26 @@ Neither command imports or starts MyGo, application bootstrap, feature services,
 secrets, lifetime workers, or an RPC bridge. The desktop process must be closed
 while either command runs.
 
+## Fresh-project generator acceptance
+
+The opt-in `TestGeneratedProjectAcceptance` drives the compiled `framework`
+executable rather than test-only generator helpers. It creates a disposable
+project, scaffolds a Bookmark feature, installs the frozen Bun graph, and runs
+the pinned MyGo generator twice. A Bun test imports the resulting `Bookmark`
+client and calls `Bookmark.create` through `mygo-runtime`, asserting the exact
+`Bookmark.Create` bridge call and typed response. The flow then builds every Go
+package and the production web target.
+
+The same test hashes all four framework-owned files and `src/mygo.ts` across
+repeat generation, deliberately makes the desktop adapter stale, proves
+`framework generate --check` reports it without writing, repairs it, and checks
+that an appended hand-written service implementation remains byte-identical.
+Run the full acceptance flow with pinned Go and Bun on `PATH`:
+
+```sh
+MYGO_GENERATOR_ACCEPTANCE=1 go test -run '^TestGeneratedProjectAcceptance$' -v ./internal/generator
+```
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
