@@ -117,6 +117,19 @@ the runtime in a background goroutine, and opens the window immediately. MyGo
 generation therefore sees the production binding set without opening logs,
 storage, or migrations.
 
+## Notes UI states
+
+The vanilla frontend starts with a live runtime status and a disabled composer.
+Successful list loading hides the status, enables input, and renders either the
+empty message or persisted notes with an accessible count. Startup and request
+availability failures keep the composer disabled and show a visible alert.
+
+The form sends every submission through backend validation. A body field error
+sets `aria-invalid`, shows an associated alert, and returns focus to the input.
+Successful creation reloads the persisted list and announces completion through
+the polite live region. Reduced-motion preferences disable the startup spinner,
+and the composer stacks at narrow widths.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
