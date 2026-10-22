@@ -17,6 +17,7 @@ It describes unreleased repository behavior, not a published compatibility promi
 | validator | 10.30.5 |
 | samber/do | 2.1.0 |
 | Lumberjack | 2.2.1 |
+| bbolt (optional) | 1.5.0 |
 
 These were tagged releases on 22 October 2026. The MyGo packages use the same
 release to keep the generated client and Go runtime compatible.
@@ -189,6 +190,13 @@ process environment. Reads resolve flags, then environment values, then the
 persistent store, with the typed layer supplying the default when all are
 missing. Construction and reads never save an override. Explicit writes and
 deletes pass through to persistence while the transient value remains in force.
+
+The optional bbolt adapter owns one `0600` database and one
+`mygo_framework_settings` bucket. It copies values before read transactions
+end, validates JSON before writes, and closes its database once. Opening uses a
+fixed one-second lock timeout; contention preserves bbolt's timeout sentinel and
+adds an actionable busy message. It passes the shared persistence contract and
+remains absent from the default application's dependency graph.
 
 ## Executed checks
 
