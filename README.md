@@ -97,6 +97,8 @@ command's `--help` output for the pinned MyGo options.
 
 - [Capability recipes](docs/recipes.md) show settings, secrets, HTTP,
   migrations, MCP exposure, and the exact verification commands.
+- [Capability matrix](docs/capabilities.md) maps each requested feature to its
+  implementation, direct evidence, and platform limits.
 - [Foundation and architecture notes](docs/foundation.md) record ownership,
   lifecycle, generator, security, platform, and performance behavior.
 - [Implementation plan](PLAN.md) is the authoritative scope and design record.

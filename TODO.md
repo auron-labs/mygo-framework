@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 7 — cross-platform verification and performance
-- Current item: M8.3 — add concise project guidance and a capability matrix
-- Last verification: M8.2 disposable quick-start project creation, frozen install, doctor, generated-output check, Go/CGO-free/web tests, typecheck, and local-link validation
-- Next action: refine generated `AGENTS.md` guidance and map every requested capability to implementation and verification evidence
+- Current item: M8.4 — perform the final fresh-project and definition-of-done audit
+- Last verification: M8.3 generator contract test plus 15-row capability/evidence/platform-limit matrix and local-link validation
+- Next action: create a fresh project, exercise a second feature and every documented capability boundary, open the UI, inspect the final diff/dependency graph, and audit each definition-of-done statement
 
 ## Working rules
 
@@ -76,6 +76,7 @@ and verification evidence before the next item starts.
 | M7.3 | Plain checkpoint `7188b65` and current framework: warm-module/empty-`GOCACHE` clean builds, temporary main-package source edits and rebuilds, three isolated Xvfb/D-Bus startup runs per mode, package byte counts, and `go list -deps` audit | Pass; clean build was 7.97 s plain versus 16.41 s framework, incremental was 0.46 s versus 0.92 s, startup medians were 179/176/176 ms, default and MCP shared one artifact, and no generator, CLI, or `x/tools` package leaked into its runtime graph |
 | M8.1 | Unfinished-marker and root/template inventory audit; `go test ./...`; `CGO_ENABLED=0 go build ./...`; `framework generate --check`; 32 web tests; `bun run build`; `go mod tidy -diff` | Pass; the runnable notes app and generated output remained complete, the Linux package built, dependencies stayed tidy, and only the superseded Milestone 1 `cmd/dbprobe` executable was removed while its historical evidence was retained |
 | M8.2 | Built the CLI; created a disposable app through the documented path; frozen Bun install; `framework doctor`; `framework generate --check`; normal and CGO-free Go tests; 16 generated-project web tests; TypeScript check; local Markdown link scan | Pass; the quick start completed on Linux, all generated-project checks passed, and focused reference-app recipes cover feature generation, settings, secrets, HTTP, migrations, MCP, and exact development/build/test commands |
+| M8.3 | Audited all 13 requested capability rows plus lifecycle and platform runtime; validated every local matrix link; `go test ./internal/generator` | Pass; generated `AGENTS.md` now records workflows, ownership, generation, and trust boundaries, while the 15-row matrix links implementation and direct evidence and preserves the Linux keyring and unavailable-runner limitations |
 
 ## Milestone 1 — verify the foundation
 
@@ -267,7 +268,7 @@ and [`PLAN.md` — definition of done](PLAN.md#definition-of-done).
 - [x] **M8.2** Write the quick start and focused examples for adding a feature,
   saving a setting, reading a secret, calling HTTP, defining a migration, and
   exposing an MCP tool, including exact development/build/test commands.
-- [ ] **M8.3** Generate concise project `AGENTS.md` guidance and a capability
+- [x] **M8.3** Generate concise project `AGENTS.md` guidance and a capability
   matrix mapping every requested feature to its implementation and verification,
   with evidence for any genuinely blocked platform check.
 - [ ] **M8.4** Perform the final fresh-project audit: create a project, add and use
