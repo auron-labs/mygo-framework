@@ -32,7 +32,13 @@ form.addEventListener("submit", async (event) => {
   error.hidden = true;
 
   try {
-    await Notes.create(input.value);
+    const response = await Notes.create(input.value);
+    if (response.problem) {
+      throw new Error(response.problem.message);
+    }
+    if (!response.data) {
+      throw new Error("The note could not be added.");
+    }
     input.value = "";
     await renderNotes();
     status.textContent = "Note added.";

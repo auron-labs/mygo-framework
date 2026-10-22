@@ -4,10 +4,22 @@ import { call } from "mygo-runtime";
 
 // ---- Types ----
 
+/** CreateNoteResponse is the concrete desktop response for creating a note. */
+export interface CreateNoteResponse {
+  data: Note | null;
+  problem: Problem | null;
+}
+
 /** Note is the foundation example's in-memory note representation. */
 export interface Note {
   id: number;
   body: string;
+}
+
+/** Problem is the foundation example's structured application failure. */
+export interface Problem {
+  code: string;
+  message: string;
 }
 
 // ---- Services ----
@@ -15,7 +27,7 @@ export interface Note {
 /** Notes is the side-effect-free service exposed to the initial web frontend. */
 export const Notes = {
   /** Create adds an in-memory note. */
-  create(body: string): Promise<Note> {
+  create(body: string): Promise<CreateNoteResponse> {
     return call("Notes.Create", body);
   },
   /** List returns a snapshot of the in-memory notes. */

@@ -9,10 +9,11 @@ func TestNotesCreateAndList(t *testing.T) {
 
 	notes := &Notes{}
 
-	created, err := notes.Create("  Buy milk  ")
-	if err != nil {
-		t.Fatalf("create note: %v", err)
+	response := notes.Create("  Buy milk  ")
+	if response.Data == nil || response.Problem != nil {
+		t.Fatalf("create response = %#v", response)
 	}
+	created := *response.Data
 	if created.ID != 1 || created.Body != "Buy milk" {
 		t.Fatalf("created note = %#v", created)
 	}
@@ -31,8 +32,12 @@ func TestNotesRejectEmptyBody(t *testing.T) {
 	t.Parallel()
 
 	notes := &Notes{}
-	if _, err := notes.Create(" \n\t "); err == nil {
-		t.Fatal("Create accepted an empty note")
+	response := notes.Create(" \n\t ")
+	if response.Data != nil || response.Problem == nil {
+		t.Fatalf("empty-note response = %#v", response)
+	}
+	if response.Problem.Code != "validation" {
+		t.Fatalf("problem code = %q, want validation", response.Problem.Code)
 	}
 	if listed := notes.List(); len(listed) != 0 {
 		t.Fatalf("rejected note was stored: %#v", listed)

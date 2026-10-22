@@ -2,7 +2,6 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"strings"
 	"sync"
@@ -16,6 +15,18 @@ type Note struct {
 	Body string `json:"body"`
 }
 
+// Problem is the foundation example's structured application failure.
+type Problem struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+// CreateNoteResponse is the concrete desktop response for creating a note.
+type CreateNoteResponse struct {
+	Data    *Note    `json:"data"`
+	Problem *Problem `json:"problem"`
+}
+
 // Notes is the side-effect-free service exposed to the initial web frontend.
 type Notes struct {
 	mu     sync.Mutex
@@ -24,10 +35,13 @@ type Notes struct {
 }
 
 // Create adds an in-memory note.
-func (s *Notes) Create(body string) (Note, error) {
+func (s *Notes) Create(body string) CreateNoteResponse {
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return Note{}, errors.New("note body is required")
+		return CreateNoteResponse{Problem: &Problem{
+			Code:    "validation",
+			Message: "Note body is required.",
+		}}
 	}
 
 	s.mu.Lock()
@@ -37,7 +51,7 @@ func (s *Notes) Create(body string) (Note, error) {
 	note := Note{ID: s.nextID, Body: body}
 	s.notes = append(s.notes, note)
 
-	return note, nil
+	return CreateNoteResponse{Data: &note}
 }
 
 // List returns a snapshot of the in-memory notes.
