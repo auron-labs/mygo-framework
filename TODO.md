@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 7 — cross-platform verification and performance
-- Current item: M8.4 — perform the final fresh-project and definition-of-done audit
-- Last verification: M8.3 generator contract test plus 15-row capability/evidence/platform-limit matrix and local-link validation
-- Next action: create a fresh project, exercise a second feature and every documented capability boundary, open the UI, inspect the final diff/dependency graph, and audit each definition-of-done statement
+- Completed milestone: milestone 8 — handoff and bounded cleanup
+- Current item: complete — every `PLAN.md` checklist item is implemented
+- Last verification: M8.4 fresh-project capability acceptance, packaged UI persistence/restart, authenticated MCP call, clean SIGTERM, full repository gates, dependency audit, and definition-of-done review
+- Next action: hand off the runnable framework, reference app, generated starter, quick start, recipes, capability matrix, platform limits, and measured performance
 
 ## Working rules
 
@@ -77,6 +77,7 @@ and verification evidence before the next item starts.
 | M8.1 | Unfinished-marker and root/template inventory audit; `go test ./...`; `CGO_ENABLED=0 go build ./...`; `framework generate --check`; 32 web tests; `bun run build`; `go mod tidy -diff` | Pass; the runnable notes app and generated output remained complete, the Linux package built, dependencies stayed tidy, and only the superseded Milestone 1 `cmd/dbprobe` executable was removed while its historical evidence was retained |
 | M8.2 | Built the CLI; created a disposable app through the documented path; frozen Bun install; `framework doctor`; `framework generate --check`; normal and CGO-free Go tests; 16 generated-project web tests; TypeScript check; local Markdown link scan | Pass; the quick start completed on Linux, all generated-project checks passed, and focused reference-app recipes cover feature generation, settings, secrets, HTTP, migrations, MCP, and exact development/build/test commands |
 | M8.3 | Audited all 13 requested capability rows plus lifecycle and platform runtime; validated every local matrix link; `go test ./internal/generator` | Pass; generated `AGENTS.md` now records workflows, ownership, generation, and trust boundaries, while the 15-row matrix links implementation and direct evidence and preserves the Linux keyring and unavailable-runner limitations |
+| M8.4 | Opt-in fresh-project acceptance with Bookmark and copied settings/secrets/HTTP packages; `framework build`; real WebKitGTK create/restart captures; official SDK `bookmarks_create` call; direct SIGTERM; normal/race/CGO-free Go suites; 100-run CGO-free MCP acceptance; vet/lint/tidy/generation; 32 web tests/typecheck/build; runtime dependency and final diff audits | Pass on available Linux/amd64 runner; the fresh app rendered and persisted `fresh audit persists`, exposed only three annotated tools, created `MCP bookmark`, exited 0 on SIGTERM, kept all checks green, and retained the recorded macOS/Windows/Linux-arm64 and real-keyring limitations |
 
 ## Milestone 1 — verify the foundation
 
@@ -271,7 +272,7 @@ and [`PLAN.md` — definition of done](PLAN.md#definition-of-done).
 - [x] **M8.3** Generate concise project `AGENTS.md` guidance and a capability
   matrix mapping every requested feature to its implementation and verification,
   with evidence for any genuinely blocked platform check.
-- [ ] **M8.4** Perform the final fresh-project audit: create a project, add and use
+- [x] **M8.4** Perform the final fresh-project audit: create a project, add and use
   a second feature through the documented path, build/open the usable UI, verify
   persistence/settings/forms/HTTP/shutdown/optional MCP, inspect the final diff
   and dependency graph, and confirm every `PLAN.md` definition-of-done statement.

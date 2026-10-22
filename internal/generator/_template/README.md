@@ -17,6 +17,8 @@ framework dev
 The initial Notes feature demonstrates an embedded Goose migration, an ordinary
 validated Go service, explicit bootstrap registration, a generated desktop
 adapter, and the small TypeScript form/request helpers in `src/framework/`.
+The starter also carries the typed settings stores, memory and MyGo secret
+adapters, configured HTTP client, and framework settings migration.
 
 ## Add a feature
 
