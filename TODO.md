@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 3 — configuration and secrets
-- Current item: M4.4 — add the outbound HTTP client
-- Last verification: M4.3 web tests, strict typecheck/build, and controlled rendered-browser form flows pass
-- Next action: add the configured Resty v2 client and its transport/error/metrics contract
+- Current item: M4.5 — prove HTTP cancellation and retry boundaries
+- Last verification: M4.4 HTTP client tests/race, full Go and CGO-free suites, vet, lint, and tidy pass
+- Next action: prove timeout/cancellation propagation and explicit bounded retry behavior without implicit write retries
 
 ## Working rules
 
@@ -55,6 +55,7 @@ and verification evidence before the next item starts.
 | M4.1 | 10 Bun request-helper tests; strict TypeScript check; MyGo regeneration; production web build; Go regression suite | Pass; generated responses unwrap once, falsy data survives, backend problems remain intact, invalid envelopes become internal problems, and thrown transport details become safe unavailable problems |
 | M4.2 | 6 focused form tests and 16 total web tests; strict TypeScript check; production frontend build | Pass; copied observable state tracks values/dirty/touched/errors, reset establishes a new baseline, duplicate submit shares one promise, pending always clears, and reset/dispose suppress stale completion |
 | M4.3 | 16 web tests; strict TypeScript check; production frontend build; controlled browser validation, held duplicate submission, success/reset, and transport-failure flows | Pass; the vanilla notes UI uses the helpers, maps field errors accessibly, issues one create for simultaneous submits, resets after success, and shows one safe runtime alert on transport failure |
+| M4.4 | 4 focused HTTP client tests and race run; full Go and CGO-free suites; vet/lint/tidy | Pass; Resty v2.17.2 applies validated URL/timeout/header/transport configuration, JSON round trips, status errors, safe metrics, native-client access, and zero retries by default |
 
 ## Milestone 1 — verify the foundation
 
@@ -154,7 +155,7 @@ Reference: [`PLAN.md` — Milestone 4](PLAN.md#milestone-4-forms-and-http-helper
   subscribe, submit, duplicate-submit prevention, and disposed-completion guards.
 - [x] **M4.3** Test form success, failure, duplicate submission, reset, disposal,
   and field-error mapping, then update the vanilla notes form to use the helpers.
-- [ ] **M4.4** Add the configured Resty v2 client with context, timeout, base URL,
+- [x] **M4.4** Add the configured Resty v2 client with context, timeout, base URL,
   headers, JSON behavior, consistent HTTP errors, safe request metrics, supplied
   test transport, underlying-client access, and retries disabled by default.
 - [ ] **M4.5** Prove timeout/cancellation propagation, explicit bounded retry
