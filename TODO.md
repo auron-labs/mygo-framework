@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 6 — MCP generation and runtime
-- Current item: M7.3 — measure comparable plain, default, and MCP-enabled variants
-- Last verification: M7.2 packaged Linux WebKitGTK startup/create/SIGTERM/restart flow and bounded real Secret Service probe, with unavailable OS runners recorded
-- Next action: measure warm-cache clean and incremental builds, startup readiness, and package sizes for all three variants on this same host and toolchain
+- Completed milestone: milestone 7 — cross-platform verification and performance
+- Current item: M8.1 — finish the runnable notes app and remove obsolete scaffolding
+- Last verification: M7.3 same-host/toolchain plain, default, and MCP-enabled build, startup, dependency, and package comparison
+- Next action: audit the completed reference app for unfinished behavior and remove only scaffolding made obsolete by the implementation
 
 ## Working rules
 
@@ -73,6 +73,7 @@ and verification evidence before the next item starts.
 | M6.5 | Real bearer-authenticated Streamable HTTP SDK acceptance and 20-run repeat; MCP boundary rejection regression; full Go/race/CGO-free suites; vet/lint/tidy; 32 web tests and production build; `generate --check` | Pass; the client listed only annotated tools, received structured field failures, created through the one shared service, exposed the committed note through the desktop/UI read path, and shutdown closed the listener while the active handler still had a live database before final disposal |
 | M7.1 | Isolated `CGO_ENABLED=0 go build ./...` for Linux, macOS, and Windows on amd64 and arm64; separate Linux/amd64 `go test -race ./...`; host/toolchain capture | Pass; all six package-graph builds compile with Go 1.27.3, the race suite passed only on its Linux/amd64 host, and unavailable cross-target runtime evidence is explicitly not claimed |
 | M7.2 | Current `mygo build`; isolated Xvfb/D-Bus/profile packaged launches; XTest keyboard creation; rendered-window captures; two SIGTERM exits; time-bounded opt-in real keyring test | Pass on Linux/amd64 with limitation; the note rendered and survived a clean restart, while macOS/Windows runners were unavailable and GNOME Keyring required interactive unlock beyond the 20-second bound, so no real keystore round trip is claimed |
+| M7.3 | Plain checkpoint `7188b65` and current framework: warm-module/empty-`GOCACHE` clean builds, temporary main-package source edits and rebuilds, three isolated Xvfb/D-Bus startup runs per mode, package byte counts, and `go list -deps` audit | Pass; clean build was 7.97 s plain versus 16.41 s framework, incremental was 0.46 s versus 0.92 s, startup medians were 179/176/176 ms, default and MCP shared one artifact, and no generator, CLI, or `x/tools` package leaked into its runtime graph |
 
 ## Milestone 1 — verify the foundation
 
@@ -249,7 +250,7 @@ and [`PLAN.md` — testing and completion rules](PLAN.md#testing-and-completion-
 - [x] **M7.2** Run the startup/create/restart/shutdown desktop smoke flow on each
   available real OS runner, including permitted real-keystore checks, and record
   unavailable platforms without overstating coverage.
-- [ ] **M7.3** Measure plain MyGo, default framework, and MCP-enabled variants on
+- [x] **M7.3** Measure plain MyGo, default framework, and MCP-enabled variants on
   the same toolchain/hardware for dependency-warm clean build, incremental build,
   startup readiness, and package size; fix only clear accidental regressions and
   publish the measured comparison.

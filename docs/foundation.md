@@ -554,8 +554,43 @@ of memory. It used Go 1.27.3, Bun 1.4.2, and the pinned dependencies above.
 The full MyGo package build completed in 11.8 seconds with the existing Go
 cache and transformed seven frontend modules. Each number is one observation,
 so it is a reproducible baseline rather than a statistical benchmark.
-Milestone 7 repeats the same method for the default framework and MCP-enabled
-variants.
+
+## Milestone 7 performance comparison
+
+The milestone comparison used the same host and toolchain as the baseline. The
+plain variant is checkpoint `7188b65`, before framework services were added.
+Clean builds reused downloaded modules but started with an empty `GOCACHE`;
+incremental builds reused that cache after a temporary main-package source
+content change.
+Default and MCP-enabled modes are runtime configurations of the same current
+binary, so their build and package measurements intentionally use one artifact.
+
+| Metric | Plain MyGo | Framework default | Framework with MCP |
+| --- | ---: | ---: | ---: |
+| Dependency-warm clean Go build | 7.97 seconds | 16.41 seconds | 16.41 seconds (same build) |
+| Incremental Go build | 0.46 seconds | 0.92 seconds | 0.92 seconds (same build) |
+| Startup to X11 window, median of three | 179 milliseconds | 176 milliseconds | 176 milliseconds |
+| Go build dependency packages | 243 | 365 | 365 |
+| Unstripped Go app binary | 13,938,273 bytes | 35,788,881 bytes | 35,788,881 bytes |
+| Packaged Linux app binary | 9,425,159 bytes | 23,109,895 bytes | 23,109,895 bytes |
+| Linux tarball | 4,052,422 bytes | 9,628,624 bytes | 9,628,624 bytes |
+| Debian package | 4,031,538 bytes | 9,607,794 bytes | 9,607,794 bytes |
+
+Each startup run used a fresh profile and D-Bus/Xvfb session and measured from
+process launch until the application window appeared. The MCP runs enabled a
+real loopback listener on a fresh port. A three-millisecond median difference is
+not meaningful at this sample size; the comparison found no startup regression
+from the default framework or from enabling MCP.
+
+The framework clean build is 105.9% slower and its packaged binary is 145.2%
+larger than plain MyGo. Those increases correspond to the implemented SQLite,
+GORM, migration, validation, dependency-injection, HTTP, settings, secrets, and
+MCP capabilities. The current runtime has 122 more dependency packages, but a
+runtime graph audit found no imports from the framework generator, CLI, or
+`golang.org/x/tools`. No accidental dependency or separate MCP artifact was
+found, so this item makes no speculative size optimization. The default and MCP
+rows share packaged artifact SHA-256
+`4d215abea875d78f37b0986612008dfbabda02a44cde1a25e4b0431aa90cb080`.
 
 The startup measurement proves that MyGo reached the readiness callback and
 created the 960×640 window. It does not prove interaction inside WebKitGTK;
