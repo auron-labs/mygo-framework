@@ -59,7 +59,7 @@ func New() *Bootstrap {
 	do.Provide(bootstrap.injector, provideLogger)
 	do.Provide(bootstrap.injector, bootstrap.provideDatabaseResource)
 	do.Provide(bootstrap.injector, provideDatabase)
-	do.Provide(bootstrap.injector, provideNotes)
+	registerGeneratedServices(bootstrap)
 	do.Provide(bootstrap.injector, provideLifetimeWorker)
 
 	return bootstrap
@@ -68,21 +68,6 @@ func New() *Bootstrap {
 // Readiness returns the gate shared by every application entry point.
 func (b *Bootstrap) Readiness() *appRuntime.Readiness {
 	return b.readiness
-}
-
-// ResolveNotes returns the dependencies used by the desktop notes adapter.
-// Callers wait for Readiness before invoking it.
-func (b *Bootstrap) ResolveNotes() (*services.Notes, *slog.Logger, error) {
-	logger, err := do.Invoke[*slog.Logger](b.injector)
-	if err != nil {
-		return nil, nil, fmt.Errorf("resolve notes adapter logger: %w", err)
-	}
-	service, err := do.Invoke[*services.Notes](b.injector)
-	if err != nil {
-		return nil, logger, fmt.Errorf("resolve notes adapter service: %w", err)
-	}
-
-	return service, logger, nil
 }
 
 // Start opens runtime resources, applies migrations, and publishes readiness.
@@ -165,8 +150,8 @@ func (b *Bootstrap) resolveRequired() error {
 	if _, err := do.Invoke[*database.Database](b.injector); err != nil {
 		return fmt.Errorf("resolve application database: %w", err)
 	}
-	if _, err := do.Invoke[*services.Notes](b.injector); err != nil {
-		return fmt.Errorf("resolve notes service: %w", err)
+	if err := b.resolveRequiredServices(); err != nil {
+		return err
 	}
 	if _, err := do.Invoke[*appRuntime.LifetimeWorker](b.injector); err != nil {
 		return fmt.Errorf("resolve app-lifetime worker: %w", err)

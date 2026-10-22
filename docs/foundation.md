@@ -334,11 +334,13 @@ the Go application and outside generated transports.
 
 `framework generate` discovers annotated services without importing application
 bootstrap code, renders all output in memory, formats Go source, and then owns
-exactly three files: `app/desktop/framework_generated.go`,
-`framework_bindings_generated.go`, and `app/mcp/framework_generated.go`.
-Desktop output contains only opted-in commands, concrete wire responses, and
-readiness-gated service calls. The root registration stays explicit, while MCP
-output is limited to selected tool metadata and declared effects.
+exactly four files: `app/bootstrap/framework_generated.go`,
+`app/desktop/framework_generated.go`, `framework_bindings_generated.go`, and
+`app/mcp/framework_generated.go`. Desktop output contains only opted-in
+commands, concrete wire responses, and readiness-gated service calls. Bootstrap
+output explicitly registers named hand-written providers and supplies adapter
+resolvers. The root registration stays explicit, while MCP output is limited to
+selected tool metadata and declared effects.
 
 Generation refuses to replace a file without its generated header and
 preflights the complete set before writing. `framework generate --check`
@@ -358,6 +360,21 @@ migration again resolves to its original filename and fails as an existing file
 instead of assigning a different schema identity. Focused scaffolds do not run
 application bootstrap or framework generation; the feature workflow composes
 those steps when it owns the whole change.
+
+## Feature scaffold
+
+`framework make feature NAME` is the primary vertical workflow. It preflights
+all destinations, then creates a model, validated create request, persistent
+service, explicit bootstrap provider, and forward/down Goose migration. The
+service method opts into desktop generation; MCP exposure remains a separate,
+deliberate annotation. If any write or discovery step fails, newly created
+hand-written files are removed.
+
+After the hand-written slice exists, the command runs framework generation once
+before reporting success. Regeneration replaces only the four owned files, so
+developers can implement or extend the service and provider normally. Tests also
+remain feature-extensible: they continue to assert the Notes contract and core
+runtime graph without assuming Notes is the only generated feature.
 
 ## Executed checks
 

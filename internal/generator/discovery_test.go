@@ -22,11 +22,17 @@ func TestDiscoverReferenceServices(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(methods) != 2 {
-		t.Fatalf("methods = %+v", methods)
+	var notes []Method
+	for _, method := range methods {
+		if method.Service == "Notes" {
+			notes = append(notes, method)
+		}
+	}
+	if len(notes) != 2 {
+		t.Fatalf("note methods = %+v; all methods = %+v", notes, methods)
 	}
 
-	create := methods[0]
+	create := notes[0]
 	if create.PackagePath != "mygo-framework/app/services" || create.Service != "Notes" || create.Name != "Create" ||
 		create.Description != "Create validates and stores one note in a service-owned transaction." ||
 		create.Command != "notes.create" || create.Input != (NamedType{PackagePath: "mygo-framework/app/requests", Name: "CreateNoteInput"}) ||
@@ -38,7 +44,7 @@ func TestDiscoverReferenceServices(t *testing.T) {
 		t.Fatalf("create position = %s", create.Position)
 	}
 
-	list := methods[1]
+	list := notes[1]
 	if list.Name != "List" || list.Command != "notes.list" || list.MCP == nil ||
 		list.MCP.Name != "notes_list" || !list.MCP.ReadOnly || list.MCP.Destructive {
 		t.Fatalf("list = %+v", list)

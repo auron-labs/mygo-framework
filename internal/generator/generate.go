@@ -79,6 +79,12 @@ type bindingData struct {
 	Services      []serviceData
 }
 
+type providerData struct {
+	Header       string
+	ServicesPath string
+	Services     []serviceData
+}
+
 type toolData struct {
 	Name        string
 	Description string
@@ -164,11 +170,20 @@ func renderGeneratedFiles(methods []Method) ([]generatedFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("render desktop bindings: %w", err)
 	}
+	providers, err := renderGo(providersTemplate, providerData{
+		Header:       generatedHeader,
+		ServicesPath: modulePath + "/app/services",
+		Services:     services,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("render bootstrap providers: %w", err)
+	}
 	tools, err := renderGo(mcpTemplate, mcpData{Header: generatedHeader, Tools: selectedTools(methods)})
 	if err != nil {
 		return nil, fmt.Errorf("render MCP stubs: %w", err)
 	}
 	return []generatedFile{
+		{path: filepath.ToSlash(filepath.Join("app", "bootstrap", "framework_generated.go")), content: providers},
 		{path: filepath.ToSlash(filepath.Join("app", "desktop", "framework_generated.go")), content: desktop},
 		{path: "framework_bindings_generated.go", content: bindings},
 		{path: filepath.ToSlash(filepath.Join("app", "mcp", "framework_generated.go")), content: tools},
@@ -306,7 +321,7 @@ func selectedTools(methods []Method) []toolData {
 }
 
 func renderGo(source string, data any) ([]byte, error) {
-	parsed, err := template.New("generated").Parse(source)
+	parsed, err := templateForGeneration(source)
 	if err != nil {
 		return nil, fmt.Errorf("parse generated Go template: %w", err)
 	}
@@ -319,6 +334,14 @@ func renderGo(source string, data any) ([]byte, error) {
 		return nil, fmt.Errorf("format generated Go: %w\n%s", err, output.String())
 	}
 	return formatted, nil
+}
+
+func templateForGeneration(source string) (*template.Template, error) {
+	parsed, err := template.New("generated").Parse(source)
+	if err != nil {
+		return nil, fmt.Errorf("parse template: %w", err)
+	}
+	return parsed, nil
 }
 
 func goComment(value string) string {
@@ -404,6 +427,47 @@ func bindGenerated(applicationRuntime *bootstrap.Bootstrap) {
 	mygo.Bind(desktop.New{{.Name}}(applicationRuntime.Readiness(), applicationRuntime.{{.Resolver}}))
 {{- end }}
 }
+`
+
+const providersTemplate = `{{.Header}}package bootstrap
+
+import (
+	"fmt"
+	"log/slog"
+	services "{{.ServicesPath}}"
+
+	"github.com/samber/do/v2"
+)
+
+func registerGeneratedServices(bootstrap *Bootstrap) {
+{{- range .Services }}
+	do.Provide(bootstrap.injector, provide{{.Name}})
+{{- end }}
+}
+
+func (b *Bootstrap) resolveRequiredServices() error {
+{{- range .Services }}
+	if _, err := do.Invoke[*services.{{.Name}}](b.injector); err != nil {
+		return fmt.Errorf("resolve {{.RuntimeLabel}} service: %w", err)
+	}
+{{- end }}
+	return nil
+}
+{{range .Services}}
+// {{.Resolver}} returns the dependencies used by the desktop {{.RuntimeLabel}} adapter.
+// Callers wait for Readiness before invoking it.
+func (b *Bootstrap) {{.Resolver}}() (*services.{{.Name}}, *slog.Logger, error) {
+	logger, err := do.Invoke[*slog.Logger](b.injector)
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolve {{.RuntimeLabel}} adapter logger: %w", err)
+	}
+	service, err := do.Invoke[*services.{{.Name}}](b.injector)
+	if err != nil {
+		return nil, logger, fmt.Errorf("resolve {{.RuntimeLabel}} adapter service: %w", err)
+	}
+	return service, logger, nil
+}
+{{end}}
 `
 
 const mcpTemplate = `{{.Header}}// Package mcp contains generated MCP exposure metadata.
