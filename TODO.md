@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 3 — configuration and secrets
-- Current item: M4.2 — add framework-neutral form state
-- Last verification: M4.1 request-helper tests, strict typecheck, generated-client compatibility, frontend build, and Go regression suite pass
-- Next action: implement observable form state, submission guards, reset, and disposal behavior
+- Current item: M4.3 — integrate and prove the form helpers
+- Last verification: M4.2 form/request tests, strict typecheck, and production frontend build pass
+- Next action: connect the vanilla notes form to the helpers and verify rendered success, failure, reset, disposal, and field-error behavior
 
 ## Working rules
 
@@ -53,6 +53,7 @@ and verification evidence before the next item starts.
 | M3.5 | Shared memory/MyGo secret contract and race tests; namespace and error-identity tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; copied secrets support missing/empty/delete/concurrent behavior, namespaces are stable, MyGo missing and OS-unavailable errors remain detectable, and no plaintext fallback exists |
 | M3.6 | Typed SQLite/bbolt restart acceptance under race; focused bbolt lock test; opt-in real MyGo credential-store probe; full Go/race/CGO-free suites; vet/lint/tidy | Pass with platform limitation; zero values, invalid data, transient overlays, and 0.95 s lock failure pass, while the real keyring probe accurately skipped because this runner has no session bus/Secret Service |
 | M4.1 | 10 Bun request-helper tests; strict TypeScript check; MyGo regeneration; production web build; Go regression suite | Pass; generated responses unwrap once, falsy data survives, backend problems remain intact, invalid envelopes become internal problems, and thrown transport details become safe unavailable problems |
+| M4.2 | 6 focused form tests and 16 total web tests; strict TypeScript check; production frontend build | Pass; copied observable state tracks values/dirty/touched/errors, reset establishes a new baseline, duplicate submit shares one promise, pending always clears, and reset/dispose suppress stale completion |
 
 ## Milestone 1 — verify the foundation
 
@@ -147,7 +148,7 @@ Reference: [`PLAN.md` — Milestone 4](PLAN.md#milestone-4-forms-and-http-helper
 - [x] **M4.1** Add a framework-neutral TypeScript request helper that consumes
   MyGo-generated types, unwraps `Data`/`Problem`, and normalizes unexpected
   transport failures without creating another RPC client.
-- [ ] **M4.2** Add the dependency-free form state helper with values, dirty and
+- [x] **M4.2** Add the dependency-free form state helper with values, dirty and
   touched state, submitting state, field/form errors, reset, setField,
   subscribe, submit, duplicate-submit prevention, and disposed-completion guards.
 - [ ] **M4.3** Test form success, failure, duplicate submission, reset, disposal,
