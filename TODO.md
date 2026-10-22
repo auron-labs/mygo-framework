@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.1 — implement shared application errors and validation
-- Last verification: M1.6 full milestone acceptance audit passes
-- Next action: add cause-preserving problems and JSON-aware validator mapping
+- Current item: M2.2 — implement synchronized runtime readiness
+- Last verification: M2.1 full/race/CGO-free suites, vet, lint, and frontend checks pass
+- Next action: add context-aware readiness, startup failure, and shutdown rejection
 
 ## Working rules
 
@@ -36,6 +36,7 @@ and verification evidence before the next item starts.
 | M1.4 | `CGO_ENABLED=0 go test ./...`; CGO-free app and probe builds; CGO-free probe against a spaced path; focused race test; `go vet ./...`; `golangci-lint run ./...` | Pass; one owned pool, 5-second busy timeout, foreign keys, and WAL asserted in the integration test |
 | M1.5 | Fresh isolated-`GOCACHE` build; ephemeral service edit and rebuild; `bun run build`; packaged app under Xvfb/DBus until its readiness window appeared | Pass; 8.65 s clean, 0.43 s incremental, 374 ms readiness, 9,425,159-byte packaged binary |
 | M1.6 | Fresh probe; full Go/race/CGO-free suites and builds; vet/lint/tidy; frontend typecheck/build; deterministic MyGo generation plus artifact scan | Pass; every milestone 1 acceptance criterion has direct evidence and compatibility corrections are recorded |
+| M2.1 | Focused problem/validation tests; full Go and CGO-free suites; focused race; vet/lint/tidy; TypeScript check/build; deterministic generation; retracted-module scan | Pass; causes remain available but private, nested JSON field paths map correctly, and no selected module is retracted |
 
 ## Milestone 1 — verify the foundation
 
@@ -68,7 +69,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 [`PLAN.md` — architecture](PLAN.md#architecture), and
 [`PLAN.md` — shutdown and context ownership](PLAN.md#shutdown-and-context-ownership).
 
-- [ ] **M2.1** Implement the core application error codes, cause-preserving
+- [x] **M2.1** Implement the core application error codes, cause-preserving
   `Problem` mapping, validator v10 setup, JSON/nested field-name mapping, and
   focused validation tests.
 - [ ] **M2.2** Implement synchronized runtime readiness so callers can wait with

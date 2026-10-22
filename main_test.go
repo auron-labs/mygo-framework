@@ -1,6 +1,7 @@
 package main
 
 import (
+	"mygo-framework/problem"
 	"testing"
 )
 
@@ -36,8 +37,8 @@ func TestNotesRejectEmptyBody(t *testing.T) {
 	if response.Data != nil || response.Problem == nil {
 		t.Fatalf("empty-note response = %#v", response)
 	}
-	if response.Problem.Code != "validation" {
-		t.Fatalf("problem code = %q, want validation", response.Problem.Code)
+	if response.Problem.Code != problem.CodeValidation {
+		t.Fatalf("problem code = %q, want %q", response.Problem.Code, problem.CodeValidation)
 	}
 	if listed := notes.List(); len(listed) != 0 {
 		t.Fatalf("rejected note was stored: %#v", listed)

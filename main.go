@@ -3,6 +3,7 @@ package main
 
 import (
 	"log"
+	"mygo-framework/problem"
 	"strings"
 	"sync"
 
@@ -15,16 +16,10 @@ type Note struct {
 	Body string `json:"body"`
 }
 
-// Problem is the foundation example's structured application failure.
-type Problem struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
 // CreateNoteResponse is the concrete desktop response for creating a note.
 type CreateNoteResponse struct {
-	Data    *Note    `json:"data"`
-	Problem *Problem `json:"problem"`
+	Data    *Note            `json:"data"`
+	Problem *problem.Problem `json:"problem"`
 }
 
 // Notes is the side-effect-free service exposed to the initial web frontend.
@@ -38,10 +33,11 @@ type Notes struct {
 func (s *Notes) Create(body string) CreateNoteResponse {
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return CreateNoteResponse{Problem: &Problem{
-			Code:    "validation",
-			Message: "Note body is required.",
-		}}
+		return CreateNoteResponse{Problem: problem.Validation([]problem.FieldError{{
+			Field:   "body",
+			Code:    "required",
+			Message: "is required",
+		}}, nil)}
 	}
 
 	s.mu.Lock()
