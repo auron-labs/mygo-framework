@@ -345,6 +345,20 @@ preflights the complete set before writing. `framework generate --check`
 reports stale or missing output without writes. A repeated run is byte-identical;
 hand-written transport support belongs outside the three generated files.
 
+## Focused scaffolds
+
+`framework make service|request|model|migration|command NAME` creates one
+formatted file in the matching application package. Names are restricted to
+ASCII letters and digits with optional `-` or `_` separators, then normalized
+to a Go identifier and snake-case filename. Files are created exclusively, so
+an existing hand-written file is never truncated or replaced.
+
+Migration scaffolds use the next five-digit Goose sequence. Asking for the same
+migration again resolves to its original filename and fails as an existing file
+instead of assigning a different schema identity. Focused scaffolds do not run
+application bootstrap or framework generation; the feature workflow composes
+those steps when it owns the whole change.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

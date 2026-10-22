@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.4 — add focused feature scaffolds
-- Last verification: M5.3 generation/check, deterministic bindings, full Go/race/CGO-free/static suites, and web tests/build pass
-- Next action: add validated service, request, model, migration, and command scaffolds with overwrite protection and stable migration identity
+- Current item: M5.5 — add the primary feature scaffold
+- Last verification: M5.4 focused/real-binary scaffolding, full Go/race/CGO-free/static suites, and generator freshness pass
+- Next action: compose the approved request, service, model, migration, adapter/provider shape, and generation without replacing existing feature work
 
 ## Working rules
 
@@ -60,6 +60,7 @@ and verification evidence before the next item starts.
 | M5.1 | Focused root/help/version/completion/extension tests; actual `framework` binary build and isolated-directory probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; public help is stable, four shell completions stream to stdout, context reaches extensions, errors render once, and no runtime storage/log artifacts appear |
 | M5.2 | Real note-service discovery plus temporary-module marker/signature/duplicate diagnostics; focused race; full Go/race/CGO-free suites; vet/lint/tidy | Pass; only explicit command/MCP markers are selected, effects and named struct types are validated, results sort stably, and failures carry file/line positions without executing application code |
 | M5.3 | Initial/repeat/stale/ownership generator tests; `framework generate --check`; deterministic MyGo generation; full Go/race/CGO-free suites; vet/lint; 16 web tests and production build | Pass; three formatted owned files generate before imports exist, repeat byte-identically, preserve hand-written support, expose narrow desktop responses/registrations, and emit only selected MCP metadata stubs |
+| M5.4 | Focused scaffold and CLI tests/race; real binary in an empty project; duplicate/unsafe-name/hand-written-file checks; full Go/race/CGO-free suites; vet/lint; `generate --check` | Pass; service, request, model, migration, and command files use normalized fixed paths, exclusive creation, deterministic five-digit migration order, and preserve the first migration identity on retries |
 
 ## Milestone 1 — verify the foundation
 
@@ -183,7 +184,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
   explicit registrations, and selected MCP registration stubs; support initial
   generation before generated imports exist, byte-identical repeat runs, and
   `generate --check` without writes.
-- [ ] **M5.4** Add focused service, request, model, migration, and command
+- [x] **M5.4** Add focused service, request, model, migration, and command
   scaffolds that validate names, refuse to overwrite hand-written files, and
   preserve stable migration identity.
 - [ ] **M5.5** Add the primary feature scaffold for the approved request, service,
