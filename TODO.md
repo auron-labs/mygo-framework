@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 6 — MCP generation and runtime
-- Current item: M7.1 — run cross-platform compile and available OS runtime smoke checks
-- Last verification: M6.5 real HTTP SDK discovery/calls, structured validation, shared UI-visible mutation, boundary rejection, and listener-before-database shutdown
-- Next action: compile supported Windows, macOS, and Linux targets with CGO disabled and run the startup/create/restart/shutdown flow on available OS runners
+- Current item: M7.2 — run available real-OS desktop smoke flows
+- Last verification: M7.1 isolated CGO-free full-graph builds for Linux, macOS, and Windows on amd64 and arm64, with host race evidence kept separate
+- Next action: run startup/create/restart/shutdown and permitted keystore checks on this Linux runner, recording macOS and Windows as unavailable rather than inferred
 
 ## Working rules
 
@@ -71,6 +71,7 @@ and verification evidence before the next item starts.
 | M6.3 | Real loopback HTTP security tests and race run; startup disclosure/config tests; template checks; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; missing/wrong bearer credentials return 401, SDK Host and Go cross-origin checks return 403, tokens differ per launch and never enter normal logs, and details print only when the explicit disclosure switch is enabled |
 | M6.4 | Typed SDK problem/cancellation and committed-change callback tests; generated event/type checks; 32 web tests and production build; fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; domain failures carry safe text plus structured field details without zero-valued success output, cancellations reach services, and committed desktop or MCP writes publish one generated MyGo event that refreshes open pages |
 | M6.5 | Real bearer-authenticated Streamable HTTP SDK acceptance and 20-run repeat; MCP boundary rejection regression; full Go/race/CGO-free suites; vet/lint/tidy; 32 web tests and production build; `generate --check` | Pass; the client listed only annotated tools, received structured field failures, created through the one shared service, exposed the committed note through the desktop/UI read path, and shutdown closed the listener while the active handler still had a live database before final disposal |
+| M7.1 | Isolated `CGO_ENABLED=0 go build ./...` for Linux, macOS, and Windows on amd64 and arm64; separate Linux/amd64 `go test -race ./...`; host/toolchain capture | Pass; all six package-graph builds compile with Go 1.27.3, the race suite passed only on its Linux/amd64 host, and unavailable cross-target runtime evidence is explicitly not claimed |
 
 ## Milestone 1 — verify the foundation
 
@@ -241,7 +242,7 @@ and [`PLAN.md` — MCP integration](PLAN.md#mcp-integration).
 Reference: [`PLAN.md` — Milestone 7](PLAN.md#milestone-7-cross-platform-verification-and-performance)
 and [`PLAN.md` — testing and completion rules](PLAN.md#testing-and-completion-rules).
 
-- [ ] **M7.1** Run supported Windows, macOS, and Linux build checks with
+- [x] **M7.1** Run supported Windows, macOS, and Linux build checks with
   `CGO_ENABLED=0`, keep race-test requirements separate, and distinguish compile
   evidence from runtime evidence on each platform.
 - [ ] **M7.2** Run the startup/create/restart/shutdown desktop smoke flow on each
