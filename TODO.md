@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.4 — add development and rotating-file logging
-- Last verification: M2.3 full/race/CGO-free suites, vet, lint, tidy, and dependency scan pass
-- Next action: configure safe slog output and packaged log rotation
+- Current item: M2.5 — move database ownership into runtime startup
+- Last verification: M2.4 full/race/CGO-free suites, vet, lint, tidy, and dependency scan pass
+- Next action: compose logging, migrations, database ownership, and rollback cleanup in runtime startup
 
 ## Working rules
 
@@ -39,6 +39,7 @@ and verification evidence before the next item starts.
 | M2.1 | Focused problem/validation tests; full Go and CGO-free suites; focused race; vet/lint/tidy; TypeScript check/build; deterministic generation; retracted-module scan | Pass; causes remain available but private, nested JSON field paths map correctly, and no selected module is retracted |
 | M2.2 | Readiness unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; waiters synchronize on one startup result, cancellations preserve cause, and shutdown rejects new work |
 | M2.3 | Bootstrap graph unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; required providers resolve eagerly, missing registrations retain cause, and dependent resources dispose first |
+| M2.4 | Logging unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; development and packaged sinks work, sensitive fields are redacted, and cancellation produces no error record |
 
 ## Milestone 1 — verify the foundation
 
@@ -79,7 +80,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
   after shutdown begins.
 - [x] **M2.3** Add explicit samber/do v2 provider composition, eagerly resolve the
   required graph, and keep container lookups out of business service methods.
-- [ ] **M2.4** Add development `slog` output and packaged rotating-file logging
+- [x] **M2.4** Add development `slog` output and packaged rotating-file logging
   with safe fields, one-boundary unexpected-error reporting, and no payload or
   secret logging.
 - [ ] **M2.5** Move the proven database/migration path behind the runtime owner,
