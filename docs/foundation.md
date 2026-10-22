@@ -213,6 +213,21 @@ original missing error, and wrapping preserves `errors.ErrUnsupported` when an
 OS credential store is unavailable. A shared contract verifies empty secrets,
 overwrite/delete behavior, byte ownership, cancellation, and concurrent use.
 
+## Milestone 3 acceptance
+
+One typed acceptance suite runs against both SQLite and bbolt. It persists and
+reloads `false`, zero, and an empty string through a real close/reopen; proves a
+flag beats an environment value without replacing the persisted zero; rejects
+malformed JSON and wrong persisted types; and confirms failed validation leaves
+the last good value intact. The bbolt process-lock test returned its actionable
+timeout after 0.95 seconds, within the fixed one-second bound.
+
+The opt-in MyGo credential-store smoke reached the real Linux backend, which
+reported `errors.ErrUnsupported`: this runner has no session bus or Secret
+Service and cannot autolaunch D-Bus without an X11 display. The test therefore
+skipped without storing a fallback. No real OS keyring round trip is claimed on
+this host; milestone 7 repeats the probe on available platform runners.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
