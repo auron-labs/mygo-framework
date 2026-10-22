@@ -494,6 +494,12 @@ busy timeout, foreign-key mode, WAL mode, idempotent close, migration, and
 close/reopen persistence. The probe also stored and reloaded a note from a path
 containing a space while running from a `CGO_ENABLED=0` build.
 
+The dedicated `cmd/dbprobe` foundation executable was retired after the
+database contract moved into integration tests and the packaged reference app
+proved persistence through a real restart. The commands above remain the
+historical Milestone 1 evidence and can be reproduced from checkpoint
+`530524c`; the current project has no second database executable to maintain.
+
 ## Cross-platform compilation
 
 The complete package graph was cross-compiled on 22 October 2026 with Go
