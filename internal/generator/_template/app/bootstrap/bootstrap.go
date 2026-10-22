@@ -74,6 +74,25 @@ func (b *Bootstrap) Readiness() *appRuntime.Readiness {
 	return b.readiness
 }
 
+// MCPConnectionDetails returns credentials only to an explicit caller after readiness.
+func (b *Bootstrap) MCPConnectionDetails(ctx context.Context) (appMCP.ConnectionDetails, error) {
+	if ctx == nil {
+		return appMCP.ConnectionDetails{}, errors.New("read MCP connection details: context is required")
+	}
+	if err := b.readiness.Wait(ctx); err != nil {
+		return appMCP.ConnectionDetails{}, fmt.Errorf("wait for MCP connection details: %w", err)
+	}
+	runtime, err := do.Invoke[*appMCP.Runtime](b.injector)
+	if err != nil {
+		return appMCP.ConnectionDetails{}, fmt.Errorf("resolve MCP connection details: %w", err)
+	}
+	details, err := runtime.ConnectionDetails()
+	if err != nil {
+		return appMCP.ConnectionDetails{}, fmt.Errorf("read MCP connection details: %w", err)
+	}
+	return details, nil
+}
+
 // Start opens runtime resources, applies migrations, and publishes readiness.
 func (b *Bootstrap) Start(ctx context.Context, options Options) error {
 	b.startOnce.Do(func() {

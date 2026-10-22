@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	appMCP "mygo-framework/app/mcp"
 	"strings"
 	"testing"
 )
@@ -40,5 +42,60 @@ func TestMCPOptionsFromEnvironment(t *testing.T) {
 				t.Fatalf("options = %+v, error = %v", options, err)
 			}
 		})
+	}
+}
+
+func TestMCPDisclosureRequiresExplicitEnabledAction(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		value   string
+		exists  bool
+		enabled bool
+		want    bool
+		wantErr string
+	}{
+		{name: "unset"},
+		{name: "false", value: "false", exists: true, enabled: true},
+		{name: "enabled", value: "true", exists: true, enabled: true, want: true},
+		{name: "without MCP", value: "true", exists: true, wantErr: mcpEnabledEnvironment},
+		{name: "invalid", value: "sometimes", exists: true, enabled: true, wantErr: mcpDiscloseEnvironment},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			disclose, err := mcpDisclosureFromEnvironment(func(name string) (string, bool) {
+				if name != mcpDiscloseEnvironment {
+					return "", false
+				}
+				return test.value, test.exists
+			}, test.enabled)
+			if test.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), test.wantErr) {
+					t.Fatalf("error = %v, want substring %q", err, test.wantErr)
+				}
+				return
+			}
+			if err != nil || disclose != test.want {
+				t.Fatalf("disclose = %t, error = %v", disclose, err)
+			}
+		})
+	}
+}
+
+func TestWriteMCPConnectionDetails(t *testing.T) {
+	t.Parallel()
+
+	var output bytes.Buffer
+	err := writeMCPConnectionDetails(&output, appMCP.ConnectionDetails{
+		Endpoint:    "http://127.0.0.1:48123/mcp",
+		BearerToken: "launch-token",
+	})
+	if err != nil {
+		t.Fatalf("write connection details: %v", err)
+	}
+	if got := output.String(); got != "MCP endpoint: http://127.0.0.1:48123/mcp\nMCP authorization: Bearer launch-token\n" {
+		t.Fatalf("connection output = %q", got)
 	}
 }

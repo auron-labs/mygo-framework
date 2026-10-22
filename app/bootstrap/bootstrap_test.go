@@ -82,8 +82,16 @@ func TestMCPRuntimeReusesResolvedService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve MCP runtime: %v", err)
 	}
-	if !strings.HasPrefix(mcpRuntime.Endpoint(), "http://127.0.0.1:") {
-		t.Fatalf("MCP endpoint = %q", mcpRuntime.Endpoint())
+	details, err := bootstrap.MCPConnectionDetails(t.Context())
+	if err != nil {
+		t.Fatalf("read MCP connection details: %v", err)
+	}
+	directDetails, err := mcpRuntime.ConnectionDetails()
+	if err != nil {
+		t.Fatalf("read direct MCP connection details: %v", err)
+	}
+	if details != directDetails || !strings.HasPrefix(details.Endpoint, "http://127.0.0.1:") || details.BearerToken == "" {
+		t.Fatalf("MCP connection details = %#v", details)
 	}
 }
 
