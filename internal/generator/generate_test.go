@@ -60,10 +60,27 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 		}
 	}
 	tools := string(contents["app/mcp/framework_generated.go"])
-	for _, want := range []string{`Name:        "fixture_create"`, `Name:        "fixture_inspect"`, "ReadOnly:    true"} {
+	for _, want := range []string{
+		`sdk.AddTool(server`,
+		`Name:        "fixture_create"`,
+		`Description: "Create creates a fixture."`,
+		`Name:        "fixture_inspect"`,
+		"ReadOnlyHint:    true",
+		"DestructiveHint: boolPointer(false)",
+		"sdk.ToolHandlerFor[services.Input, services.CreateOutput]",
+		"output, err := service.Create(ctx, input)",
+	} {
 		if !strings.Contains(tools, want) {
 			t.Fatalf("MCP output lacks %q:\n%s", want, tools)
 		}
+	}
+	for _, unwanted := range []string{"ToolRegistrationStub", "PackagePath:"} {
+		if strings.Contains(tools, unwanted) {
+			t.Fatalf("MCP output contains metadata stub %q:\n%s", unwanted, tools)
+		}
+	}
+	if strings.Contains(tools, "fixture_hidden") || strings.Contains(tools, "toolNotesHidden") {
+		t.Fatalf("unannotated method was exposed:\n%s", tools)
 	}
 
 	repeated, err := Generate(context.Background(), GenerateConfig{Dir: directory})
@@ -146,6 +163,11 @@ func (s *Notes) Create(ctx context.Context, input Input) (CreateOutput, error) {
 // Inspect inspects a fixture without a desktop command.
 // framework:mcp fixture_inspect readonly=true destructive=false
 func (s *Notes) Inspect(ctx context.Context, input Input) (InspectOutput, error) {
+	return InspectOutput{}, nil
+}
+
+// Hidden is an ordinary exported method without MCP exposure.
+func (s *Notes) Hidden(ctx context.Context, input Input) (InspectOutput, error) {
 	return InspectOutput{}, nil
 }
 `

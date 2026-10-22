@@ -3,7 +3,7 @@ package requests
 
 // CreateNoteInput is the shared input for creating a note.
 type CreateNoteInput struct {
-	Body string `json:"body" validate:"required"`
+	Body string `json:"body" validate:"required" jsonschema:"The note body to store."`
 }
 
 // ListNotesInput is the shared input for listing notes.

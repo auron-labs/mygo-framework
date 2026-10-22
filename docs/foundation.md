@@ -339,8 +339,14 @@ exactly four files: `app/bootstrap/framework_generated.go`,
 `app/mcp/framework_generated.go`. Desktop output contains only opted-in
 commands, concrete wire responses, and readiness-gated service calls. Bootstrap
 output explicitly registers named hand-written providers and supplies adapter
-resolvers. The root registration stays explicit, while MCP output is limited to
-selected tool metadata and declared effects.
+resolvers. The root registration stays explicit. MCP output uses the official
+Go SDK to register only selected methods, derives input and output schemas from
+their concrete Go structs, publishes descriptions plus readonly/destructive
+hints, and resolves the existing service before forwarding the ordinary
+context, input, output, and error. Request and response fields may add
+`jsonschema` descriptions without changing their JSON or validation contracts.
+The optional HTTP listener and domain-error response mapping remain hand-written
+runtime concerns rather than generated code.
 
 Generation refuses to replace a file without its generated header and
 preflights the complete set before writing. `framework generate --check`

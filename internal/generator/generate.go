@@ -88,16 +88,27 @@ type providerData struct {
 type toolData struct {
 	Name        string
 	Description string
-	PackagePath string
 	Service     string
+	ServiceType string
 	Method      string
+	Handler     string
+	Input       string
+	Output      string
 	ReadOnly    bool
 	Destructive bool
 }
 
+type mcpServiceData struct {
+	Name string
+	Type string
+}
+
 type mcpData struct {
-	Header string
-	Tools  []toolData
+	Header   string
+	Imports  []importData
+	Services []mcpServiceData
+	Tools    []toolData
+	HasTools bool
 }
 
 // Generate renders, formats, checks, and optionally writes all owned files.
@@ -178,9 +189,9 @@ func renderGeneratedFiles(methods []Method) ([]generatedFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("render bootstrap providers: %w", err)
 	}
-	tools, err := renderGo(mcpTemplate, mcpData{Header: generatedHeader, Tools: selectedTools(methods)})
+	tools, err := renderMCP(methods)
 	if err != nil {
-		return nil, fmt.Errorf("render MCP stubs: %w", err)
+		return nil, err
 	}
 	return []generatedFile{
 		{path: filepath.ToSlash(filepath.Join("app", "bootstrap", "framework_generated.go")), content: providers},
@@ -275,7 +286,7 @@ func importAliases(paths map[string]struct{}) map[string]string {
 	}
 	sort.Strings(ordered)
 	aliases := make(map[string]string, len(ordered))
-	used := map[string]bool{"context": true, "fmt": true, "slog": true, "time": true, "frameworklogging": true, "problem": true, "appRuntime": true}
+	used := map[string]bool{"context": true, "fmt": true, "slog": true, "time": true, "frameworklogging": true, "problem": true, "appRuntime": true, "sdk": true}
 	for _, importPath := range ordered {
 		base := identifier(filepath.Base(importPath))
 		alias := base
@@ -301,23 +312,60 @@ func identifier(value string) string {
 	return builder.String()
 }
 
-func selectedTools(methods []Method) []toolData {
-	var tools []toolData
+func renderMCP(methods []Method) ([]byte, error) {
+	selected := make([]Method, 0, len(methods))
+	paths := map[string]struct{}{}
 	for _, method := range methods {
 		if method.MCP == nil {
 			continue
 		}
+		selected = append(selected, method)
+		paths[method.PackagePath] = struct{}{}
+		paths[method.Input.PackagePath] = struct{}{}
+		paths[method.Output.PackagePath] = struct{}{}
+	}
+	aliases := importAliases(paths)
+	imports := make([]importData, 0, len(aliases))
+	for path, alias := range aliases {
+		imports = append(imports, importData{Alias: alias, Path: path})
+	}
+	sort.Slice(imports, func(i, j int) bool { return imports[i].Path < imports[j].Path })
+
+	servicesByType := map[string]mcpServiceData{}
+	tools := make([]toolData, 0, len(selected))
+	for _, method := range selected {
+		serviceType := aliases[method.PackagePath] + "." + method.Service
+		servicesByType[serviceType] = mcpServiceData{Name: method.Service, Type: serviceType}
 		tools = append(tools, toolData{
 			Name:        method.MCP.Name,
 			Description: method.Description,
-			PackagePath: method.PackagePath,
 			Service:     method.Service,
+			ServiceType: serviceType,
 			Method:      method.Name,
+			Handler:     "tool" + method.Service + method.Name,
+			Input:       aliases[method.Input.PackagePath] + "." + method.Input.Name,
+			Output:      aliases[method.Output.PackagePath] + "." + method.Output.Name,
 			ReadOnly:    method.MCP.ReadOnly,
 			Destructive: method.MCP.Destructive,
 		})
 	}
-	return tools
+	services := make([]mcpServiceData, 0, len(servicesByType))
+	for _, service := range servicesByType {
+		services = append(services, service)
+	}
+	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
+
+	content, err := renderGo(mcpTemplate, mcpData{
+		Header:   generatedHeader,
+		Imports:  imports,
+		Services: services,
+		Tools:    tools,
+		HasTools: len(tools) > 0,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("render MCP tools: %w", err)
+	}
+	return content, nil
 }
 
 func renderGo(source string, data any) ([]byte, error) {
@@ -470,32 +518,55 @@ func (b *Bootstrap) {{.Resolver}}() (*services.{{.Name}}, *slog.Logger, error) {
 {{end}}
 `
 
-const mcpTemplate = `{{.Header}}// Package mcp contains generated MCP exposure metadata.
+const mcpTemplate = `{{.Header}}// Package mcp contains generated MCP tool registrations.
 package mcp
 
-// ToolRegistrationStub identifies one method selected for MCP registration.
-type ToolRegistrationStub struct {
-	Name string
-	Description string
-	PackagePath string
-	Service string
-	Method string
-	ReadOnly bool
-	Destructive bool
-}
+import (
+{{if .HasTools -}}
+	"context"
+	"fmt"
 
-// GeneratedToolStubs is the stable set consumed by MCP registration.
-var GeneratedToolStubs = []ToolRegistrationStub{
-{{- range .Tools }}
-	{
-		Name: {{printf "%q" .Name}},
-		Description: {{printf "%q" .Description}},
-		PackagePath: {{printf "%q" .PackagePath}},
-		Service: {{printf "%q" .Service}},
-		Method: {{printf "%q" .Method}},
-		ReadOnly: {{.ReadOnly}},
-		Destructive: {{.Destructive}},
-	},
+{{end -}}
+{{range .Imports -}}
+	{{.Alias}} "{{.Path}}"
+{{end}}
+
+	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+// Resolvers supplies the existing application service instances used by tools.
+type Resolvers struct {
+{{- range .Services }}
+	{{.Name}} func() (*{{.Type}}, error)
 {{- end }}
 }
+
+// RegisterGeneratedTools registers only explicitly annotated service methods.
+func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers) {
+{{- range .Tools }}
+	sdk.AddTool(server, &sdk.Tool{
+		Name: {{printf "%q" .Name}},
+		Description: {{printf "%q" .Description}},
+		Annotations: &sdk.ToolAnnotations{
+			ReadOnlyHint: {{.ReadOnly}},
+			DestructiveHint: boolPointer({{.Destructive}}),
+		},
+	}, {{.Handler}}(resolvers.{{.Service}}))
+{{- end }}
+}
+{{range .Tools}}
+func {{.Handler}}(resolve func() (*{{.ServiceType}}, error)) sdk.ToolHandlerFor[{{.Input}}, {{.Output}}] {
+	return func(ctx context.Context, _ *sdk.CallToolRequest, input {{.Input}}) (*sdk.CallToolResult, {{.Output}}, error) {
+		service, err := resolve()
+		if err != nil {
+			return nil, {{.Output}}{}, fmt.Errorf("resolve {{.Service}} service: %w", err)
+		}
+		output, err := service.{{.Method}}(ctx, input)
+		return nil, output, err
+	}
+}
+{{end}}
+{{if .HasTools}}
+func boolPointer(value bool) *bool { return &value }
+{{end}}
 `
