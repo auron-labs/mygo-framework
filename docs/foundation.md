@@ -392,6 +392,20 @@ generated Go and TypeScript bindings, framework-neutral form/request helpers,
 tests, README quick start, and `AGENTS.md` feature boundaries. No template
 variants or hidden dependency installation are provided.
 
+## Delegated MyGo commands
+
+`framework dev` and `framework build` run writable framework generation exactly
+once, then execute `bun run mygo dev|build`, which resolves the project-pinned
+MyGo CLI. `framework doctor` instead runs `generate --check` semantics once and
+stops before MyGo if framework configuration or committed output is stale. All
+MyGo arguments, standard input, output, error output, and cancellation pass
+through the wrapper.
+
+There is no framework watcher. MyGo continues to own its normal Go/frontend
+reload cycle. After manually changing an exposed service signature or a
+`framework:` annotation, run `framework generate` in another terminal or restart
+`framework dev`; method-body-only edits need no framework regeneration.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

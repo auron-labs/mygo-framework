@@ -20,7 +20,15 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	command := cli.New(version, cli.NewGenerateCommand(), cli.NewMakeCommand(), cli.NewProjectCommand())
+	command := cli.New(
+		version,
+		cli.NewBuildCommand(),
+		cli.NewDevCommand(),
+		cli.NewDoctorCommand(),
+		cli.NewGenerateCommand(),
+		cli.NewMakeCommand(),
+		cli.NewProjectCommand(),
+	)
 	if err := command.ExecuteContext(ctx); err != nil {
 		_, _ = fmt.Fprintf(command.ErrOrStderr(), "framework: %v\n", err)
 		return 1
