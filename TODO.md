@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.2 — implement synchronized runtime readiness
-- Last verification: M2.1 full/race/CGO-free suites, vet, lint, and frontend checks pass
-- Next action: add context-aware readiness, startup failure, and shutdown rejection
+- Current item: M2.3 — add explicit DI provider composition
+- Last verification: M2.2 full/race/CGO-free suites, vet, lint, and tidy pass
+- Next action: pin samber/do v2 and eagerly resolve the required graph
 
 ## Working rules
 
@@ -37,6 +37,7 @@ and verification evidence before the next item starts.
 | M1.5 | Fresh isolated-`GOCACHE` build; ephemeral service edit and rebuild; `bun run build`; packaged app under Xvfb/DBus until its readiness window appeared | Pass; 8.65 s clean, 0.43 s incremental, 374 ms readiness, 9,425,159-byte packaged binary |
 | M1.6 | Fresh probe; full Go/race/CGO-free suites and builds; vet/lint/tidy; frontend typecheck/build; deterministic MyGo generation plus artifact scan | Pass; every milestone 1 acceptance criterion has direct evidence and compatibility corrections are recorded |
 | M2.1 | Focused problem/validation tests; full Go and CGO-free suites; focused race; vet/lint/tidy; TypeScript check/build; deterministic generation; retracted-module scan | Pass; causes remain available but private, nested JSON field paths map correctly, and no selected module is retracted |
+| M2.2 | Readiness unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; waiters synchronize on one startup result, cancellations preserve cause, and shutdown rejects new work |
 
 ## Milestone 1 — verify the foundation
 
@@ -72,7 +73,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 - [x] **M2.1** Implement the core application error codes, cause-preserving
   `Problem` mapping, validator v10 setup, JSON/nested field-name mapping, and
   focused validation tests.
-- [ ] **M2.2** Implement synchronized runtime readiness so callers can wait with
+- [x] **M2.2** Implement synchronized runtime readiness so callers can wait with
   their context, startup failure becomes `unavailable`, and new work is rejected
   after shutdown begins.
 - [ ] **M2.3** Add explicit samber/do v2 provider composition, eagerly resolve the
