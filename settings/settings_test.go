@@ -24,7 +24,10 @@ func newMemoryStore() *memoryStore {
 	return &memoryStore{values: make(map[string]json.RawMessage)}
 }
 
-func (s *memoryStore) Read(_ context.Context, name string) (json.RawMessage, bool, error) {
+func (s *memoryStore) Read(ctx context.Context, name string) (json.RawMessage, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, fmt.Errorf("read memory setting: %w", err)
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -35,7 +38,10 @@ func (s *memoryStore) Read(_ context.Context, name string) (json.RawMessage, boo
 	return append(json.RawMessage(nil), value...), found, nil
 }
 
-func (s *memoryStore) Write(_ context.Context, name string, value json.RawMessage) error {
+func (s *memoryStore) Write(ctx context.Context, name string, value json.RawMessage) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("write memory setting: %w", err)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -47,7 +53,10 @@ func (s *memoryStore) Write(_ context.Context, name string, value json.RawMessag
 	return nil
 }
 
-func (s *memoryStore) Delete(_ context.Context, name string) error {
+func (s *memoryStore) Delete(ctx context.Context, name string) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("delete memory setting: %w", err)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

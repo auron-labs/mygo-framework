@@ -186,13 +186,10 @@ func Set[T any](ctx context.Context, values *Values, key Key[T], value T) error 
 	if _, err := registeredKey(values, key.settingDefinition()); err != nil {
 		return err
 	}
-	if err := key.validate(value); err != nil {
-		return fmt.Errorf("%w: validate setting %q: %w", ErrInvalidValue, key.Name(), err)
-	}
 
-	raw, err := json.Marshal(value)
+	raw, err := encodeValue(key, value)
 	if err != nil {
-		return fmt.Errorf("%w: encode setting %q: %w", ErrInvalidValue, key.Name(), err)
+		return err
 	}
 	if err := values.store.Write(ctx, key.Name(), raw); err != nil {
 		return fmt.Errorf("write setting %q: %w", key.Name(), err)
@@ -236,6 +233,22 @@ func registeredKey(values *Values, key keyDefinition) (registration, error) {
 	}
 
 	return registered, nil
+}
+
+func encodeValue[T any](key Key[T], value T) (json.RawMessage, error) {
+	if key.spec == nil {
+		return nil, fmt.Errorf("%w: invalid key", ErrUnknownKey)
+	}
+	if err := key.validate(value); err != nil {
+		return nil, fmt.Errorf("%w: validate setting %q: %w", ErrInvalidValue, key.Name(), err)
+	}
+
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, fmt.Errorf("%w: encode setting %q: %w", ErrInvalidValue, key.Name(), err)
+	}
+
+	return raw, nil
 }
 
 func decodeJSON[T any](raw json.RawMessage) (T, error) {

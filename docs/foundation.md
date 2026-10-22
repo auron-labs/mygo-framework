@@ -183,6 +183,13 @@ overwrite/delete behavior, byte ownership, invalid-JSON rejection, context
 cancellation, and concurrent use; the optional bbolt adapter will run the same
 contract.
 
+Transient settings use an immutable store overlay. Callers explicitly map typed
+flag and environment values to registered keys; the overlay never scans the
+process environment. Reads resolve flags, then environment values, then the
+persistent store, with the typed layer supplying the default when all are
+missing. Construction and reads never save an override. Explicit writes and
+deletes pass through to persistence while the transient value remains in force.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
