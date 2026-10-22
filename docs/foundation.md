@@ -228,6 +228,20 @@ Service and cannot autolaunch D-Bus without an X11 display. The test therefore
 skipped without storing a fallback. No real OS keyring round trip is claimed on
 this host; milestone 7 repeats the probe on available platform runners.
 
+## Frontend request normalization
+
+The framework-neutral `runRequest` helper accepts a closure around an existing
+generated MyGo method; it does not know transport names or issue RPC calls of
+its own. A valid success becomes `{ ok: true, data }`, including `false`, zero,
+and empty strings. A valid backend failure becomes `{ ok: false, problem }`
+without changing its code, message, or field errors.
+
+Impossible data/problem combinations produce a safe internal problem. A thrown
+bridge or transport value produces a generic unavailable problem without
+copying the rejection text into user-visible state. Focused Bun tests cover all
+of these cases, and regeneration confirms the helper remains compatible with
+the generated response types.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

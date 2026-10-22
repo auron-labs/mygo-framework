@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 3 — configuration and secrets
-- Current item: M4.1 — add the frontend request helper
-- Last verification: M3.6 cross-backend/race/lock acceptance plus full/race/CGO-free suites, vet/lint/tidy pass; real keyring unavailable on this runner
-- Next action: implement typed Data/Problem unwrapping without another RPC client
+- Current item: M4.2 — add framework-neutral form state
+- Last verification: M4.1 request-helper tests, strict typecheck, generated-client compatibility, frontend build, and Go regression suite pass
+- Next action: implement observable form state, submission guards, reset, and disposal behavior
 
 ## Working rules
 
@@ -52,6 +52,7 @@ and verification evidence before the next item starts.
 | M3.4 | Shared bbolt adapter contract and race tests; real process-lock contention; full Go/race/CGO-free suites; vet/lint/tidy; default app dependency audit | Pass; one bucket owns copied JSON, close is idempotent, a second open returns an actionable timeout inside the one-second bound, and bbolt is absent from the default app graph |
 | M3.5 | Shared memory/MyGo secret contract and race tests; namespace and error-identity tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; copied secrets support missing/empty/delete/concurrent behavior, namespaces are stable, MyGo missing and OS-unavailable errors remain detectable, and no plaintext fallback exists |
 | M3.6 | Typed SQLite/bbolt restart acceptance under race; focused bbolt lock test; opt-in real MyGo credential-store probe; full Go/race/CGO-free suites; vet/lint/tidy | Pass with platform limitation; zero values, invalid data, transient overlays, and 0.95 s lock failure pass, while the real keyring probe accurately skipped because this runner has no session bus/Secret Service |
+| M4.1 | 10 Bun request-helper tests; strict TypeScript check; MyGo regeneration; production web build; Go regression suite | Pass; generated responses unwrap once, falsy data survives, backend problems remain intact, invalid envelopes become internal problems, and thrown transport details become safe unavailable problems |
 
 ## Milestone 1 — verify the foundation
 
@@ -143,7 +144,7 @@ Reference: [`PLAN.md` — Milestone 4](PLAN.md#milestone-4-forms-and-http-helper
 [`PLAN.md` — forms and frontend requests](PLAN.md#forms-and-frontend-requests), and
 [`PLAN.md` — outbound HTTP requests](PLAN.md#outbound-http-requests).
 
-- [ ] **M4.1** Add a framework-neutral TypeScript request helper that consumes
+- [x] **M4.1** Add a framework-neutral TypeScript request helper that consumes
   MyGo-generated types, unwraps `Data`/`Problem`, and normalizes unexpected
   transport failures without creating another RPC client.
 - [ ] **M4.2** Add the dependency-free form state helper with values, dirty and
