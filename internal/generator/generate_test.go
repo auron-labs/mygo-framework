@@ -65,7 +65,7 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 	}
 	tools := string(contents["app/mcp/framework_generated.go"])
 	for _, want := range []string{
-		`sdk.AddTool(server`,
+		`registerTool(server`,
 		`Name:        "fixture_create"`,
 		`Description: "Create creates a fixture."`,
 		`Name:        "fixture_inspect"`,
@@ -73,6 +73,7 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 		"ReadOnlyHint:    true",
 		"DestructiveHint: boolPointer(false)",
 		"sdk.ToolHandlerFor[services.Input, services.CreateOutput]",
+		"logger *slog.Logger",
 		"output, err := service.Create(ctx, input)",
 		"MCP resolver Notes is required",
 		"MCP resolver Search is required",

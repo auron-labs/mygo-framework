@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"mygo-framework/app/models"
 	"mygo-framework/app/requests"
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
@@ -35,6 +36,29 @@ func TestNotesCreateAndList(t *testing.T) {
 		listed.Notes[0].Body != created.Note.Body ||
 		!listed.Notes[0].CreatedAt.Equal(created.Note.CreatedAt) {
 		t.Fatalf("listed notes = %#v, want %#v", listed.Notes, created.Note)
+	}
+}
+
+func TestNotesCreatePublishesOnlyCommittedChanges(t *testing.T) {
+	t.Parallel()
+
+	var changed []models.Note
+	service, _ := newTestNotesWithCallback(t, func(_ context.Context, note models.Note) {
+		changed = append(changed, note)
+	})
+	created, err := service.Create(t.Context(), requests.CreateNoteInput{Body: "Published"})
+	if err != nil {
+		t.Fatalf("create note: %v", err)
+	}
+	if len(changed) != 1 || changed[0] != created.Note {
+		t.Fatalf("published notes = %#v, want %#v", changed, created.Note)
+	}
+
+	if _, err := service.Create(t.Context(), requests.CreateNoteInput{}); err == nil {
+		t.Fatal("empty note creation succeeded")
+	}
+	if len(changed) != 1 {
+		t.Fatalf("published notes after rejected create = %d, want 1", len(changed))
 	}
 }
 
@@ -101,6 +125,10 @@ func TestNotesListPropagatesCancellation(t *testing.T) {
 }
 
 func newTestNotes(t *testing.T) (*Notes, *database.Database) {
+	return newTestNotesWithCallback(t, func(context.Context, models.Note) {})
+}
+
+func newTestNotesWithCallback(t *testing.T, noteChanged NoteChanged) (*Notes, *database.Database) {
 	t.Helper()
 
 	openedDatabase, err := database.Open(
@@ -117,5 +145,5 @@ func newTestNotes(t *testing.T) (*Notes, *database.Database) {
 		}
 	})
 
-	return NewNotes(openedDatabase.GORM, validation.New()), openedDatabase
+	return NewNotes(openedDatabase.GORM, validation.New(), noteChanged), openedDatabase
 }

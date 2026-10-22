@@ -11,6 +11,7 @@ import (
 	appMCP "mygo-framework/app/mcp"
 	"mygo-framework/app/profile"
 	"mygo-framework/app/services"
+	appUI "mygo-framework/app/ui"
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
 	"mygo-framework/logging"
@@ -326,8 +327,12 @@ func provideNotes(injector do.Injector) (*services.Notes, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve validator for notes service: %w", err)
 	}
+	logger, err := do.Invoke[*slog.Logger](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve logger for notes service: %w", err)
+	}
 
-	return services.NewNotes(database.GORM, validator), nil
+	return services.NewNotes(database.GORM, validator, appUI.NewNoteChangedCallback(logger)), nil
 }
 
 func (b *Bootstrap) provideMCPRuntime(injector do.Injector) (*appMCP.Runtime, error) {

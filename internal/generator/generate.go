@@ -563,6 +563,7 @@ import (
 {{if .HasTools -}}
 	"context"
 	"fmt"
+	"log/slog"
 
 {{end -}}
 {{range .Imports -}}
@@ -589,16 +590,16 @@ func (r Resolvers) validate() error {
 }
 
 // RegisterGeneratedTools registers only explicitly annotated service methods.
-func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers) {
+func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers, logger *slog.Logger) {
 {{- range .Tools }}
-	sdk.AddTool(server, &sdk.Tool{
+	registerTool(server, &sdk.Tool{
 		Name: {{printf "%q" .Name}},
 		Description: {{printf "%q" .Description}},
 		Annotations: &sdk.ToolAnnotations{
 			ReadOnlyHint: {{.ReadOnly}},
 			DestructiveHint: boolPointer({{.Destructive}}),
 		},
-	}, {{.Handler}}(resolvers.{{.Service}}))
+	}, logger, {{.Handler}}(resolvers.{{.Service}}))
 {{- end }}
 }
 {{range .Tools}}
