@@ -102,6 +102,21 @@ It records safe component, operation, duration, and row-count diagnostics but
 never SQL text or parameter values. Query errors continue to the adapter for
 the single unexpected-failure record.
 
+## Desktop adapter
+
+[`app/desktop`](../app/desktop/notes.go) is the only note object bound to MyGo.
+It exports `Create` and `List` and no lifecycle or provider methods. Each call
+waits on runtime readiness with MyGo's request context, resolves the shared
+service only after readiness, and returns a concrete nullable `Data`/`Problem`
+response. Validation, startup, and cancellation failures keep their stable
+codes; only unexpected internal failures produce one desktop-boundary log.
+
+The executable registers that adapter before `App.Run` without resolving a
+provider. Once MyGo is ready, it resolves `PathUserData` and `PathLogs`, starts
+the runtime in a background goroutine, and opens the window immediately. MyGo
+generation therefore sees the production binding set without opening logs,
+storage, or migrations.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

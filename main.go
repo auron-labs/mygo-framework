@@ -2,69 +2,23 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
-	"mygo-framework/problem"
-	"strings"
-	"sync"
+	"mygo-framework/app/bootstrap"
+	"mygo-framework/app/desktop"
+	"path/filepath"
 
 	"github.com/egoist/mygo"
 )
 
-// Note is the foundation example's in-memory note representation.
-type Note struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
-}
-
-// CreateNoteResponse is the concrete desktop response for creating a note.
-type CreateNoteResponse struct {
-	Data    *Note            `json:"data"`
-	Problem *problem.Problem `json:"problem"`
-}
-
-// Notes is the side-effect-free service exposed to the initial web frontend.
-type Notes struct {
-	mu     sync.Mutex
-	nextID int
-	notes  []Note
-}
-
-// Create adds an in-memory note.
-func (s *Notes) Create(body string) CreateNoteResponse {
-	body = strings.TrimSpace(body)
-	if body == "" {
-		return CreateNoteResponse{Problem: problem.Validation([]problem.FieldError{{
-			Field:   "body",
-			Code:    "required",
-			Message: "is required",
-		}}, nil)}
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.nextID++
-	note := Note{ID: s.nextID, Body: body}
-	s.notes = append(s.notes, note)
-
-	return CreateNoteResponse{Data: &note}
-}
-
-// List returns a snapshot of the in-memory notes.
-func (s *Notes) List() []Note {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	notes := make([]Note, len(s.notes))
-	copy(notes, s.notes)
-
-	return notes
-}
-
 func main() {
-	mygo.Bind(&Notes{})
+	applicationRuntime := bootstrap.New()
+	mygo.Bind(desktop.NewNotes(applicationRuntime.Readiness(), applicationRuntime.ResolveNotes))
 
 	mygo.App.WhenReady(func() {
+		go startRuntime(context.Background(), applicationRuntime)
+
 		mygo.NewWindow(mygo.WindowOptions{
 			Title:           "MyGo Framework Notes",
 			Width:           960,
@@ -79,5 +33,30 @@ func main() {
 
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) {
+	userData, err := mygo.App.Path(mygo.PathUserData)
+	if err != nil {
+		publishPathFailure(applicationRuntime, fmt.Errorf("resolve user data directory: %w", err))
+		return
+	}
+	logDirectory, err := mygo.App.Path(mygo.PathLogs)
+	if err != nil {
+		publishPathFailure(applicationRuntime, fmt.Errorf("resolve log directory: %w", err))
+		return
+	}
+
+	_ = applicationRuntime.Start(ctx, bootstrap.Options{
+		Development:  mygo.IsDev(),
+		DatabasePath: filepath.Join(userData, "notes.db"),
+		LogDirectory: logDirectory,
+	})
+}
+
+func publishPathFailure(applicationRuntime *bootstrap.Bootstrap, cause error) {
+	if err := applicationRuntime.Readiness().Fail(cause); err != nil {
+		log.Print("runtime startup failure could not be published")
 	}
 }

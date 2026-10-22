@@ -69,6 +69,21 @@ func (b *Bootstrap) Readiness() *appRuntime.Readiness {
 	return b.readiness
 }
 
+// ResolveNotes returns the dependencies used by the desktop notes adapter.
+// Callers wait for Readiness before invoking it.
+func (b *Bootstrap) ResolveNotes() (*services.Notes, *slog.Logger, error) {
+	logger, err := do.Invoke[*slog.Logger](b.injector)
+	if err != nil {
+		return nil, nil, fmt.Errorf("resolve notes adapter logger: %w", err)
+	}
+	service, err := do.Invoke[*services.Notes](b.injector)
+	if err != nil {
+		return nil, logger, fmt.Errorf("resolve notes adapter service: %w", err)
+	}
+
+	return service, logger, nil
+}
+
 // Start opens runtime resources, applies migrations, and publishes readiness.
 func (b *Bootstrap) Start(ctx context.Context, options Options) error {
 	b.startOnce.Do(func() {

@@ -6,9 +6,17 @@ import { call } from "mygo-runtime";
 
 export type Code = string;
 
+export interface CreateNoteInput {
+  body: string;
+}
+
+export interface CreateNoteOutput {
+  note: Note;
+}
+
 /** CreateNoteResponse is the concrete desktop response for creating a note. */
 export interface CreateNoteResponse {
-  data: Note | null;
+  data: CreateNoteOutput | null;
   problem: Problem | null;
 }
 
@@ -18,10 +26,22 @@ export interface FieldError {
   message: string;
 }
 
-/** Note is the foundation example's in-memory note representation. */
+export interface ListNotesInput {}
+
+export interface ListNotesOutput {
+  notes: Note[];
+}
+
+/** ListNotesResponse is the concrete desktop response for listing notes. */
+export interface ListNotesResponse {
+  data: ListNotesOutput | null;
+  problem: Problem | null;
+}
+
 export interface Note {
   id: number;
   body: string;
+  createdAt: string;
 }
 
 export interface Problem {
@@ -32,14 +52,14 @@ export interface Problem {
 
 // ---- Services ----
 
-/** Notes is the side-effect-free service exposed to the initial web frontend. */
+/** Notes exposes only note operations to MyGo. */
 export const Notes = {
-  /** Create adds an in-memory note. */
-  create(body: string): Promise<CreateNoteResponse> {
-    return call("Notes.Create", body);
+  /** Create creates a note through the shared application service. */
+  create(input: CreateNoteInput): Promise<CreateNoteResponse> {
+    return call("Notes.Create", input);
   },
-  /** List returns a snapshot of the in-memory notes. */
-  list(): Promise<Note[]> {
-    return call("Notes.List");
+  /** List lists notes through the shared application service. */
+  list(input: ListNotesInput): Promise<ListNotesResponse> {
+    return call("Notes.List", input);
   },
 } as const;
