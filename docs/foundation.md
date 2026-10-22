@@ -296,6 +296,21 @@ can succeed on its third configured attempt, a write remains at one attempt
 under the same retry policy, and the same write retries only after the explicit
 write opt-in.
 
+## Framework CLI root
+
+[`internal/cli`](../internal/cli/root.go) owns a Cobra v1.10.2 `framework`
+root with stable help and version flags plus stdout shell completion for Bash,
+Fish, PowerShell, and Zsh. The constructor accepts future leaf commands as
+explicit extensions and passes the execution context through Cobra; it imports
+no desktop bootstrap, storage, logging, keyring, or MyGo application package.
+
+[`cmd/framework`](../cmd/framework/main.go) is limited to signal-aware context,
+command execution, one stderr error, and the process exit code. Focused tests
+exercise help, version, completion, invalid shell input, context propagation,
+and an injected generation command from an empty working directory. The real
+binary produced 16,333 bytes of Bash completion without creating a database,
+log, or any other file in that directory.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
