@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -22,12 +24,19 @@ type Options struct {
 	Port    int
 }
 
+// ConnectionDetails contains the credentials for one enabled launch.
+type ConnectionDetails struct {
+	Endpoint    string
+	BearerToken string
+}
+
 // Runtime owns the optional MCP listener and HTTP server.
 type Runtime struct {
 	listener *readyListener
 	server   *http.Server
 	logger   *slog.Logger
 	endpoint string
+	token    string
 	done     chan struct{}
 
 	mu       sync.Mutex
@@ -92,12 +101,17 @@ func NewRuntime(
 	}
 	sdkServer := sdk.NewServer(&sdk.Implementation{Name: name, Version: "1"}, &sdk.ServerOptions{Logger: logger})
 	RegisterGeneratedTools(sdkServer, resolvers)
+	protection := http.NewCrossOriginProtection()
 	handler := sdk.NewStreamableHTTPHandler(
 		func(*http.Request) *sdk.Server { return sdkServer },
-		&sdk.StreamableHTTPOptions{Stateless: true, Logger: logger},
+		&sdk.StreamableHTTPOptions{
+			Stateless: true,
+			Logger:    logger,
+		},
 	)
+	token := rand.Text()
 	mux := http.NewServeMux()
-	mux.Handle(endpointPath, handler)
+	mux.Handle(endpointPath, requireBearerToken(token, protection.Handler(handler)))
 	runtime.listener = &readyListener{Listener: listener, ready: make(chan struct{})}
 	runtime.server = &http.Server{
 		Handler:           mux,
@@ -107,6 +121,7 @@ func NewRuntime(
 	}
 	runtime.logger = logger
 	runtime.endpoint = "http://" + listener.Addr().String() + endpointPath
+	runtime.token = token
 	runtime.done = make(chan struct{})
 	return runtime, nil
 }
@@ -146,8 +161,26 @@ func (r *Runtime) Start() {
 	)
 }
 
-// Endpoint returns the local Streamable HTTP endpoint when MCP is enabled.
-func (r *Runtime) Endpoint() string { return r.endpoint }
+// ConnectionDetails returns the per-launch local endpoint and bearer token.
+func (r *Runtime) ConnectionDetails() (ConnectionDetails, error) {
+	if r.listener == nil {
+		return ConnectionDetails{}, errors.New("MCP is disabled")
+	}
+	return ConnectionDetails{Endpoint: r.endpoint, BearerToken: r.token}, nil
+}
+
+func requireBearerToken(token string, next http.Handler) http.Handler {
+	expected := []byte("Bearer " + token)
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		provided := []byte(request.Header.Get("Authorization"))
+		if subtle.ConstantTimeCompare(provided, expected) != 1 {
+			response.Header().Set("WWW-Authenticate", "Bearer")
+			http.Error(response, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(response, request)
+	})
+}
 
 // Shutdown stops accepting MCP requests before shared services are disposed.
 func (r *Runtime) Shutdown(ctx context.Context) error {

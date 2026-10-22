@@ -353,9 +353,11 @@ runtime concerns rather than generated code.
 MCP is disabled unless `MYGO_MCP_ENABLED` parses as true. An enabled desktop
 launch also requires `MYGO_MCP_PORT` in the range 1–65535 and exposes the
 Streamable HTTP endpoint at `http://127.0.0.1:<port>/mcp`. For example,
-`MYGO_MCP_ENABLED=true MYGO_MCP_PORT=48123 bun run dev` starts the application
-with the local endpoint on port 48123. Normal startup logs deliberately do not
-print that connection address.
+`MYGO_MCP_ENABLED=true MYGO_MCP_PORT=48123 MYGO_MCP_DISCLOSE=true bun run dev`
+starts the application and explicitly writes its endpoint plus
+`Authorization: Bearer <token>` credential to stdout. Omitting
+`MYGO_MCP_DISCLOSE` keeps the credential pair out of routine output. Normal
+startup and SDK logs never contain the per-launch token.
 
 Bootstrap reserves the loopback listener while constructing resources so a
 bind failure rolls startup back cleanly, then starts serving only after runtime
@@ -363,9 +365,11 @@ readiness succeeds. The official SDK runs in stateless mode, but its generated
 resolver closures capture the already-resolved application services; requests
 therefore share the desktop process's service objects and database rather than
 opening a per-request graph or store. Dependency-aware shutdown stops the HTTP
-listener before disposing those shared services. Authentication and explicit
-connection-detail disclosure are the next security boundary, not transport
-responsibilities hidden in generated code.
+listener before disposing those shared services. Each enabled launch generates
+a new cryptographically random bearer token. The endpoint rejects missing or
+incorrect tokens, retains the SDK's localhost Host protection, and wraps the
+SDK handler with Go's native cross-origin protection. These checks stay in the
+hand-written HTTP boundary rather than generated tools or business services.
 
 Generation refuses to replace a file without its generated header and
 preflights the complete set before writing. `framework generate --check`

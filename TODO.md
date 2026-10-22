@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 5 — CLI and desktop generation
-- Current item: M6.3 — protect the local MCP endpoint and disclose credentials explicitly
-- Last verification: M6.2 loopback lifecycle, disabled configuration, shared-service identity, generator, and fresh-project checks
-- Next action: add cross-origin and bearer-token protection while preserving the SDK's localhost Host checks, then expose connection details only through an explicit developer action
+- Current item: M6.4 — map MCP failures and publish note changes to the open UI
+- Last verification: M6.3 real HTTP rejection checks for missing/wrong tokens, invalid Host and cross-origin requests, per-launch token uniqueness, and log secrecy
+- Next action: convert service failures into concrete MCP error results, preserve cancellation, and route successful note mutations through a small UI callback adapter
 
 ## Working rules
 
@@ -68,6 +68,7 @@ and verification evidence before the next item starts.
 | M5.9 | `MYGO_GENERATOR_ACCEPTANCE=1 go test -run '^TestGeneratedProjectAcceptance$' -v ./internal/generator`; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; the real CLI created a fresh app and Bookmark feature, pinned MyGo generated and invoked its client, Go/web builds passed, repeat output was byte-identical, stale check did not write, and hand-written service bytes survived |
 | M6.1 | Focused generated MCP SDK list/schema/handler tests; duplicate and annotated-only generator tests; opt-in fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; only two annotated tools are listed, SDK-derived schemas include field descriptions, effects are explicit, handlers call the shared service types, duplicate names fail discovery, and a fresh generated app builds with the pinned official SDK |
 | M6.2 | Focused MCP listener/config/bootstrap/generator tests; opt-in fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; MCP stays disabled by default, enabled launches bind only `127.0.0.1`, stateless serving begins after readiness, generated resolvers capture the existing service instance, shutdown releases the listener before graph disposal, and a fresh generated app builds |
+| M6.3 | Real loopback HTTP security tests and race run; startup disclosure/config tests; template checks; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; missing/wrong bearer credentials return 401, SDK Host and Go cross-origin checks return 403, tokens differ per launch and never enter normal logs, and details print only when the explicit disclosure switch is enabled |
 
 ## Milestone 1 — verify the foundation
 
@@ -223,7 +224,7 @@ and [`PLAN.md` — MCP integration](PLAN.md#mcp-integration).
 - [x] **M6.2** Add the optional in-process stateless Streamable HTTP server after
   runtime readiness, disabled by default, bound to loopback with configurable
   port, reusing the existing service instances and stores for every request.
-- [ ] **M6.3** Enforce SDK localhost Host protection, Go cross-origin protection,
+- [x] **M6.3** Enforce SDK localhost Host protection, Go cross-origin protection,
   and a per-launch bearer token; expose connection details only through an
   explicit developer action and never normal logs.
 - [ ] **M6.4** Map domain failures to MCP error results with concise text and

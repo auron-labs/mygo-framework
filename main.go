@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"mygo-framework/app/bootstrap"
 	"mygo-framework/app/desktop"
@@ -19,8 +20,9 @@ import (
 )
 
 const (
-	mcpEnabledEnvironment = "MYGO_MCP_ENABLED"
-	mcpPortEnvironment    = "MYGO_MCP_PORT"
+	mcpEnabledEnvironment  = "MYGO_MCP_ENABLED"
+	mcpPortEnvironment     = "MYGO_MCP_PORT"
+	mcpDiscloseEnvironment = "MYGO_MCP_DISCLOSE"
 )
 
 func main() {
@@ -63,6 +65,11 @@ func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) 
 		publishStartupFailure(applicationRuntime, err)
 		return
 	}
+	discloseMCP, err := mcpDisclosureFromEnvironment(os.LookupEnv, mcpOptions.Enabled)
+	if err != nil {
+		publishStartupFailure(applicationRuntime, err)
+		return
+	}
 	paths, err := profile.Resolve("")
 	if err != nil {
 		publishStartupFailure(applicationRuntime, fmt.Errorf("resolve application profile: %w", err))
@@ -73,12 +80,22 @@ func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) 
 		return
 	}
 
-	_ = applicationRuntime.Start(ctx, bootstrap.Options{
+	if err := applicationRuntime.Start(ctx, bootstrap.Options{
 		Development:  mygo.IsDev(),
 		DatabasePath: paths.DatabasePath,
 		LogDirectory: paths.LogDirectory,
 		MCP:          mcpOptions,
-	})
+	}); err != nil || !discloseMCP {
+		return
+	}
+	details, err := applicationRuntime.MCPConnectionDetails(ctx)
+	if err != nil {
+		log.Printf("MCP connection disclosure failed: %v", err)
+		return
+	}
+	if err := writeMCPConnectionDetails(os.Stdout, details); err != nil {
+		log.Print("MCP connection disclosure output failed")
+	}
 }
 
 func mcpOptionsFromEnvironment(lookup func(string) (string, bool)) (appMCP.Options, error) {
@@ -105,6 +122,36 @@ func mcpOptionsFromEnvironment(lookup func(string) (string, bool)) (appMCP.Optio
 		return appMCP.Options{}, fmt.Errorf("parse %s: expected a port from 1 to 65535", mcpPortEnvironment)
 	}
 	return appMCP.Options{Enabled: true, Port: int(port)}, nil
+}
+
+func mcpDisclosureFromEnvironment(lookup func(string) (string, bool), enabled bool) (bool, error) {
+	if lookup == nil {
+		return false, errors.New("resolve MCP disclosure environment: lookup is required")
+	}
+	value, exists := lookup(mcpDiscloseEnvironment)
+	if !exists || strings.TrimSpace(value) == "" {
+		return false, nil
+	}
+	disclose, err := strconv.ParseBool(strings.TrimSpace(value))
+	if err != nil {
+		return false, fmt.Errorf("parse %s: %w", mcpDiscloseEnvironment, err)
+	}
+	if disclose && !enabled {
+		return false, fmt.Errorf("%s requires %s", mcpDiscloseEnvironment, mcpEnabledEnvironment)
+	}
+	return disclose, nil
+}
+
+func writeMCPConnectionDetails(writer io.Writer, details appMCP.ConnectionDetails) error {
+	if _, err := fmt.Fprintf(
+		writer,
+		"MCP endpoint: %s\nMCP authorization: Bearer %s\n",
+		details.Endpoint,
+		details.BearerToken,
+	); err != nil {
+		return fmt.Errorf("write MCP connection details: %w", err)
+	}
+	return nil
 }
 
 func publishStartupFailure(applicationRuntime *bootstrap.Bootstrap, cause error) {
