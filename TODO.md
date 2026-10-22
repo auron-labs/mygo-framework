@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.9 — run the fresh-project generator acceptance flow
-- Last verification: M5.8 focused profile/database/appctl tests proving read-only status and idempotent migration application
-- Next action: create a disposable project, add a second feature, build and invoke the real generated client, then test repeat/stale/preservation behavior
+- Completed milestone: milestone 5 — CLI and desktop generation
+- Current item: M6.1 — generate official-SDK typed MCP wrappers
+- Last verification: M5.9 opt-in fresh-project acceptance covering the real CLI, pinned MyGo client, Go/web builds, repeat/stale generation, and hand-written preservation
+- Next action: add the official MCP SDK and generate typed wrappers only for explicitly annotated methods, with schemas, effects, and duplicate-name rejection
 
 ## Working rules
 
@@ -65,6 +65,7 @@ and verification evidence before the next item starts.
 | M5.6 | Focused creation/refusal/cancellation tests; real `new` projects; `generate --check`; Go compile/tidy; frozen Bun install; 16 web tests; production build; repeated MyGo binding hash | Pass; one 39-file Git-initialized web template rewrites project identity, pins Go/JS dependencies, includes explicit bootstrap/migrations/forms/guidance, and produces current Go and TypeScript bindings |
 | M5.7 | Injected dev/build/doctor generation and runner tests; failure short-circuit checks; real delegation to pinned MyGo help; real `framework doctor` | Pass; dev/build generate once, doctor checks once without writes, arguments/context/stdio pass through to local `mygo-cli@0.5.5`, and no framework watcher exists |
 | M5.8 | Focused profile, database inspection/migration, and appctl command tests; generated-template compile and command probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; desktop and CLI share paths, missing status creates no database, existing status is read-only and leaves pending schema untouched, only up calls Goose Up, and offline imports exclude runtime services/MyGo/secrets/workers/RPC |
+| M5.9 | `MYGO_GENERATOR_ACCEPTANCE=1 go test -run '^TestGeneratedProjectAcceptance$' -v ./internal/generator`; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; the real CLI created a fresh app and Bookmark feature, pinned MyGo generated and invoked its client, Go/web builds passed, repeat output was byte-identical, stale check did not write, and hand-written service bytes survived |
 
 ## Milestone 1 — verify the foundation
 
@@ -204,7 +205,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
   resolver, explicit data-directory override, and a minimal offline bootstrap;
   status must not migrate, and neither command starts MyGo, services, secrets,
   workers, or a local RPC bridge.
-- [ ] **M5.9** Run the generator acceptance flow in a temporary directory: create
+- [x] **M5.9** Run the generator acceptance flow in a temporary directory: create
   a fresh project, generate a second feature, build it, invoke it through the real
   MyGo-generated client, prove a second run is clean, detect deliberate stale
   output, and preserve hand-written code.
