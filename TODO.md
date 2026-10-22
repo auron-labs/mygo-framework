@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 2 — runtime and one complete feature
-- Current item: M3.2 — implement SQLite settings persistence
-- Last verification: M3.1 settings unit/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
-- Next action: add the namespaced settings migration and shared-pool SQLite adapter
+- Current item: M3.3 — add transient settings overlays
+- Last verification: M3.2 shared-pool SQLite contract/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
+- Next action: implement explicit flag and environment precedence without persistence side effects
 
 ## Working rules
 
@@ -47,6 +47,7 @@ and verification evidence before the next item starts.
 | M2.9 | Worker/quit/bootstrap unit and race tests; full Go and CGO-free suites; vet/lint/tidy; deterministic generation and artifact scan | Pass; app cancellation, worker-before-storage disposal, non-blocking quit, re-entry guard, idempotence, prior cancellation, and hard deadline are asserted |
 | M2.10 | Packaged app under Xvfb/DBus with isolated user data; real create, validation, SIGTERM, restart, and invalid-config-path flows; full Go/race/CGO-free suites; vet/lint/tidy; frontend build; repeated generation and artifact scan | Pass; note persisted across a clean 110 ms shutdown/restart, startup failure stayed visible, request cancellation remained GUI-independent, and both app processes exited 0 |
 | M3.1 | Settings unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; registered generic keys preserve defaults and explicit zero values, reject unknown or invalid data contextually, validate before writes, and use no mutable cache |
+| M3.2 | Shared SQLite adapter contract and race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; the versioned `mygo_framework_settings` table persists exact JSON across reopen, copies bytes, honors cancellation, supports concurrent access, and borrows the sole application pool |
 
 ## Milestone 1 — verify the foundation
 
@@ -117,7 +118,7 @@ Reference: [`PLAN.md` — Milestone 3](PLAN.md#milestone-3-configuration-and-sec
   read/write/delete contract, preserving defaults, explicit zero values,
   validation, contextual decode/type errors, and goroutine safety without a
   mutable cache.
-- [ ] **M3.2** Implement the SQLite settings adapter in a framework-namespaced
+- [x] **M3.2** Implement the SQLite settings adapter in a framework-namespaced
   versioned migration on the shared pool and run the common persistence tests.
 - [ ] **M3.3** Implement explicit flag/environment overlays with
   flag → environment → persisted → default precedence and prove overrides never

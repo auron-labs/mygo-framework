@@ -175,6 +175,14 @@ preserved. Writes validate and encode before calling the store. The registry is
 immutable after construction, adds no cache, and requires stores and validation
 functions to support concurrent calls.
 
+The default SQLite adapter stores values in the versioned
+`mygo_framework_settings` table. It borrows the application's migrated
+`sql.DB`, opens no connection of its own, and has no close method. A shared
+adapter contract verifies exact JSON persistence through close/reopen,
+overwrite/delete behavior, byte ownership, invalid-JSON rejection, context
+cancellation, and concurrent use; the optional bbolt adapter will run the same
+contract.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
