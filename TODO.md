@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.1 — add the framework CLI root
-- Last verification: M4.5 local timeout/cancellation/retry tests and full normal/race/CGO-free/static suites pass
-- Next action: add the Cobra root while keeping help and generation paths independent of runtime startup
+- Current item: M5.2 — discover annotated service methods
+- Last verification: M5.1 CLI tests, real binary help/version/completion probes, and full normal/race/CGO-free/static suites pass
+- Next action: add go/packages/type-based annotation discovery with stable diagnostics and ordering
 
 ## Working rules
 
@@ -57,6 +57,7 @@ and verification evidence before the next item starts.
 | M4.3 | 16 web tests; strict TypeScript check; production frontend build; controlled browser validation, held duplicate submission, success/reset, and transport-failure flows | Pass; the vanilla notes UI uses the helpers, maps field errors accessibly, issues one create for simultaneous submits, resets after success, and shows one safe runtime alert on transport failure |
 | M4.4 | 4 focused HTTP client tests and race run; full Go and CGO-free suites; vet/lint/tidy | Pass; Resty v2.17.2 applies validated URL/timeout/header/transport configuration, JSON round trips, status errors, safe metrics, native-client access, and zero retries by default |
 | M4.5 | Local `httptest` timeout, caller-cancellation, read-retry, write-gate tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; both cancellation sources reached server contexts, reads stopped at the configured bound, writes ran once unless explicitly enabled, and Resty's raw retry logger is suppressed |
+| M5.1 | Focused root/help/version/completion/extension tests; actual `framework` binary build and isolated-directory probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; public help is stable, four shell completions stream to stdout, context reaches extensions, errors render once, and no runtime storage/log artifacts appear |
 
 ## Milestone 1 — verify the foundation
 
@@ -169,7 +170,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
 [`PLAN.md` — commands to implement](PLAN.md#commands-to-implement), and
 [`PLAN.md` — generation rules](PLAN.md#generation-rules).
 
-- [ ] **M5.1** Add the Cobra `framework` root with stable help, flags, completion,
+- [x] **M5.1** Add the Cobra `framework` root with stable help, flags, completion,
   and extension points while proving help and generator commands do not start
   runtime services or open application storage.
 - [ ] **M5.2** Implement go/packages/type-based annotation discovery for the one
