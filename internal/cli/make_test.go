@@ -40,4 +40,7 @@ func TestMakeCommandListsFocusedKinds(t *testing.T) {
 			t.Errorf("help does not contain %q:\n%s", kind, help)
 		}
 	}
+	if !strings.Contains(help, "feature") {
+		t.Errorf("help does not contain feature:\n%s", help)
+	}
 }

@@ -38,8 +38,8 @@ func TestStartEagerlyConstructsRequiredGraph(t *testing.T) {
 		}
 	})
 
-	if got := len(bootstrap.injector.ListInvokedServices()); got != 9 {
-		t.Fatalf("invoked services after start = %d, want 9", got)
+	if got := len(bootstrap.injector.ListInvokedServices()); got < 9 {
+		t.Fatalf("invoked services after start = %d, want at least the 9 core services", got)
 	}
 	if got := bootstrap.Readiness().State(); got != appRuntime.StateReady {
 		t.Fatalf("readiness state = %d, want ready", got)

@@ -15,7 +15,7 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 
 	checked, err := Generate(context.Background(), GenerateConfig{Dir: directory, Check: true})
 	var stale *StaleError
-	if !errors.As(err, &stale) || len(checked.Changed) != 3 || len(stale.Files) != 3 {
+	if !errors.As(err, &stale) || len(checked.Changed) != 4 || len(stale.Files) != 4 {
 		t.Fatalf("initial check = %+v, %v", checked, err)
 	}
 	for _, name := range checked.Files {
@@ -28,7 +28,7 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(generated.Files) != 3 || len(generated.Changed) != 3 {
+	if len(generated.Files) != 4 || len(generated.Changed) != 4 {
 		t.Fatalf("initial generation = %+v", generated)
 	}
 	contents := map[string][]byte{}
@@ -52,6 +52,12 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 	bindings := string(contents["framework_bindings_generated.go"])
 	if !strings.Contains(bindings, "mygo.Bind(desktop.NewNotes") {
 		t.Fatalf("bindings output:\n%s", bindings)
+	}
+	providers := string(contents["app/bootstrap/framework_generated.go"])
+	for _, want := range []string{"registerGeneratedServices", "provideNotes", "resolveRequiredServices", "ResolveNotes"} {
+		if !strings.Contains(providers, want) {
+			t.Fatalf("bootstrap output lacks %q:\n%s", want, providers)
+		}
 	}
 	tools := string(contents["app/mcp/framework_generated.go"])
 	for _, want := range []string{`Name:        "fixture_create"`, `Name:        "fixture_inspect"`, "ReadOnly:    true"} {
