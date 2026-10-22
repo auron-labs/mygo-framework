@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.3 — add explicit DI provider composition
-- Last verification: M2.2 full/race/CGO-free suites, vet, lint, and tidy pass
-- Next action: pin samber/do v2 and eagerly resolve the required graph
+- Current item: M2.4 — add development and rotating-file logging
+- Last verification: M2.3 full/race/CGO-free suites, vet, lint, tidy, and dependency scan pass
+- Next action: configure safe slog output and packaged log rotation
 
 ## Working rules
 
@@ -38,6 +38,7 @@ and verification evidence before the next item starts.
 | M1.6 | Fresh probe; full Go/race/CGO-free suites and builds; vet/lint/tidy; frontend typecheck/build; deterministic MyGo generation plus artifact scan | Pass; every milestone 1 acceptance criterion has direct evidence and compatibility corrections are recorded |
 | M2.1 | Focused problem/validation tests; full Go and CGO-free suites; focused race; vet/lint/tidy; TypeScript check/build; deterministic generation; retracted-module scan | Pass; causes remain available but private, nested JSON field paths map correctly, and no selected module is retracted |
 | M2.2 | Readiness unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; waiters synchronize on one startup result, cancellations preserve cause, and shutdown rejects new work |
+| M2.3 | Bootstrap graph unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; required providers resolve eagerly, missing registrations retain cause, and dependent resources dispose first |
 
 ## Milestone 1 — verify the foundation
 
@@ -76,7 +77,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 - [x] **M2.2** Implement synchronized runtime readiness so callers can wait with
   their context, startup failure becomes `unavailable`, and new work is rejected
   after shutdown begins.
-- [ ] **M2.3** Add explicit samber/do v2 provider composition, eagerly resolve the
+- [x] **M2.3** Add explicit samber/do v2 provider composition, eagerly resolve the
   required graph, and keep container lookups out of business service methods.
 - [ ] **M2.4** Add development `slog` output and packaged rotating-file logging
   with safe fields, one-boundary unexpected-error reporting, and no payload or
