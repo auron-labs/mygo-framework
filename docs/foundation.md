@@ -159,6 +159,22 @@ SIGTERM also exited 0. Request-cancellation checks remain in the GUI-independent
 service and desktop-adapter suites, while the packaged flow verifies that the
 real bindings, storage lifecycle, and visible states work together.
 
+## Typed settings contract
+
+The framework-neutral `settings` package registers heterogeneous `Key[T]`
+definitions against a small JSON `Store` contract. `Get`, `Set`, and `Delete`
+accept only the original registered key, so unknown or same-name incompatible
+keys fail before storage access. Keys carry a default and optional validation;
+defaults are JSON-round-tripped so callers receive fresh maps, slices, and
+pointers rather than shared mutable state.
+
+A missing row returns the declared default, while stored `false`, zero, and
+empty strings remain distinct values. Reads reject malformed JSON, wrong types,
+non-nullable `null`, and values that fail validation with the key name and cause
+preserved. Writes validate and encode before calling the store. The registry is
+immutable after construction, adds no cache, and requires stores and validation
+functions to support concurrent calls.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 2 — runtime and one complete feature
-- Current item: M3.1 — define the typed settings contract
-- Last verification: M2.10 packaged desktop acceptance plus full/race/CGO-free suites, vet/lint/tidy, deterministic generation, and artifact scan pass
-- Next action: implement registered typed setting keys and their JSON persistence contract
+- Current item: M3.2 — implement SQLite settings persistence
+- Last verification: M3.1 settings unit/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
+- Next action: add the namespaced settings migration and shared-pool SQLite adapter
 
 ## Working rules
 
@@ -46,6 +46,7 @@ and verification evidence before the next item starts.
 | M2.8 | `bun run typecheck`; `bun run build:web`; rendered browser checks at 960×640 and 480×640 with controlled MyGo responses | Pass; starting, unavailable, empty, server-validation, created-note, focus, count, disabled-control, and responsive states render correctly |
 | M2.9 | Worker/quit/bootstrap unit and race tests; full Go and CGO-free suites; vet/lint/tidy; deterministic generation and artifact scan | Pass; app cancellation, worker-before-storage disposal, non-blocking quit, re-entry guard, idempotence, prior cancellation, and hard deadline are asserted |
 | M2.10 | Packaged app under Xvfb/DBus with isolated user data; real create, validation, SIGTERM, restart, and invalid-config-path flows; full Go/race/CGO-free suites; vet/lint/tidy; frontend build; repeated generation and artifact scan | Pass; note persisted across a clean 110 ms shutdown/restart, startup failure stayed visible, request cancellation remained GUI-independent, and both app processes exited 0 |
+| M3.1 | Settings unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; registered generic keys preserve defaults and explicit zero values, reject unknown or invalid data contextually, validate before writes, and use no mutable cache |
 
 ## Milestone 1 — verify the foundation
 
@@ -112,7 +113,7 @@ Reference: [`PLAN.md` — Milestone 3](PLAN.md#milestone-3-configuration-and-sec
 [`PLAN.md` — persistent configuration](PLAN.md#persistent-configuration), and
 [`PLAN.md` — OS keystore](PLAN.md#os-keystore).
 
-- [ ] **M3.1** Define registered typed setting keys and the small JSON
+- [x] **M3.1** Define registered typed setting keys and the small JSON
   read/write/delete contract, preserving defaults, explicit zero values,
   validation, contextual decode/type errors, and goroutine safety without a
   mutable cache.
