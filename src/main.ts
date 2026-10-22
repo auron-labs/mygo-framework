@@ -1,8 +1,10 @@
-import { Notes, type Note, type Problem } from "./mygo";
+import { createForm, type FormState } from "./framework/form";
+import { runRequest } from "./framework/request";
+import { Notes, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
 
-const form = document.querySelector<HTMLFormElement>("#note-form")!;
+const formElement = document.querySelector<HTMLFormElement>("#note-form")!;
 const input = document.querySelector<HTMLInputElement>("#note-body")!;
-const submit = form.querySelector<HTMLButtonElement>("button")!;
+const submit = formElement.querySelector<HTMLButtonElement>("button")!;
 const bodyError = document.querySelector<HTMLParagraphElement>("#body-error")!;
 const formError = document.querySelector<HTMLParagraphElement>("#form-error")!;
 const empty = document.querySelector<HTMLParagraphElement>("#empty-state")!;
@@ -16,9 +18,24 @@ const status = document.querySelector<HTMLParagraphElement>("#status")!;
 
 let ready = false;
 
-const setComposerEnabled = (enabled: boolean) => {
-  input.disabled = !enabled;
-  submit.disabled = !enabled;
+const noteForm = createForm<CreateNoteInput, CreateNoteOutput>({
+  initialValues: { body: "" },
+  submit: (values) => runRequest(() => Notes.create({ body: values.body })),
+});
+
+const renderForm = (state: FormState<CreateNoteInput>) => {
+  if (input.value !== state.values.body) input.value = state.values.body;
+  const fieldError = state.fieldErrors.body;
+  bodyError.textContent = fieldError ?? "";
+  bodyError.hidden = fieldError === undefined;
+  if (fieldError) input.setAttribute("aria-invalid", "true");
+  else input.removeAttribute("aria-invalid");
+
+  formError.textContent = state.formError ?? "";
+  formError.hidden = state.formError === null || !ready;
+  input.disabled = !ready || state.submitting;
+  submit.disabled = !ready || state.submitting;
+  submit.textContent = state.submitting ? "Adding…" : "Add note";
 };
 
 const showStarting = () => {
@@ -29,14 +46,14 @@ const showStarting = () => {
   runtimeHeading.textContent = "Starting notes…";
   runtimeDetail.textContent = "Opening your local notes and checking the database.";
   collection.setAttribute("aria-busy", "true");
-  setComposerEnabled(false);
+  renderForm(noteForm.getState());
 };
 
 const showReady = () => {
   ready = true;
   runtimeState.hidden = true;
   collection.setAttribute("aria-busy", "false");
-  setComposerEnabled(true);
+  renderForm(noteForm.getState());
 };
 
 const showRuntimeFailure = (message: string) => {
@@ -48,7 +65,7 @@ const showRuntimeFailure = (message: string) => {
   runtimeDetail.textContent = message;
   collection.setAttribute("aria-busy", "false");
   empty.hidden = true;
-  setComposerEnabled(false);
+  renderForm(noteForm.getState());
 };
 
 const renderNotes = (notes: Note[]) => {
@@ -65,91 +82,45 @@ const renderNotes = (notes: Note[]) => {
   count.setAttribute("aria-label", `${notes.length} ${notes.length === 1 ? "note" : "notes"}`);
 };
 
-const clearFormErrors = () => {
-  bodyError.hidden = true;
-  bodyError.textContent = "";
-  formError.hidden = true;
-  formError.textContent = "";
-  input.removeAttribute("aria-invalid");
-};
-
-const showFormProblem = (problem: Problem) => {
-  const fieldError = problem.fieldErrors.find((field) => field.field === "body");
-  if (fieldError) {
-    bodyError.textContent = fieldError.message;
-    bodyError.hidden = false;
-    input.setAttribute("aria-invalid", "true");
-  } else {
-    formError.textContent = problem.message;
-    formError.hidden = false;
-  }
-  input.focus();
-};
-
 const loadNotes = async () => {
-  try {
-    const response = await Notes.list({});
-    if (response.problem) {
-      showRuntimeFailure(response.problem.message);
-      return false;
-    }
-    if (!response.data) {
-      showRuntimeFailure("The notes could not be loaded.");
-      return false;
-    }
-
-    renderNotes(response.data.notes);
-    showReady();
-    return true;
-  } catch {
-    showRuntimeFailure("The notes service could not be reached.");
+  const result = await runRequest(() => Notes.list({}));
+  if (!result.ok) {
+    showRuntimeFailure(result.problem.message);
     return false;
   }
+
+  renderNotes(result.data.notes);
+  showReady();
+  return true;
 };
 
-form.addEventListener("submit", async (event) => {
+noteForm.subscribe(renderForm);
+
+formElement.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!ready) return;
 
-  clearFormErrors();
-  setComposerEnabled(false);
-  submit.textContent = "Adding…";
-
-  try {
-    const response = await Notes.create({ body: input.value });
-    if (response.problem) {
-      if (response.problem.code === "unavailable") {
-        showRuntimeFailure(response.problem.message);
-      } else {
-        showFormProblem(response.problem);
-      }
-      return;
-    }
-    if (!response.data) {
-      formError.textContent = "The note could not be added.";
-      formError.hidden = false;
-      input.focus();
-      return;
-    }
-
-    input.value = "";
-    if (await loadNotes()) {
-      status.textContent = "Note added.";
-      input.focus();
-    }
-  } catch {
-    formError.textContent = "The note could not be added.";
-    formError.hidden = false;
+  status.textContent = "";
+  const result = await noteForm.submit();
+  if (!result) return;
+  if (!result.ok) {
+    if (result.problem.code === "unavailable") showRuntimeFailure(result.problem.message);
     input.focus();
-  } finally {
-    submit.textContent = "Add note";
-    if (ready) setComposerEnabled(true);
+    return;
+  }
+
+  noteForm.reset();
+  if (await loadNotes()) {
+    status.textContent = "Note added.";
+    input.focus();
   }
 });
 
 input.addEventListener("input", () => {
-  if (!bodyError.hidden) clearFormErrors();
+  noteForm.setField("body", input.value);
 });
+
+window.addEventListener("pagehide", () => noteForm.dispose(), { once: true });
 
 showStarting();
 void loadNotes();

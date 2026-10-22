@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 3 — configuration and secrets
-- Current item: M4.3 — integrate and prove the form helpers
-- Last verification: M4.2 form/request tests, strict typecheck, and production frontend build pass
-- Next action: connect the vanilla notes form to the helpers and verify rendered success, failure, reset, disposal, and field-error behavior
+- Current item: M4.4 — add the outbound HTTP client
+- Last verification: M4.3 web tests, strict typecheck/build, and controlled rendered-browser form flows pass
+- Next action: add the configured Resty v2 client and its transport/error/metrics contract
 
 ## Working rules
 
@@ -54,6 +54,7 @@ and verification evidence before the next item starts.
 | M3.6 | Typed SQLite/bbolt restart acceptance under race; focused bbolt lock test; opt-in real MyGo credential-store probe; full Go/race/CGO-free suites; vet/lint/tidy | Pass with platform limitation; zero values, invalid data, transient overlays, and 0.95 s lock failure pass, while the real keyring probe accurately skipped because this runner has no session bus/Secret Service |
 | M4.1 | 10 Bun request-helper tests; strict TypeScript check; MyGo regeneration; production web build; Go regression suite | Pass; generated responses unwrap once, falsy data survives, backend problems remain intact, invalid envelopes become internal problems, and thrown transport details become safe unavailable problems |
 | M4.2 | 6 focused form tests and 16 total web tests; strict TypeScript check; production frontend build | Pass; copied observable state tracks values/dirty/touched/errors, reset establishes a new baseline, duplicate submit shares one promise, pending always clears, and reset/dispose suppress stale completion |
+| M4.3 | 16 web tests; strict TypeScript check; production frontend build; controlled browser validation, held duplicate submission, success/reset, and transport-failure flows | Pass; the vanilla notes UI uses the helpers, maps field errors accessibly, issues one create for simultaneous submits, resets after success, and shows one safe runtime alert on transport failure |
 
 ## Milestone 1 — verify the foundation
 
@@ -151,7 +152,7 @@ Reference: [`PLAN.md` — Milestone 4](PLAN.md#milestone-4-forms-and-http-helper
 - [x] **M4.2** Add the dependency-free form state helper with values, dirty and
   touched state, submitting state, field/form errors, reset, setField,
   subscribe, submit, duplicate-submit prevention, and disposed-completion guards.
-- [ ] **M4.3** Test form success, failure, duplicate submission, reset, disposal,
+- [x] **M4.3** Test form success, failure, duplicate submission, reset, disposal,
   and field-error mapping, then update the vanilla notes form to use the helpers.
 - [ ] **M4.4** Add the configured Resty v2 client with context, timeout, base URL,
   headers, JSON behavior, consistent HTTP errors, safe request metrics, supplied

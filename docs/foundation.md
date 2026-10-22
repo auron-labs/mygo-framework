@@ -255,6 +255,14 @@ unmapped context retained as the form error. Reset and dispose advance a
 generation guard so late Promise completion cannot mutate obsolete state; this
 does not claim to cancel the underlying Go request.
 
+The vanilla notes screen uses these helpers directly. Its subscription keeps
+the input, pending label, disabled state, field alert, and form alert in sync;
+successful submission resets the controller before reloading notes.
+Availability failures remain a single global alert, while backend validation
+stays attached to the input with `aria-invalid`. A controlled browser pass held
+one create request while dispatching two submissions, observed one transport
+call, then verified the successful reset and safe transport-failure state.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
