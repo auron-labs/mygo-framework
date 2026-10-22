@@ -7,10 +7,10 @@ and verification evidence before the next item starts.
 
 ## Progress
 
-- Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.10 — prove the complete milestone 2 feature
-- Last verification: M2.9 full/race/CGO-free suites, vet/lint/tidy, deterministic generation, and artifact scan pass
-- Next action: exercise the real desktop create/list, restart, failure, cancellation, and shutdown paths
+- Completed milestone: milestone 2 — runtime and one complete feature
+- Current item: M3.1 — define the typed settings contract
+- Last verification: M2.10 packaged desktop acceptance plus full/race/CGO-free suites, vet/lint/tidy, deterministic generation, and artifact scan pass
+- Next action: implement registered typed setting keys and their JSON persistence contract
 
 ## Working rules
 
@@ -45,6 +45,7 @@ and verification evidence before the next item starts.
 | M2.7 | Desktop adapter unit/race tests; full Go and CGO-free suites; vet/lint/tidy; TypeScript check; web build; repeated MyGo generation and artifact scan | Pass; readiness gates resolution, wire responses are concrete, only create/list are exported, internal failures log once, and generation has no runtime side effects |
 | M2.8 | `bun run typecheck`; `bun run build:web`; rendered browser checks at 960×640 and 480×640 with controlled MyGo responses | Pass; starting, unavailable, empty, server-validation, created-note, focus, count, disabled-control, and responsive states render correctly |
 | M2.9 | Worker/quit/bootstrap unit and race tests; full Go and CGO-free suites; vet/lint/tidy; deterministic generation and artifact scan | Pass; app cancellation, worker-before-storage disposal, non-blocking quit, re-entry guard, idempotence, prior cancellation, and hard deadline are asserted |
+| M2.10 | Packaged app under Xvfb/DBus with isolated user data; real create, validation, SIGTERM, restart, and invalid-config-path flows; full Go/race/CGO-free suites; vet/lint/tidy; frontend build; repeated generation and artifact scan | Pass; note persisted across a clean 110 ms shutdown/restart, startup failure stayed visible, request cancellation remained GUI-independent, and both app processes exited 0 |
 
 ## Milestone 1 — verify the foundation
 
@@ -101,7 +102,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 - [x] **M2.9** Add one cancellable app-lifetime background operation and bounded,
   idempotent quit-stage shutdown that stops work before releasing services and
   the database, without blocking the UI thread.
-- [ ] **M2.10** Prove the complete feature: UI create/list, field errors, restart
+- [x] **M2.10** Prove the complete feature: UI create/list, field errors, restart
   persistence, visible startup failure, request cancellation, and released
   resources; keep the core unit/integration suite GUI-independent.
 
