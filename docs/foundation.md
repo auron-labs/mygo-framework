@@ -14,6 +14,7 @@ It describes unreleased repository behavior, not a published compatibility promi
 | ncruces gormlite | 0.34.0 |
 | GORM | 1.31.2 |
 | Goose | 3.29.0 |
+| validator | 10.30.5 |
 
 These were tagged releases on 22 October 2026. The MyGo packages use the same
 release to keep the generated client and Go runtime compatible.
@@ -28,6 +29,11 @@ The current gormlite release is a separate Go module at
 `github.com/ncruces/go-sqlite3/gormlite`. It is pinned to 0.34.0 alongside the
 0.35.6 SQLite driver. Its `OpenDB` API accepts the existing `sql.DB`, so the
 plan's shared-pool design works without an adapter or a second connection.
+
+Validator 10.30.5 requested retracted mimetype 1.4.15, whose module notice
+reports quadratic work for crafted CDF files. The dependency graph pins the
+compatible 1.4.16 patch instead. `go list -m -retracted all` reports no
+retracted selected module after that correction.
 
 ## Shared SQLite pool
 

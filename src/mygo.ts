@@ -4,10 +4,18 @@ import { call } from "mygo-runtime";
 
 // ---- Types ----
 
+export type Code = string;
+
 /** CreateNoteResponse is the concrete desktop response for creating a note. */
 export interface CreateNoteResponse {
   data: Note | null;
   problem: Problem | null;
+}
+
+export interface FieldError {
+  field: string;
+  code: string;
+  message: string;
 }
 
 /** Note is the foundation example's in-memory note representation. */
@@ -16,10 +24,10 @@ export interface Note {
   body: string;
 }
 
-/** Problem is the foundation example's structured application failure. */
 export interface Problem {
-  code: string;
+  code: Code;
   message: string;
+  fieldErrors: FieldError[];
 }
 
 // ---- Services ----
