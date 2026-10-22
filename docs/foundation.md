@@ -242,6 +242,19 @@ copying the rejection text into user-visible state. Focused Bun tests cover all
 of these cases, and regeneration confirms the helper remains compatible with
 the generated response types.
 
+The dependency-free `createForm` controller publishes copied state snapshots
+for values, dirty and touched fields, submission, field errors, and a form
+error. `setField` updates typed values and clears errors for the edited field;
+`reset` can restore or replace the baseline. Subscriptions receive the initial
+state immediately and return an unsubscribe function.
+
+Submission captures the current values, returns the same active promise to
+duplicate callers, and clears pending state for success, backend failure, or an
+unexpected callback throw. Backend errors map only to known fields, with
+unmapped context retained as the form error. Reset and dispose advance a
+generation guard so late Promise completion cannot mutate obsolete state; this
+does not claim to cancel the underlying Go request.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
