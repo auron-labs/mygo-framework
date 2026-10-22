@@ -80,6 +80,16 @@ func Open(ctx context.Context, path string, migrations fs.FS) (_ *Database, err 
 	}
 	// Provider.Close would close the borrowed pool; Database is its sole owner.
 	if _, err = provider.Up(ctx); err != nil {
+		var partial *goose.PartialError
+		if errors.As(err, &partial) && partial.Failed != nil && partial.Failed.Source != nil {
+			return nil, fmt.Errorf(
+				"apply SQLite migration %q to %q: %w",
+				filepath.Base(partial.Failed.Source.Path),
+				path,
+				err,
+			)
+		}
+
 		return nil, fmt.Errorf("apply SQLite migrations to %q: %w", path, err)
 	}
 

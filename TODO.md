@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 1 — verify the foundation
-- Current item: M2.5 — move database ownership into runtime startup
-- Last verification: M2.4 full/race/CGO-free suites, vet, lint, tidy, and dependency scan pass
-- Next action: compose logging, migrations, database ownership, and rollback cleanup in runtime startup
+- Current item: M2.6 — implement create/list note services
+- Last verification: M2.5 full/race/CGO-free suites, vet, lint, and tidy pass
+- Next action: add direct-dependency note services with validation and transaction ownership
 
 ## Working rules
 
@@ -40,6 +40,7 @@ and verification evidence before the next item starts.
 | M2.2 | Readiness unit/race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; waiters synchronize on one startup result, cancellations preserve cause, and shutdown rejects new work |
 | M2.3 | Bootstrap graph unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; required providers resolve eagerly, missing registrations retain cause, and dependent resources dispose first |
 | M2.4 | Logging unit/race tests; full Go and CGO-free suites; vet/lint/tidy; retracted-module scan | Pass; development and packaged sinks work, sensitive fields are redacted, and cancellation produces no error record |
+| M2.5 | Runtime/database integration and race tests; full Go and CGO-free suites; vet/lint/tidy | Pass; migrations persist through restart, failed SQL is named and reported unavailable, rollback closes opened resources, and shutdown is one-time |
 
 ## Milestone 1 — verify the foundation
 
@@ -83,7 +84,7 @@ Reference: [`PLAN.md` — Milestone 2](PLAN.md#milestone-2-runtime-and-one-compl
 - [x] **M2.4** Add development `slog` output and packaged rotating-file logging
   with safe fields, one-boundary unexpected-error reporting, and no payload or
   secret logging.
-- [ ] **M2.5** Move the proven database/migration path behind the runtime owner,
+- [x] **M2.5** Move the proven database/migration path behind the runtime owner,
   apply embedded forward migrations before readiness, and test migration
   persistence, failure reporting, rollback cleanup, and one-time disposal.
 - [ ] **M2.6** Implement ordinary create/list note service methods with direct
