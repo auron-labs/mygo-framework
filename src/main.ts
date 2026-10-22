@@ -10,7 +10,14 @@ const count = document.querySelector<HTMLSpanElement>("#note-count")!;
 const status = document.querySelector<HTMLParagraphElement>("#status")!;
 
 const renderNotes = async () => {
-  const notes = await Notes.list();
+  const response = await Notes.list({});
+  if (response.problem) {
+    throw new Error(response.problem.message);
+  }
+  if (!response.data) {
+    throw new Error("The notes could not be loaded.");
+  }
+  const notes = response.data.notes;
 
   list.replaceChildren(
     ...notes.map((note) => {
@@ -32,7 +39,7 @@ form.addEventListener("submit", async (event) => {
   error.hidden = true;
 
   try {
-    const response = await Notes.create(input.value);
+    const response = await Notes.create({ body: input.value });
     if (response.problem) {
       throw new Error(response.problem.message);
     }
