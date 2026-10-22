@@ -514,6 +514,27 @@ The host `go test -race ./...` check passed separately on Linux/amd64. Race
 execution is not inferred from cross-compilation, and none of the macOS,
 Windows, or non-host architecture binaries were executed on this Linux runner.
 
+## Cross-platform runtime smoke
+
+The current packaged application was rebuilt with MyGo 0.5.5 and exercised on
+the available Ubuntu 25.10 Linux/amd64 runner under isolated Xvfb, D-Bus, and
+`XDG_CONFIG_HOME` sessions. It rendered the empty state, accepted keyboard input
+through the real WebKitGTK window, displayed `linux smoke persists` with a count
+of one, and exited successfully on SIGTERM. A second packaged launch using the
+same profile rendered that note before another successful SIGTERM, proving the
+startup, create, clean shutdown, and restart path together.
+
+| OS runner | Desktop smoke | Real credential store |
+| --- | --- | --- |
+| Linux/amd64 | Pass | Blocked: Secret Service activated GNOME Keyring, but non-interactive unlock did not complete within 20 seconds |
+| Linux/arm64 | Unavailable: no runner | Unavailable: no runner |
+| macOS | Unavailable: no runner | Unavailable: no runner |
+| Windows | Unavailable: no runner | Unavailable: no runner |
+
+The Linux keyring result is not a successful secret round trip. The bounded
+probe exited with timeout status 124, and no plaintext fallback was enabled.
+Cross-compiled macOS and Windows binaries likewise provide no runtime evidence.
+
 ## Baseline measurements
 
 The baseline was measured on Ubuntu 25.10 with Linux 6.17.0-41-generic. The
