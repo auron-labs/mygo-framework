@@ -60,6 +60,7 @@ func New() *Bootstrap {
 	do.Provide(bootstrap.injector, bootstrap.provideDatabaseResource)
 	do.Provide(bootstrap.injector, provideDatabase)
 	do.Provide(bootstrap.injector, provideNotes)
+	do.Provide(bootstrap.injector, provideLifetimeWorker)
 
 	return bootstrap
 }
@@ -166,6 +167,9 @@ func (b *Bootstrap) resolveRequired() error {
 	}
 	if _, err := do.Invoke[*services.Notes](b.injector); err != nil {
 		return fmt.Errorf("resolve notes service: %w", err)
+	}
+	if _, err := do.Invoke[*appRuntime.LifetimeWorker](b.injector); err != nil {
+		return fmt.Errorf("resolve app-lifetime worker: %w", err)
 	}
 
 	return nil
@@ -308,4 +312,17 @@ func provideNotes(injector do.Injector) (*services.Notes, error) {
 	}
 
 	return services.NewNotes(database.GORM, validator), nil
+}
+
+func provideLifetimeWorker(injector do.Injector) (*appRuntime.LifetimeWorker, error) {
+	// Resolve the database to ensure the worker is disposed before its resources.
+	if _, err := do.Invoke[*database.Database](injector); err != nil {
+		return nil, fmt.Errorf("resolve database for app-lifetime worker: %w", err)
+	}
+	ctx, err := do.Invoke[context.Context](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve context for app-lifetime worker: %w", err)
+	}
+
+	return appRuntime.NewLifetimeWorker(ctx), nil
 }

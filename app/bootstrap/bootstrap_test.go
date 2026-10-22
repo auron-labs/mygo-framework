@@ -38,8 +38,8 @@ func TestStartEagerlyConstructsRequiredGraph(t *testing.T) {
 		}
 	})
 
-	if got := len(bootstrap.injector.ListInvokedServices()); got != 8 {
-		t.Fatalf("invoked services after start = %d, want 8", got)
+	if got := len(bootstrap.injector.ListInvokedServices()); got != 9 {
+		t.Fatalf("invoked services after start = %d, want 9", got)
 	}
 	if got := bootstrap.Readiness().State(); got != appRuntime.StateReady {
 		t.Fatalf("readiness state = %d, want ready", got)
@@ -68,6 +68,10 @@ func TestRuntimeMigrationPersistsAndDatabaseDisposesOnce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve first database: %v", err)
 	}
+	worker, err := do.Invoke[*appRuntime.LifetimeWorker](first.injector)
+	if err != nil {
+		t.Fatalf("resolve app-lifetime worker: %v", err)
+	}
 	firstService, err := do.Invoke[*services.Notes](first.injector)
 	if err != nil {
 		t.Fatalf("resolve first notes service: %v", err)
@@ -80,6 +84,11 @@ func TestRuntimeMigrationPersistsAndDatabaseDisposesOnce(t *testing.T) {
 	}
 	if err := first.Shutdown(t.Context()); err != nil {
 		t.Fatalf("shutdown first runtime: %v", err)
+	}
+	select {
+	case <-worker.Done():
+	default:
+		t.Fatal("app-lifetime worker remains active after shutdown")
 	}
 	if err := first.Shutdown(t.Context()); err != nil {
 		t.Fatalf("shutdown first runtime again: %v", err)
