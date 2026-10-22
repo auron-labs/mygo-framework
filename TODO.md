@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.3 — generate adapters and registrations
-- Last verification: M5.2 discovery tests/race and full normal/race/CGO-free/static suites pass
-- Next action: generate formatted narrow desktop adapters, concrete responses, explicit registrations, and selected MCP stubs with check mode
+- Current item: M5.4 — add focused feature scaffolds
+- Last verification: M5.3 generation/check, deterministic bindings, full Go/race/CGO-free/static suites, and web tests/build pass
+- Next action: add validated service, request, model, migration, and command scaffolds with overwrite protection and stable migration identity
 
 ## Working rules
 
@@ -59,6 +59,7 @@ and verification evidence before the next item starts.
 | M4.5 | Local `httptest` timeout, caller-cancellation, read-retry, write-gate tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; both cancellation sources reached server contexts, reads stopped at the configured bound, writes ran once unless explicitly enabled, and Resty's raw retry logger is suppressed |
 | M5.1 | Focused root/help/version/completion/extension tests; actual `framework` binary build and isolated-directory probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; public help is stable, four shell completions stream to stdout, context reaches extensions, errors render once, and no runtime storage/log artifacts appear |
 | M5.2 | Real note-service discovery plus temporary-module marker/signature/duplicate diagnostics; focused race; full Go/race/CGO-free suites; vet/lint/tidy | Pass; only explicit command/MCP markers are selected, effects and named struct types are validated, results sort stably, and failures carry file/line positions without executing application code |
+| M5.3 | Initial/repeat/stale/ownership generator tests; `framework generate --check`; deterministic MyGo generation; full Go/race/CGO-free suites; vet/lint; 16 web tests and production build | Pass; three formatted owned files generate before imports exist, repeat byte-identically, preserve hand-written support, expose narrow desktop responses/registrations, and emit only selected MCP metadata stubs |
 
 ## Milestone 1 — verify the foundation
 
@@ -178,7 +179,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
   supported service signature with command/MCP opt-in markers, descriptions,
   effect metadata, stable ordering, and file/line diagnostics for unsupported or
   duplicate declarations.
-- [ ] **M5.3** Generate formatted, narrow desktop adapters, concrete responses,
+- [x] **M5.3** Generate formatted, narrow desktop adapters, concrete responses,
   explicit registrations, and selected MCP registration stubs; support initial
   generation before generated imports exist, byte-identical repeat runs, and
   `generate --check` without writes.

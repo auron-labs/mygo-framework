@@ -16,7 +16,7 @@ import (
 func main() {
 	applicationRuntime := bootstrap.New()
 	applicationContext, cancelApplication := context.WithCancel(context.Background())
-	mygo.Bind(desktop.NewNotes(applicationRuntime.Readiness(), applicationRuntime.ResolveNotes))
+	bindGenerated(applicationRuntime)
 	quitStage := desktop.NewQuitStage(
 		cancelApplication,
 		applicationRuntime.Shutdown,
