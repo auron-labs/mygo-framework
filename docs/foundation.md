@@ -282,6 +282,20 @@ real JSON `httptest` round trip, status errors and log redaction, caller-supplie
 transport behavior, invalid configuration, native client access, and the
 zero-retry default.
 
+Retries require an explicit `RetryOptions` value and are capped at five after
+the initial attempt. Only transport failures, HTTP 429, and HTTP 5xx responses
+qualify. GET, HEAD, and OPTIONS may retry; POST, PUT, PATCH, and DELETE remain
+single-attempt unless `Writes` is explicitly true. Caller cancellation reaches
+active requests and interrupts retry waits; the client timeout reaches each
+active request. Resty's own raw retry logger is disabled so full URLs and
+transport details cannot bypass the structured metric policy.
+
+Local server tests observe the request context closing for both the configured
+30-millisecond timeout and direct caller cancellation. They also prove a read
+can succeed on its third configured attempt, a write remains at one attempt
+under the same retry policy, and the same write retries only after the explicit
+write opt-in.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:

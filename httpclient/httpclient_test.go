@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -149,11 +150,145 @@ func TestInvalidOptions(t *testing.T) {
 		{BaseURL: "example.test"},
 		{BaseURL: "ftp://example.test"},
 		{Timeout: -time.Second},
+		{Retry: &RetryOptions{}},
+		{Retry: &RetryOptions{Count: MaxRetryCount + 1}},
+		{Retry: &RetryOptions{Count: 1, WaitTime: time.Second, MaxWaitTime: time.Millisecond}},
 	} {
 		if _, err := New(options); err == nil {
 			t.Errorf("New(%+v) succeeded", options)
 		}
 	}
+}
+
+func TestTimeoutAndCancellationReachRequest(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name       string
+		timeout    time.Duration
+		cancel     bool
+		want       error
+		cancelWait time.Duration
+	}{
+		{name: "client timeout", timeout: 30 * time.Millisecond, want: context.DeadlineExceeded},
+		{name: "caller cancellation", timeout: time.Second, cancel: true, want: context.Canceled, cancelWait: 10 * time.Millisecond},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			requestCanceled := make(chan struct{})
+			server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+				<-request.Context().Done()
+				close(requestCanceled)
+			}))
+			t.Cleanup(server.Close)
+
+			client, err := New(Options{
+				BaseURL: server.URL,
+				Timeout: test.timeout,
+				Logger:  slog.New(slog.DiscardHandler),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if test.cancel {
+				time.AfterFunc(test.cancelWait, cancel)
+			}
+			_, err = client.Request(ctx, "slow.read").Get("/slow")
+			if !errors.Is(err, test.want) {
+				t.Fatalf("error = %v, want %v", err, test.want)
+			}
+			select {
+			case <-requestCanceled:
+			case <-time.After(time.Second):
+				t.Fatal("server request context was not canceled")
+			}
+		})
+	}
+}
+
+func TestBoundedRetries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reads retry transient status up to the configured count", func(t *testing.T) {
+		t.Parallel()
+		var attempts atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+			if attempts.Add(1) < 3 {
+				writer.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			writer.WriteHeader(http.StatusNoContent)
+		}))
+		t.Cleanup(server.Close)
+
+		client := newRetryClient(t, server.URL, false)
+		response, err := client.Request(context.Background(), "status.read").Get("/status")
+		if err != nil || response.StatusCode() != http.StatusNoContent || attempts.Load() != 3 {
+			t.Fatalf("status = %d, attempts = %d, error = %v", response.StatusCode(), attempts.Load(), err)
+		}
+	})
+
+	t.Run("writes require explicit opt in", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			name         string
+			writes       bool
+			wantAttempts int32
+			wantStatus   int
+		}{
+			{name: "disabled", wantAttempts: 1, wantStatus: http.StatusServiceUnavailable},
+			{name: "enabled", writes: true, wantAttempts: 2, wantStatus: http.StatusNoContent},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
+				var attempts atomic.Int32
+				server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+					if attempts.Add(1) == 1 {
+						writer.WriteHeader(http.StatusServiceUnavailable)
+						return
+					}
+					writer.WriteHeader(http.StatusNoContent)
+				}))
+				t.Cleanup(server.Close)
+
+				client := newRetryClient(t, server.URL, test.writes)
+				response, err := client.Request(context.Background(), "widgets.create").Post("/widgets")
+				if response.StatusCode() != test.wantStatus || attempts.Load() != test.wantAttempts {
+					t.Fatalf("status = %d, attempts = %d, error = %v", response.StatusCode(), attempts.Load(), err)
+				}
+				if test.writes && err != nil {
+					t.Fatal(err)
+				}
+				if !test.writes {
+					var responseError *ResponseError
+					if !errors.As(err, &responseError) {
+						t.Fatalf("error = %v", err)
+					}
+				}
+			})
+		}
+	})
+}
+
+func newRetryClient(t *testing.T, baseURL string, writes bool) *Client {
+	t.Helper()
+	client, err := New(Options{
+		BaseURL: baseURL,
+		Logger:  slog.New(slog.DiscardHandler),
+		Retry: &RetryOptions{
+			Count:       2,
+			WaitTime:    time.Millisecond,
+			MaxWaitTime: 2 * time.Millisecond,
+			Writes:      writes,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return client
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
