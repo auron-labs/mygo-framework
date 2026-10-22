@@ -16,6 +16,7 @@ It describes unreleased repository behavior, not a published compatibility promi
 | Goose | 3.29.0 |
 | validator | 10.30.5 |
 | samber/do | 2.1.0 |
+| Lumberjack | 2.2.1 |
 
 These were tagged releases on 22 October 2026. The MyGo packages use the same
 release to keep the generated client and Go runtime compatible.
@@ -58,6 +59,20 @@ The one-connection limit avoids multiplying the Wasm-backed driver's per-connect
 memory cost before the application has measured concurrency needs. It also keeps
 the first transaction model predictable. A later change should raise the limit
 only with a workload that demonstrates the need.
+
+## Structured logging
+
+[`logging`](../logging/logging.go) constructs the `slog.Logger` injected into
+application components. Development output goes to stderr. Packaged output is
+mirrored to stderr and `<log directory>/app.log`, where Lumberjack rotates files
+with exposed size, backup-count, age, and compression settings. The default
+policy is 10 MB per file, three backups, 28 days, and compression enabled.
+
+The handler redacts common authorization, cookie, password, payload, body,
+secret, settings, and token fields, including attributes nested under a
+sensitive group. `ReportUnexpected` is the single adapter-boundary helper for
+unexpected failures. It records operation and component fields while omitting
+normal cancellation and deadline errors.
 
 ## Executed checks
 
