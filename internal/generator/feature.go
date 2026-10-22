@@ -172,7 +172,7 @@ const featureRequestTemplate = `package requests
 
 // Create{{.Name}}Input is validated at the service boundary.
 type Create{{.Name}}Input struct {
-	Name string ` + "`json:\"name\" validate:\"required\"`" + `
+	Name string ` + "`json:\"name\" validate:\"required\" jsonschema:\"The {{.Name}} name to store.\"`" + `
 }
 `
 
@@ -192,7 +192,7 @@ import (
 
 // Create{{.Name}}Output is the result of creating one {{.Name}}.
 type Create{{.Name}}Output struct {
-	{{.Name}} models.{{.Name}} ` + "`json:\"{{.Snake}}\"`" + `
+	{{.Name}} models.{{.Name}} ` + "`json:\"{{.Snake}}\" jsonschema:\"The created {{.Name}}.\"`" + `
 }
 
 // {{.Name}} implements the {{.Name}} feature.

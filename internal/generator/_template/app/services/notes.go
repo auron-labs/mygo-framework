@@ -14,12 +14,12 @@ import (
 
 // CreateNoteOutput is the result of creating a note.
 type CreateNoteOutput struct {
-	Note models.Note `json:"note"`
+	Note models.Note `json:"note" jsonschema:"The created note."`
 }
 
 // ListNotesOutput is the result of listing notes.
 type ListNotesOutput struct {
-	Notes []models.Note `json:"notes"`
+	Notes []models.Note `json:"notes" jsonschema:"Notes in creation order."`
 }
 
 // Notes implements the reference application's note features.

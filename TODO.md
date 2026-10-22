@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 5 — CLI and desktop generation
-- Current item: M6.1 — generate official-SDK typed MCP wrappers
-- Last verification: M5.9 opt-in fresh-project acceptance covering the real CLI, pinned MyGo client, Go/web builds, repeat/stale generation, and hand-written preservation
-- Next action: add the official MCP SDK and generate typed wrappers only for explicitly annotated methods, with schemas, effects, and duplicate-name rejection
+- Current item: M6.2 — add the optional in-process Streamable HTTP MCP server
+- Last verification: M6.1 official-SDK tool listing and typed-handler tests plus the opt-in fresh-project acceptance
+- Next action: start one disabled-by-default loopback MCP server after readiness and reuse the existing application services and stores
 
 ## Working rules
 
@@ -66,6 +66,7 @@ and verification evidence before the next item starts.
 | M5.7 | Injected dev/build/doctor generation and runner tests; failure short-circuit checks; real delegation to pinned MyGo help; real `framework doctor` | Pass; dev/build generate once, doctor checks once without writes, arguments/context/stdio pass through to local `mygo-cli@0.5.5`, and no framework watcher exists |
 | M5.8 | Focused profile, database inspection/migration, and appctl command tests; generated-template compile and command probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; desktop and CLI share paths, missing status creates no database, existing status is read-only and leaves pending schema untouched, only up calls Goose Up, and offline imports exclude runtime services/MyGo/secrets/workers/RPC |
 | M5.9 | `MYGO_GENERATOR_ACCEPTANCE=1 go test -run '^TestGeneratedProjectAcceptance$' -v ./internal/generator`; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; the real CLI created a fresh app and Bookmark feature, pinned MyGo generated and invoked its client, Go/web builds passed, repeat output was byte-identical, stale check did not write, and hand-written service bytes survived |
+| M6.1 | Focused generated MCP SDK list/schema/handler tests; duplicate and annotated-only generator tests; opt-in fresh-project acceptance; full Go/race/CGO-free suites; vet/lint/tidy; `generate --check` | Pass; only two annotated tools are listed, SDK-derived schemas include field descriptions, effects are explicit, handlers call the shared service types, duplicate names fail discovery, and a fresh generated app builds with the pinned official SDK |
 
 ## Milestone 1 — verify the foundation
 
@@ -215,7 +216,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
 Reference: [`PLAN.md` — Milestone 6](PLAN.md#milestone-6-mcp-generation-and-runtime)
 and [`PLAN.md` — MCP integration](PLAN.md#mcp-integration).
 
-- [ ] **M6.1** Complete generated official-SDK typed MCP wrappers for explicitly
+- [x] **M6.1** Complete generated official-SDK typed MCP wrappers for explicitly
   annotated methods only, including descriptions, type-derived schemas, effect
   metadata, duplicate-name rejection, and ordinary service input/output calls.
 - [ ] **M6.2** Add the optional in-process stateless Streamable HTTP server after

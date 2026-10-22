@@ -128,6 +128,27 @@ func (s *Second) Run(ctx context.Context, input Input) (Output, error) { return 
 			want: `duplicate command "fixture.run"; also declared at`,
 		},
 		{
+			name: "duplicate MCP tool",
+			source: `package fixture
+
+import "context"
+
+type Input struct{}
+type Output struct{}
+type First struct{}
+type Second struct{}
+
+// Run runs the first fixture.
+// framework:mcp fixture_run readonly=false destructive=false
+func (s *First) Run(ctx context.Context, input Input) (Output, error) { return Output{}, nil }
+
+// Run runs the second fixture.
+// framework:mcp fixture_run readonly=false destructive=false
+func (s *Second) Run(ctx context.Context, input Input) (Output, error) { return Output{}, nil }
+`,
+			want: `duplicate MCP tool "fixture_run"; also declared at`,
+		},
+		{
 			name: "missing description",
 			source: `package fixture
 
