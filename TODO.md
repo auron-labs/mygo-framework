@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 7 — cross-platform verification and performance
-- Current item: M8.1 — finish the runnable notes app and remove obsolete scaffolding
-- Last verification: M7.3 same-host/toolchain plain, default, and MCP-enabled build, startup, dependency, and package comparison
-- Next action: audit the completed reference app for unfinished behavior and remove only scaffolding made obsolete by the implementation
+- Current item: M8.2 — write the quick start and focused capability examples
+- Last verification: M8.1 full Go suite, CGO-free build, generated-output check, 32 web tests, and packaged MyGo build after retiring the foundation probe
+- Next action: document project creation, feature generation, settings, secrets, HTTP, migrations, MCP, and exact development/build/test commands
 
 ## Working rules
 
@@ -74,6 +74,7 @@ and verification evidence before the next item starts.
 | M7.1 | Isolated `CGO_ENABLED=0 go build ./...` for Linux, macOS, and Windows on amd64 and arm64; separate Linux/amd64 `go test -race ./...`; host/toolchain capture | Pass; all six package-graph builds compile with Go 1.27.3, the race suite passed only on its Linux/amd64 host, and unavailable cross-target runtime evidence is explicitly not claimed |
 | M7.2 | Current `mygo build`; isolated Xvfb/D-Bus/profile packaged launches; XTest keyboard creation; rendered-window captures; two SIGTERM exits; time-bounded opt-in real keyring test | Pass on Linux/amd64 with limitation; the note rendered and survived a clean restart, while macOS/Windows runners were unavailable and GNOME Keyring required interactive unlock beyond the 20-second bound, so no real keystore round trip is claimed |
 | M7.3 | Plain checkpoint `7188b65` and current framework: warm-module/empty-`GOCACHE` clean builds, temporary main-package source edits and rebuilds, three isolated Xvfb/D-Bus startup runs per mode, package byte counts, and `go list -deps` audit | Pass; clean build was 7.97 s plain versus 16.41 s framework, incremental was 0.46 s versus 0.92 s, startup medians were 179/176/176 ms, default and MCP shared one artifact, and no generator, CLI, or `x/tools` package leaked into its runtime graph |
+| M8.1 | Unfinished-marker and root/template inventory audit; `go test ./...`; `CGO_ENABLED=0 go build ./...`; `framework generate --check`; 32 web tests; `bun run build`; `go mod tidy -diff` | Pass; the runnable notes app and generated output remained complete, the Linux package built, dependencies stayed tidy, and only the superseded Milestone 1 `cmd/dbprobe` executable was removed while its historical evidence was retained |
 
 ## Milestone 1 — verify the foundation
 
@@ -260,7 +261,7 @@ and [`PLAN.md` — testing and completion rules](PLAN.md#testing-and-completion-
 Reference: [`PLAN.md` — Milestone 8](PLAN.md#milestone-8-handoff-and-bounded-cleanup)
 and [`PLAN.md` — definition of done](PLAN.md#definition-of-done).
 
-- [ ] **M8.1** Finish the runnable notes reference app and remove only scaffolding
+- [x] **M8.1** Finish the runnable notes reference app and remove only scaffolding
   made obsolete by the completed implementation.
 - [ ] **M8.2** Write the quick start and focused examples for adding a feature,
   saving a setting, reading a secret, calling HTTP, defining a migration, and
