@@ -4,6 +4,7 @@ package bootstrap
 import (
 	"fmt"
 	"log/slog"
+	appMCP "mygo-framework/app/mcp"
 	services "mygo-framework/app/services"
 
 	"github.com/samber/do/v2"
@@ -11,6 +12,16 @@ import (
 
 func registerGeneratedServices(bootstrap *Bootstrap) {
 	do.Provide(bootstrap.injector, provideNotes)
+}
+
+func (b *Bootstrap) mcpResolvers(injector do.Injector) (appMCP.Resolvers, error) {
+	resolvers := appMCP.Resolvers{}
+	notes, err := do.Invoke[*services.Notes](injector)
+	if err != nil {
+		return appMCP.Resolvers{}, fmt.Errorf("resolve notes MCP service: %w", err)
+	}
+	resolvers.Notes = func() (*services.Notes, error) { return notes, nil }
+	return resolvers, nil
 }
 
 func (b *Bootstrap) resolveRequiredServices() error {

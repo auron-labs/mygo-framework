@@ -8,6 +8,8 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	appMCP "mygo-framework/app/mcp"
+	"mygo-framework/app/profile"
 	"mygo-framework/app/services"
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
@@ -28,6 +30,7 @@ type Options struct {
 	Development  bool
 	DatabasePath string
 	LogDirectory string
+	MCP          appMCP.Options
 }
 
 // Bootstrap owns the application's dependency graph and runtime resources.
@@ -60,6 +63,7 @@ func New() *Bootstrap {
 	do.Provide(bootstrap.injector, bootstrap.provideDatabaseResource)
 	do.Provide(bootstrap.injector, provideDatabase)
 	registerGeneratedServices(bootstrap)
+	do.Provide(bootstrap.injector, bootstrap.provideMCPRuntime)
 	do.Provide(bootstrap.injector, provideLifetimeWorker)
 
 	return bootstrap
@@ -98,6 +102,11 @@ func (b *Bootstrap) start(ctx context.Context, options Options) error {
 	if err := b.readiness.Succeed(); err != nil {
 		return b.failStartup(ctx, startedAt, fmt.Errorf("publish application readiness: %w", err))
 	}
+	mcpRuntime, err := do.Invoke[*appMCP.Runtime](b.injector)
+	if err != nil {
+		return fmt.Errorf("resolve MCP runtime after startup: %w", err)
+	}
+	mcpRuntime.Start()
 
 	logger, err := do.Invoke[*slog.Logger](b.injector)
 	if err != nil {
@@ -152,6 +161,9 @@ func (b *Bootstrap) resolveRequired() error {
 	}
 	if err := b.resolveRequiredServices(); err != nil {
 		return err
+	}
+	if _, err := do.Invoke[*appMCP.Runtime](b.injector); err != nil {
+		return fmt.Errorf("resolve MCP runtime: %w", err)
 	}
 	if _, err := do.Invoke[*appRuntime.LifetimeWorker](b.injector); err != nil {
 		return fmt.Errorf("resolve app-lifetime worker: %w", err)
@@ -297,6 +309,26 @@ func provideNotes(injector do.Injector) (*services.Notes, error) {
 	}
 
 	return services.NewNotes(database.GORM, validator), nil
+}
+
+func (b *Bootstrap) provideMCPRuntime(injector do.Injector) (*appMCP.Runtime, error) {
+	ctx, err := do.Invoke[context.Context](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve context for MCP runtime: %w", err)
+	}
+	logger, err := do.Invoke[*slog.Logger](injector)
+	if err != nil {
+		return nil, fmt.Errorf("resolve logger for MCP runtime: %w", err)
+	}
+	resolvers, err := b.mcpResolvers(injector)
+	if err != nil {
+		return nil, err
+	}
+	runtime, err := appMCP.NewRuntime(ctx, profile.Name, b.options.MCP, logger, resolvers)
+	if err != nil {
+		return nil, fmt.Errorf("create MCP runtime: %w", err)
+	}
+	return runtime, nil
 }
 
 func provideLifetimeWorker(injector do.Injector) (*appRuntime.LifetimeWorker, error) {

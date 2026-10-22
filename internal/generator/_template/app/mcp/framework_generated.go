@@ -17,6 +17,13 @@ type Resolvers struct {
 	Notes func() (*services.Notes, error)
 }
 
+func (r Resolvers) validate() error {
+	if r.Notes == nil {
+		return fmt.Errorf("MCP resolver Notes is required")
+	}
+	return nil
+}
+
 // RegisterGeneratedTools registers only explicitly annotated service methods.
 func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers) {
 	sdk.AddTool(server, &sdk.Tool{

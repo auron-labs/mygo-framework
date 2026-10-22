@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	appMCP "mygo-framework/app/mcp"
 	"mygo-framework/app/requests"
 	"mygo-framework/app/services"
 	"mygo-framework/internal/database"
@@ -43,6 +44,46 @@ func TestStartEagerlyConstructsRequiredGraph(t *testing.T) {
 	}
 	if got := bootstrap.Readiness().State(); got != appRuntime.StateReady {
 		t.Fatalf("readiness state = %d, want ready", got)
+	}
+}
+
+func TestMCPRuntimeReusesResolvedService(t *testing.T) {
+	t.Parallel()
+
+	bootstrap := New()
+	if err := bootstrap.Start(t.Context(), Options{
+		Development:  true,
+		DatabasePath: filepath.Join(t.TempDir(), "notes.db"),
+		MCP:          appMCP.Options{Enabled: true, Port: 0},
+	}); err != nil {
+		t.Fatalf("start runtime with MCP: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := bootstrap.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown runtime with MCP: %v", err)
+		}
+	})
+	service, err := do.Invoke[*services.Notes](bootstrap.injector)
+	if err != nil {
+		t.Fatalf("resolve application notes service: %v", err)
+	}
+	resolvers, err := bootstrap.mcpResolvers(bootstrap.injector)
+	if err != nil {
+		t.Fatalf("resolve MCP services: %v", err)
+	}
+	mcpService, err := resolvers.Notes()
+	if err != nil {
+		t.Fatalf("resolve MCP notes service: %v", err)
+	}
+	if mcpService != service {
+		t.Fatal("MCP resolver constructed a second notes service")
+	}
+	mcpRuntime, err := do.Invoke[*appMCP.Runtime](bootstrap.injector)
+	if err != nil {
+		t.Fatalf("resolve MCP runtime: %v", err)
+	}
+	if !strings.HasPrefix(mcpRuntime.Endpoint(), "http://127.0.0.1:") {
+		t.Fatalf("MCP endpoint = %q", mcpRuntime.Endpoint())
 	}
 }
 

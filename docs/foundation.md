@@ -348,6 +348,25 @@ context, input, output, and error. Request and response fields may add
 The optional HTTP listener and domain-error response mapping remain hand-written
 runtime concerns rather than generated code.
 
+## Optional MCP runtime
+
+MCP is disabled unless `MYGO_MCP_ENABLED` parses as true. An enabled desktop
+launch also requires `MYGO_MCP_PORT` in the range 1–65535 and exposes the
+Streamable HTTP endpoint at `http://127.0.0.1:<port>/mcp`. For example,
+`MYGO_MCP_ENABLED=true MYGO_MCP_PORT=48123 bun run dev` starts the application
+with the local endpoint on port 48123. Normal startup logs deliberately do not
+print that connection address.
+
+Bootstrap reserves the loopback listener while constructing resources so a
+bind failure rolls startup back cleanly, then starts serving only after runtime
+readiness succeeds. The official SDK runs in stateless mode, but its generated
+resolver closures capture the already-resolved application services; requests
+therefore share the desktop process's service objects and database rather than
+opening a per-request graph or store. Dependency-aware shutdown stops the HTTP
+listener before disposing those shared services. Authentication and explicit
+connection-detail disclosure are the next security boundary, not transport
+responsibilities hidden in generated code.
+
 Generation refuses to replace a file without its generated header and
 preflights the complete set before writing. `framework generate --check`
 reports stale or missing output without writes. A repeated run is byte-identical;
