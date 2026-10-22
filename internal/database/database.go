@@ -7,12 +7,20 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/url"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/ncruces/go-sqlite3/driver"
 	"github.com/ncruces/go-sqlite3/gormlite"
 	"github.com/pressly/goose/v3"
 	"gorm.io/gorm"
+)
+
+const (
+	busyTimeoutMilliseconds = 5000
+	maxOpenConnections      = 1
 )
 
 // Database owns one sql.DB shared by GORM and Goose.
@@ -33,10 +41,12 @@ func Open(ctx context.Context, path string, migrations fs.FS) (_ *Database, err 
 		return nil, errors.New("migration filesystem is required")
 	}
 
-	sqlDB, err := driver.Open(path)
+	sqlDB, err := driver.Open(dataSourceName(path))
 	if err != nil {
 		return nil, fmt.Errorf("open SQLite database %q: %w", path, err)
 	}
+	sqlDB.SetMaxOpenConns(maxOpenConnections)
+	sqlDB.SetMaxIdleConns(maxOpenConnections)
 
 	database := &Database{SQL: sqlDB}
 	defer func() {
@@ -47,6 +57,14 @@ func Open(ctx context.Context, path string, migrations fs.FS) (_ *Database, err 
 
 	if err = sqlDB.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("ping SQLite database %q: %w", path, err)
+	}
+
+	var journalMode string
+	if err = sqlDB.QueryRowContext(ctx, "PRAGMA journal_mode=WAL").Scan(&journalMode); err != nil {
+		return nil, fmt.Errorf("enable SQLite WAL for %q: %w", path, err)
+	}
+	if !strings.EqualFold(journalMode, "wal") {
+		return nil, fmt.Errorf("enable SQLite WAL for %q: got journal mode %q", path, journalMode)
 	}
 
 	database.GORM, err = gorm.Open(gormlite.OpenDB(sqlDB), &gorm.Config{
@@ -66,6 +84,18 @@ func Open(ctx context.Context, path string, migrations fs.FS) (_ *Database, err 
 	}
 
 	return database, nil
+}
+
+func dataSourceName(path string) string {
+	source := &url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
+	source.RawQuery = url.Values{
+		"_pragma": {
+			fmt.Sprintf("busy_timeout(%d)", busyTimeoutMilliseconds),
+			"foreign_keys(1)",
+		},
+	}.Encode()
+
+	return source.String()
 }
 
 // Close releases the shared pool once.
