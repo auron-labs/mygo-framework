@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 4 — forms and HTTP helpers
-- Current item: M5.8 — implement offline database commands
-- Last verification: M5.7 exactly-once delegation tests and real pinned MyGo dev/build help plus successful doctor pass
-- Next action: add shared profile/path resolution and minimal `appctl db status|up` bootstrap without desktop runtime, services, secrets, workers, or RPC
+- Current item: M5.9 — run the fresh-project generator acceptance flow
+- Last verification: M5.8 focused profile/database/appctl tests proving read-only status and idempotent migration application
+- Next action: create a disposable project, add a second feature, build and invoke the real generated client, then test repeat/stale/preservation behavior
 
 ## Working rules
 
@@ -64,6 +64,7 @@ and verification evidence before the next item starts.
 | M5.5 | Feature preflight/rollback/regeneration tests; disposable copy `make feature Widget`; full copied-project Go suite; `generate --check`; repeat generation and service SHA-256 comparison | Pass; five hand-written model/request/service/provider/migration files compile with four generated provider/adapter/registration files, and regeneration leaves implementation bytes intact |
 | M5.6 | Focused creation/refusal/cancellation tests; real `new` projects; `generate --check`; Go compile/tidy; frozen Bun install; 16 web tests; production build; repeated MyGo binding hash | Pass; one 39-file Git-initialized web template rewrites project identity, pins Go/JS dependencies, includes explicit bootstrap/migrations/forms/guidance, and produces current Go and TypeScript bindings |
 | M5.7 | Injected dev/build/doctor generation and runner tests; failure short-circuit checks; real delegation to pinned MyGo help; real `framework doctor` | Pass; dev/build generate once, doctor checks once without writes, arguments/context/stdio pass through to local `mygo-cli@0.5.5`, and no framework watcher exists |
+| M5.8 | Focused profile, database inspection/migration, and appctl command tests; generated-template compile and command probes; full Go/race/CGO-free suites; vet/lint/tidy | Pass; desktop and CLI share paths, missing status creates no database, existing status is read-only and leaves pending schema untouched, only up calls Goose Up, and offline imports exclude runtime services/MyGo/secrets/workers/RPC |
 
 ## Milestone 1 — verify the foundation
 
@@ -199,7 +200,7 @@ Reference: [`PLAN.md` — Milestone 5](PLAN.md#milestone-5-cli-and-desktop-gener
 - [x] **M5.7** Implement `framework dev`, `build`, and `doctor` by running the
   framework generation/check exactly once and delegating to pinned MyGo tooling;
   document the manual adapter-regeneration rule and add no second watcher.
-- [ ] **M5.8** Implement `appctl db status` and `db up` with the shared profile/path
+- [x] **M5.8** Implement `appctl db status` and `db up` with the shared profile/path
   resolver, explicit data-directory override, and a minimal offline bootstrap;
   status must not migrate, and neither command starts MyGo, services, secrets,
   workers, or a local RPC bridge.

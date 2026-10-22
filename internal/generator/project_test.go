@@ -22,10 +22,14 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                     {"module acme-notes", "github.com/egoist/mygo v0.5.5", "gorm.io/gorm v1.31.2"},
-		"package.json":               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.5.5"`},
-		"mygo.config.ts":             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
-		"app/bootstrap/bootstrap.go": {`"acme-notes/app/services"`, "registerGeneratedServices"},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.5.5", "gorm.io/gorm v1.31.2"},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.5.5"`},
+		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
+		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
+		"app/bootstrap/bootstrap.go":                 {`"acme-notes/app/services"`, "registerGeneratedServices"},
+		"cmd/appctl/main.go":                         {`"acme-notes/internal/appctl"`, "migrations.FS()"},
+		"internal/appctl/database.go":                {"InspectMigrations", "Migrate"},
+		"internal/appctl/root.go":                    {"data-directory"},
 		"database/migrations/00001_create_notes.sql": {"-- +goose Up", "CREATE TABLE notes"},
 		"src/framework/form.ts":                      {"export const createForm"},
 		"AGENTS.md":                                  {"framework make feature NAME", "Never hand-edit"},

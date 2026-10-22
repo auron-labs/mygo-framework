@@ -381,7 +381,7 @@ runtime graph without assuming Notes is the only generated feature.
 `framework new NAME` creates one supported MyGo web application in a normalized
 child directory and initializes its Git repository. Creation refuses an existing
 target and removes a newly created directory if copying or Git initialization
-fails. The embedded 39-file template rewrites the module, display name, package
+fails. The embedded 43-file template rewrites the module, display name, package
 name, and reverse-DNS identifier, then formats Go files so generated import order
 remains current for every module name.
 
@@ -405,6 +405,22 @@ There is no framework watcher. MyGo continues to own its normal Go/frontend
 reload cycle. After manually changing an exposed service signature or a
 `framework:` annotation, run `framework generate` in another terminal or restart
 `framework dev`; method-body-only edits need no framework regeneration.
+
+## Offline database commands
+
+[`app/profile`](../app/profile/profile.go) resolves the profile name, data
+directory, log directory, and `notes.db` path for both desktop startup and
+[`appctl`](../cmd/appctl/main.go). `--data-directory PATH` replaces the platform
+profile with a portable directory whose logs remain beside its database.
+
+`appctl db status` creates only the normal log directory, leaves a missing
+database missing, opens an existing database read-only, and reads the latest
+Goose version records without invoking Goose `Up` or its version-table-creating
+`Status` method. `appctl db up` is the sole offline path that invokes `Up`; it
+uses only paths, logging, `sql.DB`, the embedded migration filesystem, and Goose.
+Neither command imports or starts MyGo, application bootstrap, feature services,
+secrets, lifetime workers, or an RPC bridge. The desktop process must be closed
+while either command runs.
 
 ## Executed checks
 
