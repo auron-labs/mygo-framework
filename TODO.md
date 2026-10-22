@@ -8,9 +8,9 @@ and verification evidence before the next item starts.
 ## Progress
 
 - Completed milestone: milestone 2 — runtime and one complete feature
-- Current item: M3.3 — add transient settings overlays
-- Last verification: M3.2 shared-pool SQLite contract/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
-- Next action: implement explicit flag and environment precedence without persistence side effects
+- Current item: M3.4 — implement the optional bbolt settings adapter
+- Last verification: M3.3 overlay unit/race tests plus full/race/CGO-free suites, vet/lint/tidy pass
+- Next action: add the isolated bbolt adapter with bounded locking and the common persistence contract
 
 ## Working rules
 
@@ -48,6 +48,7 @@ and verification evidence before the next item starts.
 | M2.10 | Packaged app under Xvfb/DBus with isolated user data; real create, validation, SIGTERM, restart, and invalid-config-path flows; full Go/race/CGO-free suites; vet/lint/tidy; frontend build; repeated generation and artifact scan | Pass; note persisted across a clean 110 ms shutdown/restart, startup failure stayed visible, request cancellation remained GUI-independent, and both app processes exited 0 |
 | M3.1 | Settings unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; registered generic keys preserve defaults and explicit zero values, reject unknown or invalid data contextually, validate before writes, and use no mutable cache |
 | M3.2 | Shared SQLite adapter contract and race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; the versioned `mygo_framework_settings` table persists exact JSON across reopen, copies bytes, honors cancellation, supports concurrent access, and borrows the sole application pool |
+| M3.3 | Overlay unit/race tests; full Go/race/CGO-free suites; vet/lint/tidy | Pass; reads enforce flag → environment → persistence → default precedence, explicit zero overrides survive, construction never writes, and mutations target persistence only |
 
 ## Milestone 1 — verify the foundation
 
@@ -120,7 +121,7 @@ Reference: [`PLAN.md` — Milestone 3](PLAN.md#milestone-3-configuration-and-sec
   mutable cache.
 - [x] **M3.2** Implement the SQLite settings adapter in a framework-namespaced
   versioned migration on the shared pool and run the common persistence tests.
-- [ ] **M3.3** Implement explicit flag/environment overlays with
+- [x] **M3.3** Implement explicit flag/environment overlays with
   flag → environment → persisted → default precedence and prove overrides never
   persist silently.
 - [ ] **M3.4** Implement the optional bbolt adapter with one bucket, copied read
