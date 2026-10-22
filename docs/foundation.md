@@ -61,6 +61,32 @@ busy timeout, foreign-key mode, WAL mode, idempotent close, migration, and
 close/reopen persistence. The probe also stored and reloaded a note from a path
 containing a space while running from a `CGO_ENABLED=0` build.
 
+## Baseline measurements
+
+The baseline was measured on Ubuntu 25.10 with Linux 6.17.0-41-generic. The
+runner exposed seven logical Intel Core i7-9700K CPUs and 28,194,418,688 bytes
+of memory. It used Go 1.27.3, Bun 1.4.2, and the pinned dependencies above.
+
+| Metric | Result | Method |
+| --- | ---: | --- |
+| Dependency-warm clean Go app build | 8.65 seconds | `CGO_ENABLED=0 go build .` with downloaded modules and a new empty `GOCACHE` |
+| Incremental build after a bound-service edit | 0.43 seconds | Rebuilt with the same cache after an ephemeral source comment changed `main.go` |
+| Startup to ready window | 374 milliseconds | Launched the packaged binary under Xvfb and measured until the `WhenReady` window title appeared in the X11 tree |
+| Plain unstripped Go app binary | 13,938,697 bytes | Output of the clean `go build` above |
+| Packaged Linux app binary | 9,425,159 bytes | `bun run build` output in `build/linux-amd64` |
+| Linux tarball | 4,052,537 bytes | `bun run build` output |
+| Debian package | 4,031,784 bytes | `bun run build` output |
+
+The full MyGo package build completed in 11.8 seconds with the existing Go
+cache and transformed seven frontend modules. Each number is one observation,
+so it is a reproducible baseline rather than a statistical benchmark.
+Milestone 7 repeats the same method for the default framework and MCP-enabled
+variants.
+
+The startup measurement proves that MyGo reached the readiness callback and
+created the 960×640 window. It does not prove interaction inside WebKitGTK;
+the milestone 2 UI flow and milestone 7 OS smoke checks cover that behavior.
+
 These checks establish compilation and behavior on this Linux runner. They do
 not establish runtime behavior on macOS or Windows; those checks remain in
 [milestone 7](../PLAN.md#milestone-7-cross-platform-verification-and-performance).
