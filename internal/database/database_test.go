@@ -2,11 +2,15 @@ package database
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"mygo-framework/app/models"
 	"mygo-framework/database/migrations"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 func TestOpenMigratesAndPersistsThroughSharedPool(t *testing.T) {
@@ -92,4 +96,106 @@ func TestOpenRejectsMissingInputs(t *testing.T) {
 	if _, err := Open(context.Background(), filepath.Join(t.TempDir(), "notes.db"), nil); err == nil {
 		t.Fatal("Open accepted a nil migration filesystem")
 	}
+	if _, _, err := InspectMigrations(context.Background(), filepath.Join(t.TempDir(), "notes.db"), nil); err == nil {
+		t.Fatal("InspectMigrations accepted a nil migration filesystem")
+	}
+}
+
+func TestInspectMigrationsDoesNotCreateOrMigrate(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "offline", "notes.db")
+	allMigrations := migrationFiles(
+		migrationFile{"00001_first.sql", "CREATE TABLE first_record (id INTEGER PRIMARY KEY);"},
+		migrationFile{"00002_second.sql", "CREATE TABLE second_record (id INTEGER PRIMARY KEY);"},
+	)
+
+	statuses, exists, err := InspectMigrations(ctx, path, allMigrations)
+	if err != nil {
+		t.Fatalf("inspect missing database: %v", err)
+	}
+	if exists {
+		t.Fatal("missing database reported as existing")
+	}
+	if len(statuses) != 2 || statuses[0].Applied || statuses[1].Applied {
+		t.Fatalf("missing database statuses = %#v, want two pending migrations", statuses)
+	}
+	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("status created missing database: %v", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create data directory: %v", err)
+	}
+	if _, err := Migrate(ctx, path, migrationFiles(
+		migrationFile{"00001_first.sql", "CREATE TABLE first_record (id INTEGER PRIMARY KEY);"},
+	)); err != nil {
+		t.Fatalf("apply initial migration: %v", err)
+	}
+
+	statuses, exists, err = InspectMigrations(ctx, path, allMigrations)
+	if err != nil {
+		t.Fatalf("inspect database with pending migration: %v", err)
+	}
+	if !exists || len(statuses) != 2 || !statuses[0].Applied || statuses[1].Applied {
+		t.Fatalf("database statuses = %#v, want applied then pending", statuses)
+	}
+
+	sqlDB, err := openSQL(ctx, path, true)
+	if err != nil {
+		t.Fatalf("open inspected database: %v", err)
+	}
+	defer func() { _ = sqlDB.Close() }()
+	var secondTableExists bool
+	if err := sqlDB.QueryRowContext(ctx,
+		"SELECT EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'second_record')",
+	).Scan(&secondTableExists); err != nil {
+		t.Fatalf("check pending migration table: %v", err)
+	}
+	if secondTableExists {
+		t.Fatal("InspectMigrations applied the pending migration")
+	}
+}
+
+func TestMigrateAppliesPendingMigrations(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "notes.db")
+	applied, err := Migrate(t.Context(), path, migrationFiles(
+		migrationFile{"00001_first.sql", "CREATE TABLE first_record (id INTEGER PRIMARY KEY);"},
+		migrationFile{"00002_second.sql", "CREATE TABLE second_record (id INTEGER PRIMARY KEY);"},
+	))
+	if err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+	if applied != 2 {
+		t.Fatalf("applied migrations = %d, want 2", applied)
+	}
+
+	applied, err = Migrate(t.Context(), path, migrationFiles(
+		migrationFile{"00001_first.sql", "CREATE TABLE first_record (id INTEGER PRIMARY KEY);"},
+		migrationFile{"00002_second.sql", "CREATE TABLE second_record (id INTEGER PRIMARY KEY);"},
+	))
+	if err != nil {
+		t.Fatalf("migrate current database: %v", err)
+	}
+	if applied != 0 {
+		t.Fatalf("reapplied migrations = %d, want 0", applied)
+	}
+}
+
+type migrationFile struct {
+	name      string
+	statement string
+}
+
+func migrationFiles(migrations ...migrationFile) fs.FS {
+	files := fstest.MapFS{}
+	for _, migration := range migrations {
+		files[migration.name] = &fstest.MapFile{Data: []byte(
+			"-- +goose Up\n" + migration.statement + "\n",
+		)}
+	}
+	return files
 }

@@ -7,13 +7,15 @@ import (
 	"log"
 	"mygo-framework/app/bootstrap"
 	"mygo-framework/app/desktop"
-	"path/filepath"
+	"mygo-framework/app/profile"
+	"os"
 	"time"
 
 	"github.com/egoist/mygo"
 )
 
 func main() {
+	mygo.App.SetName(profile.Name)
 	applicationRuntime := bootstrap.New()
 	applicationContext, cancelApplication := context.WithCancel(context.Background())
 	bindGenerated(applicationRuntime)
@@ -47,21 +49,20 @@ func main() {
 }
 
 func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) {
-	userData, err := mygo.App.Path(mygo.PathUserData)
+	paths, err := profile.Resolve("")
 	if err != nil {
-		publishPathFailure(applicationRuntime, fmt.Errorf("resolve user data directory: %w", err))
+		publishPathFailure(applicationRuntime, fmt.Errorf("resolve application profile: %w", err))
 		return
 	}
-	logDirectory, err := mygo.App.Path(mygo.PathLogs)
-	if err != nil {
-		publishPathFailure(applicationRuntime, fmt.Errorf("resolve log directory: %w", err))
+	if err := os.MkdirAll(paths.DataDirectory, 0o700); err != nil {
+		publishPathFailure(applicationRuntime, fmt.Errorf("create application data directory: %w", err))
 		return
 	}
 
 	_ = applicationRuntime.Start(ctx, bootstrap.Options{
 		Development:  mygo.IsDev(),
-		DatabasePath: filepath.Join(userData, "notes.db"),
-		LogDirectory: logDirectory,
+		DatabasePath: paths.DatabasePath,
+		LogDirectory: paths.LogDirectory,
 	})
 }
 

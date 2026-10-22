@@ -32,3 +32,17 @@ MyGo generation step. Method-body-only edits use MyGo's normal rebuild flow.
 
 Use `framework generate --check` in CI. Do not edit files carrying the standard
 generated-code header.
+
+## Maintain the database offline
+
+Close the desktop app before inspecting or applying migrations:
+
+```sh
+go run ./cmd/appctl db status
+go run ./cmd/appctl db up
+```
+
+Both commands use the same application profile as the desktop app. Pass
+`--data-directory PATH` before `db` to operate on a portable or test profile.
+`db status` opens an existing database read-only and never applies migrations;
+only `db up` changes the schema.
