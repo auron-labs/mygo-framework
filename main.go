@@ -8,16 +8,26 @@ import (
 	"mygo-framework/app/bootstrap"
 	"mygo-framework/app/desktop"
 	"path/filepath"
+	"time"
 
 	"github.com/egoist/mygo"
 )
 
 func main() {
 	applicationRuntime := bootstrap.New()
+	applicationContext, cancelApplication := context.WithCancel(context.Background())
 	mygo.Bind(desktop.NewNotes(applicationRuntime.Readiness(), applicationRuntime.ResolveNotes))
+	quitStage := desktop.NewQuitStage(
+		cancelApplication,
+		applicationRuntime.Shutdown,
+		mygo.App.Quit,
+		func(err error) { log.Printf("runtime shutdown failed: %v", err) },
+		5*time.Second,
+	)
+	mygo.App.OnBeforeQuit(quitStage.BeforeQuit)
 
 	mygo.App.WhenReady(func() {
-		go startRuntime(context.Background(), applicationRuntime)
+		go startRuntime(applicationContext, applicationRuntime)
 
 		mygo.NewWindow(mygo.WindowOptions{
 			Title:           "MyGo Framework Notes",

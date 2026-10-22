@@ -130,6 +130,20 @@ Successful creation reloads the persisted list and announces completion through
 the polite live region. Reduced-motion preferences disable the startup spinner,
 and the composer stacks at narrow widths.
 
+## Application lifetime and quit
+
+The runtime starts one `LifetimeWorker` to prove app-scoped cancellation without
+introducing a scheduler. It depends on the database in the provider graph, so
+dependency-ordered shutdown waits for the worker before releasing storage.
+Request contexts remain independent and are never used as the worker lifetime.
+
+The desktop registers a MyGo `OnBeforeQuit` stage. The first quit is canceled,
+the application context is canceled once, and runtime cleanup runs away from the
+UI thread with a five-second deadline. Repeated quit attempts remain canceled
+while cleanup is active. Completion or deadline expiry triggers one guarded
+re-entry into MyGo quit, allowing `App.Run` to return only after cleanup finishes
+or reaches its bound.
+
 ## Executed checks
 
 The following checks passed on Linux/amd64 on 22 October 2026:
