@@ -18,10 +18,10 @@ func registerTool[Input, Output any](
 	tool *sdk.Tool,
 	logger *slog.Logger,
 	handler sdk.ToolHandlerFor[Input, Output],
-) {
+) error {
 	outputSchema, err := jsonschema.For[Output](nil)
 	if err != nil {
-		panic(fmt.Sprintf("MCP tool %q output schema: %v", tool.Name, err))
+		return fmt.Errorf("MCP tool %q output schema: %w", tool.Name, err)
 	}
 	tool.OutputSchema = outputSchema
 
@@ -52,4 +52,6 @@ func registerTool[Input, Output any](
 		result.SetError(err)
 		return result, nil, nil
 	})
+
+	return nil
 }

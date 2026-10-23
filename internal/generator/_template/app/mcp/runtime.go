@@ -100,7 +100,10 @@ func NewRuntime(
 		return nil, fmt.Errorf("bind MCP loopback listener: %w", err)
 	}
 	sdkServer := sdk.NewServer(&sdk.Implementation{Name: name, Version: "1"}, &sdk.ServerOptions{Logger: logger})
-	RegisterGeneratedTools(sdkServer, resolvers, logger)
+	if err := RegisterGeneratedTools(sdkServer, resolvers, logger); err != nil {
+		_ = listener.Close()
+		return nil, fmt.Errorf("register MCP tools: %w", err)
+	}
 	protection := http.NewCrossOriginProtection()
 	handler := sdk.NewStreamableHTTPHandler(
 		func(*http.Request) *sdk.Server { return sdkServer },
@@ -117,8 +120,10 @@ func NewRuntime(
 	runtime.server = &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       30 * time.Second,
-		BaseContext:       func(net.Listener) context.Context { return ctx },
+		ReadTimeout:       10 * time.Second,
+		// WriteTimeout stays unset: streamable responses may outlive any bound.
+		IdleTimeout: 30 * time.Second,
+		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 	runtime.logger = logger
 	runtime.endpoint = "http://" + listener.Addr().String() + endpointPath
@@ -139,6 +144,9 @@ func (r *Runtime) Start() {
 	listener := r.listener
 	go func() {
 		err := server.Serve(listener)
+		// Serve can return before the first Accept (for example after a
+		// concurrent Shutdown); release the Start waiter either way.
+		listener.once.Do(func() { close(listener.ready) })
 		r.mu.Lock()
 		if errors.Is(err, http.ErrServerClosed) || r.stopped && errors.Is(err, net.ErrClosed) {
 			err = nil
@@ -206,7 +214,7 @@ func (r *Runtime) Shutdown(ctx context.Context) error {
 			close(r.done)
 			return
 		}
-		if err := r.server.Shutdown(ctx); err != nil {
+		if err := r.server.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			r.shutdownErr = fmt.Errorf("shutdown MCP HTTP server: %w", err)
 			if closeErr := r.server.Close(); closeErr != nil && !errors.Is(closeErr, http.ErrServerClosed) {
 				r.shutdownErr = errors.Join(r.shutdownErr, fmt.Errorf("force close MCP HTTP server: %w", closeErr))

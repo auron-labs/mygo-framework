@@ -110,7 +110,7 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 	if err != nil {
 		return ProjectResult{}, fmt.Errorf("create project from template: %w", err)
 	}
-	command := exec.CommandContext(ctx, "git", "init", "--quiet")
+	command := exec.CommandContext(ctx, "git", "init", "--quiet", "--initial-branch=main")
 	command.Dir = target
 	if output, commandErr := command.CombinedOutput(); commandErr != nil {
 		return ProjectResult{}, fmt.Errorf("initialize project Git repository: %w: %s", commandErr, strings.TrimSpace(string(output)))

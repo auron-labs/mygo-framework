@@ -91,6 +91,41 @@ func TestRuntimeServesStatelessHTTPOnLoopbackAndShutsDown(t *testing.T) {
 	}
 }
 
+func TestRuntimeStartReturnsWhenServerAlreadyClosed(t *testing.T) {
+	t.Parallel()
+
+	runtime, err := NewRuntime(
+		t.Context(),
+		"closed-server-test",
+		Options{Enabled: true, Port: 0},
+		slog.New(slog.DiscardHandler),
+		Resolvers{Notes: func() (*services.Notes, error) { return &services.Notes{}, nil }},
+	)
+	if err != nil {
+		t.Fatalf("create MCP runtime: %v", err)
+	}
+	// Serve returns ErrServerClosed before the first Accept when the server is
+	// already closed; Start must still unblock and report a clean stop.
+	if err := runtime.server.Close(); err != nil {
+		t.Fatalf("pre-close MCP server: %v", err)
+	}
+	runtime.Start()
+	select {
+	case <-runtime.done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("serve goroutine did not finish after starting a closed server")
+	}
+	runtime.mu.Lock()
+	serveErr := runtime.serveErr
+	runtime.mu.Unlock()
+	if serveErr != nil {
+		t.Fatalf("closed-server serve error = %v, want nil", serveErr)
+	}
+	if err := runtime.Shutdown(t.Context()); err != nil {
+		t.Fatalf("shutdown closed-server runtime: %v", err)
+	}
+}
+
 func TestRuntimeProtectsConnectionDetailsAndHTTPBoundary(t *testing.T) {
 	t.Parallel()
 

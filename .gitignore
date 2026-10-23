@@ -315,3 +315,6 @@ node_modules/
 /build/
 /.mygo/
 mygo_windows_*.syso
+app.zip
+.pupdate
+.pupdate.*
