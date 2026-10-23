@@ -214,6 +214,23 @@ Use `--data-directory PATH` before `db` for a portable test profile. `db status`
 does not create a missing database or apply a migration. Never rewrite an
 applied migration; add the next migration instead.
 
+## Add a focused scaffold or appctl command
+
+`framework make service|request|model NAME` writes one hand-written file in the
+matching `app/` directory, and `make migration` works as shown above.
+`framework make command NAME` writes a Cobra command constructor in
+`app/commands`; register it on the application-owned root in
+`internal/appctl/root.go`:
+
+```go
+root.AddCommand(commands.NewBackupCommand(func(ctx context.Context) error {
+	return runBackup(ctx)
+}))
+```
+
+Command scaffolds are not wired by `framework generate`; registration stays
+explicit and offline commands still expect the desktop process to be closed.
+
 ## Expose a service method as an MCP tool
 
 MCP exposure is opt-in. The generated Bookmark service already has the required

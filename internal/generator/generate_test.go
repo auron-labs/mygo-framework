@@ -120,6 +120,67 @@ func TestGenerateInitialRepeatAndCheck(t *testing.T) {
 	}
 }
 
+func TestGenerateCompilesWithoutAnnotatedMethods(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	serviceDirectory := filepath.Join(directory, "app", "services")
+	if err := os.MkdirAll(serviceDirectory, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/empty\n\ngo 1.27.1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	const source = `package services
+
+import "context"
+
+type Input struct{}
+type Output struct{}
+type Notes struct{}
+
+func (s *Notes) Hidden(ctx context.Context, input Input) (Output, error) {
+	return Output{}, nil
+}
+`
+	if err := os.WriteFile(filepath.Join(serviceDirectory, "service.go"), []byte(source), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := Generate(context.Background(), GenerateConfig{Dir: directory})
+	if err != nil {
+		t.Fatalf("generate without annotated methods: %v", err)
+	}
+	if len(result.Files) != 4 || len(result.Changed) != 4 {
+		t.Fatalf("empty generation = %+v", result)
+	}
+	for _, name := range result.Files {
+		// #nosec G304 -- names are the generator's fixed owned-file set in a temporary fixture.
+		content, err := os.ReadFile(filepath.Join(directory, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(string(content), generatedHeader) {
+			t.Fatalf("%s lacks generated header", name)
+		}
+	}
+	// #nosec G304 -- path is inside the temporary fixture.
+	desktop, err := os.ReadFile(filepath.Join(directory, "app", "desktop", "framework_generated.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(desktop) != generatedHeader+"package desktop\n" {
+		t.Fatalf("empty desktop output = %q", desktop)
+	}
+	// #nosec G304 -- path is inside the temporary fixture.
+	tools, err := os.ReadFile(filepath.Join(directory, "app", "mcp", "framework_generated.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(tools), `"log/slog"`) || !strings.Contains(string(tools), "logger *slog.Logger") {
+		t.Fatalf("empty MCP output dropped its logger import:\n%s", tools)
+	}
+}
+
 func TestGenerateRefusesUnownedFile(t *testing.T) {
 	t.Parallel()
 	directory := generatorFixture(t)

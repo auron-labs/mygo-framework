@@ -220,7 +220,12 @@ func up(ctx context.Context, sqlDB *sql.DB, path string, migrations fs.FS) (int,
 }
 
 func dataSourceName(path string, readOnly bool) string {
-	source := &url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
+	slashPath := filepath.ToSlash(path)
+	if filepath.IsAbs(path) && !strings.HasPrefix(slashPath, "/") {
+		// Windows drive paths like C:/data need the leading slash of a file:/// URI.
+		slashPath = "/" + slashPath
+	}
+	source := &url.URL{Scheme: "file", Path: slashPath}
 	query := url.Values{
 		"_pragma": {
 			fmt.Sprintf("busy_timeout(%d)", busyTimeoutMilliseconds),

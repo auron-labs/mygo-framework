@@ -23,9 +23,11 @@ func TestGeneratedToolsPublishTypedSchemasAndEffects(t *testing.T) {
 	t.Parallel()
 
 	server := sdk.NewServer(&sdk.Implementation{Name: "generated-tools-test", Version: "test"}, nil)
-	RegisterGeneratedTools(server, Resolvers{Notes: func() (*services.Notes, error) {
+	if err := RegisterGeneratedTools(server, Resolvers{Notes: func() (*services.Notes, error) {
 		return &services.Notes{}, nil
-	}}, slog.New(slog.DiscardHandler))
+	}}, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatalf("register generated tools: %v", err)
+	}
 	serverTransport, clientTransport := sdk.NewInMemoryTransports()
 	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
 	if err != nil {
@@ -141,7 +143,9 @@ func TestGeneratedToolsMapDomainFailures(t *testing.T) {
 	})
 	service := services.NewNotes(openedDatabase.GORM, validation.New(), func(context.Context, models.Note) {})
 	server := sdk.NewServer(&sdk.Implementation{Name: "problem-test", Version: "test"}, nil)
-	RegisterGeneratedTools(server, Resolvers{Notes: func() (*services.Notes, error) { return service, nil }}, slog.New(slog.DiscardHandler))
+	if err := RegisterGeneratedTools(server, Resolvers{Notes: func() (*services.Notes, error) { return service, nil }}, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatalf("register generated tools: %v", err)
+	}
 	serverTransport, clientTransport := sdk.NewInMemoryTransports()
 	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
 	if err != nil {

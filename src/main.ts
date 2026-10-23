@@ -111,8 +111,8 @@ formElement.addEventListener("submit", async (event) => {
   }
 
   noteForm.reset();
-	status.textContent = "Note added.";
-	input.focus();
+  status.textContent = "Note added.";
+  input.focus();
 });
 
 input.addEventListener("input", () => {
@@ -120,8 +120,8 @@ input.addEventListener("input", () => {
 });
 
 window.addEventListener("pagehide", () => {
-	noteForm.dispose();
-	stopNoteChanges();
+  noteForm.dispose();
+  stopNoteChanges();
 }, { once: true });
 
 showStarting();

@@ -47,7 +47,7 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		"src/main.ts":                     {"events.notesChanged.on", "stopNoteChanges"},
 		"AGENTS.md":                       {"framework make feature NAME", "Never hand-edit"},
 		"framework_bindings_generated.go": {generatedHeader, `"acme-notes/app/bootstrap"`},
-		".git/HEAD":                       {"ref: refs/heads/"},
+		".git/HEAD":                       {"ref: refs/heads/main"},
 	}
 	for path, expected := range checks {
 		assertFileContainsAll(t, result.Path, path, expected...)

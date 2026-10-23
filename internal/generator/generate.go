@@ -8,6 +8,7 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -126,7 +127,7 @@ func Generate(ctx context.Context, config GenerateConfig) (GenerateResult, error
 	if err != nil {
 		return GenerateResult{}, err
 	}
-	files, err := renderGeneratedFiles(methods)
+	files, err := renderGeneratedFiles(directory, methods)
 	if err != nil {
 		return GenerateResult{}, err
 	}
@@ -150,7 +151,7 @@ func Generate(ctx context.Context, config GenerateConfig) (GenerateResult, error
 		return result, &StaleError{Files: result.Changed}
 	}
 	for _, file := range files {
-		if !slicesContains(result.Changed, file.path) {
+		if !slices.Contains(result.Changed, file.path) {
 			continue
 		}
 		fullPath := filepath.Join(directory, file.path)
@@ -165,8 +166,8 @@ func Generate(ctx context.Context, config GenerateConfig) (GenerateResult, error
 	return result, nil
 }
 
-func renderGeneratedFiles(methods []Method) ([]generatedFile, error) {
-	modulePath, err := modulePath(methods)
+func renderGeneratedFiles(directory string, methods []Method) ([]generatedFile, error) {
+	modulePath, err := readModuleDirective(directory)
 	if err != nil {
 		return nil, err
 	}
@@ -294,16 +295,6 @@ func renderDesktop(modulePath string, methods []Method) ([]byte, []serviceData, 
 
 type tokenPosition string
 
-func modulePath(methods []Method) (string, error) {
-	for _, method := range methods {
-		const suffix = "/app/services"
-		if strings.HasSuffix(method.PackagePath, suffix) {
-			return strings.TrimSuffix(method.PackagePath, suffix), nil
-		}
-	}
-	return "", errors.New("discover module path: no marked method belongs to app/services")
-}
-
 func importAliases(paths map[string]struct{}) map[string]string {
 	ordered := make([]string, 0, len(paths))
 	for path := range paths {
@@ -421,17 +412,8 @@ func goComment(value string) string {
 	return strings.ReplaceAll(value, "\n", "\n// ")
 }
 
-func slicesContains(values []string, value string) bool {
-	for _, candidate := range values {
-		if candidate == value {
-			return true
-		}
-	}
-	return false
-}
-
 const desktopTemplate = `{{.Header}}package desktop
-
+{{if .Services}}
 import (
 	"context"
 	"fmt"
@@ -443,6 +425,7 @@ import (
 	{{.Alias}} "{{.Path}}"
 {{- end }}
 )
+{{end}}
 {{range .Services}}
 {{$service := .}}
 {{range .Methods}}
@@ -490,9 +473,11 @@ const bindingsTemplate = `{{.Header}}package main
 
 import (
 	"{{.BootstrapPath}}"
+{{- if .Services }}
 	"{{.DesktopPath}}"
 
 	"github.com/egoist/mygo"
+{{- end }}
 )
 
 func bindGenerated(applicationRuntime *bootstrap.Bootstrap) {
@@ -505,10 +490,12 @@ func bindGenerated(applicationRuntime *bootstrap.Bootstrap) {
 const providersTemplate = `{{.Header}}package bootstrap
 
 import (
+{{- if .Services }}
 	"fmt"
 	"log/slog"
-	appMCP "{{.MCPPath}}"
 	services "{{.ServicesPath}}"
+{{- end }}
+	appMCP "{{.MCPPath}}"
 
 	"github.com/samber/do/v2"
 )
@@ -522,11 +509,11 @@ func registerGeneratedServices(bootstrap *Bootstrap) {
 func (b *Bootstrap) mcpResolvers(injector do.Injector) (appMCP.Resolvers, error) {
 	resolvers := appMCP.Resolvers{}
 {{- range .MCPServices }}
-	{{.RuntimeLabel}}, err := do.Invoke[*services.{{.Name}}](injector)
+	resolver{{.Name}}, err := do.Invoke[*services.{{.Name}}](injector)
 	if err != nil {
 		return appMCP.Resolvers{}, fmt.Errorf("resolve {{.RuntimeLabel}} MCP service: %w", err)
 	}
-	resolvers.{{.Name}} = func() (*services.{{.Name}}, error) { return {{.RuntimeLabel}}, nil }
+	resolvers.{{.Name}} = func() (*services.{{.Name}}, error) { return resolver{{.Name}}, nil }
 {{- end }}
 	return resolvers, nil
 }
@@ -560,10 +547,10 @@ const mcpTemplate = `{{.Header}}// Package mcp contains generated MCP tool regis
 package mcp
 
 import (
+	"log/slog"
 {{if .HasTools -}}
 	"context"
 	"fmt"
-	"log/slog"
 
 {{end -}}
 {{range .Imports -}}
@@ -590,17 +577,20 @@ func (r Resolvers) validate() error {
 }
 
 // RegisterGeneratedTools registers only explicitly annotated service methods.
-func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers, logger *slog.Logger) {
+func RegisterGeneratedTools(server *sdk.Server, resolvers Resolvers, logger *slog.Logger) error {
 {{- range .Tools }}
-	registerTool(server, &sdk.Tool{
+	if err := registerTool(server, &sdk.Tool{
 		Name: {{printf "%q" .Name}},
 		Description: {{printf "%q" .Description}},
 		Annotations: &sdk.ToolAnnotations{
 			ReadOnlyHint: {{.ReadOnly}},
 			DestructiveHint: boolPointer({{.Destructive}}),
 		},
-	}, logger, {{.Handler}}(resolvers.{{.Service}}))
+	}, logger, {{.Handler}}(resolvers.{{.Service}})); err != nil {
+		return err
+	}
 {{- end }}
+	return nil
 }
 {{range .Tools}}
 func {{.Handler}}(resolve func() (*{{.ServiceType}}, error)) sdk.ToolHandlerFor[{{.Input}}, {{.Output}}] {

@@ -16,11 +16,11 @@ func registerGeneratedServices(bootstrap *Bootstrap) {
 
 func (b *Bootstrap) mcpResolvers(injector do.Injector) (appMCP.Resolvers, error) {
 	resolvers := appMCP.Resolvers{}
-	notes, err := do.Invoke[*services.Notes](injector)
+	resolverNotes, err := do.Invoke[*services.Notes](injector)
 	if err != nil {
 		return appMCP.Resolvers{}, fmt.Errorf("resolve notes MCP service: %w", err)
 	}
-	resolvers.Notes = func() (*services.Notes, error) { return notes, nil }
+	resolvers.Notes = func() (*services.Notes, error) { return resolverNotes, nil }
 	return resolvers, nil
 }
 

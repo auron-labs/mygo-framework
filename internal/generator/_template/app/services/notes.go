@@ -23,6 +23,8 @@ type ListNotesOutput struct {
 }
 
 // NoteChanged publishes a committed note change to application adapters.
+// It runs synchronously after the committing transaction returns, so callbacks
+// must return promptly and must not block the caller.
 type NoteChanged func(context.Context, models.Note)
 
 // Notes implements the reference application's note features.
@@ -34,6 +36,9 @@ type Notes struct {
 
 // NewNotes constructs the note service from direct dependencies.
 func NewNotes(database *gorm.DB, validator *validation.Validator, noteChanged NoteChanged) *Notes {
+	if noteChanged == nil {
+		noteChanged = func(context.Context, models.Note) {}
+	}
 	return &Notes{database: database, validator: validator, noteChanged: noteChanged}
 }
 
