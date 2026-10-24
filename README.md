@@ -48,6 +48,12 @@ The last command opens the Notes desktop app with MyGo's normal live-reload
 workflow. Add a note, quit the app, and start it again to see the persisted
 note.
 
+## Native Go UI
+
+For native MyGo views without a web frontend, see the [native example and
+consumer guide](docs/native.md). The current framework CLI scaffolds the web
+starter; native consumers can reuse the framework packages directly.
+
 ## Add the first feature
 
 From the generated project root, create a complete vertical slice:
