@@ -7,9 +7,10 @@ It describes unreleased repository behavior, not a published compatibility promi
 
 | Component | Version |
 | --- | --- |
-| Go toolchain | 1.27.3 locally; module minimum 1.27.1 |
-| MyGo Go module | 0.5.5 |
-| MyGo CLI and runtime packages | 0.5.5 |
+| Go toolchain | 1.27.3 locally and module minimum |
+| MyGo Go module | 0.7.1 |
+| MyGo CLI and runtime packages | 0.7.1 |
+| Onevra (native starter) | 0.2026.16 |
 | ncruces SQLite driver | 0.35.6 |
 | ncruces gormlite | 0.34.0 |
 | GORM | 1.31.2 |
@@ -19,14 +20,14 @@ It describes unreleased repository behavior, not a published compatibility promi
 | Lumberjack | 2.2.1 |
 | bbolt (optional) | 1.5.0 |
 
-These were tagged releases on 22 October 2026. The MyGo packages use the same
-release to keep the generated client and Go runtime compatible.
+The MyGo and Onevra pins were updated on 28 October 2026. The MyGo packages
+use the same release to keep the generated client and Go runtime compatible.
 
 ## Compatibility corrections
 
 The MyGo 0.5.5 initializer selected the latest Go module, which was 0.6.2.
 The generated npm packages remained on 0.5.5. The repository now pins the Go
-module, CLI, and runtime packages to 0.5.5 instead of accepting that mismatch.
+module, CLI, and runtime packages to 0.7.1 instead of accepting that mismatch.
 
 The current gormlite release is a separate Go module at
 `github.com/ncruces/go-sqlite3/gormlite`. It is pinned to 0.34.0 alongside the
@@ -407,28 +408,34 @@ runtime graph without assuming Notes is the only generated feature.
 
 ## New projects
 
-`framework new NAME` creates one supported MyGo web application in a normalized
+`framework new NAME` creates a MyGo web application in a normalized
 child directory and initializes its Git repository. Creation refuses an existing
 target and removes a newly created directory if copying or Git initialization
-fails. The embedded 43-file template rewrites the module, display name, package
+fails. The embedded template rewrites the module, display name, package
 name, and reverse-DNS identifier, then formats Go files so generated import order
 remains current for every module name.
 
 The template pins Go dependencies in a tidy `go.mod`/`go.sum`, pins Bun 1.4.2,
-MyGo 0.5.5, TypeScript 7.0.2, and Vite 8.3.5, and includes the lockfile. It ships
+MyGo 0.7.1, TypeScript 7.0.2, and Vite 8.3.5, and includes the lockfile. It ships
 the explicit bootstrap/runtime, embedded Goose migration, Notes vertical slice,
 generated Go and TypeScript bindings, framework-neutral form/request helpers,
-tests, README quick start, and `AGENTS.md` feature boundaries. No template
-variants or hidden dependency installation are provided.
+tests, README quick start, and `AGENTS.md` feature boundaries. Dependencies are not installed during project creation.
+
+`framework new NAME --native` creates a native Onevra application with retained
+Go state and typed bbolt preferences. It reuses the settings packages from the
+web template without its database, MCP, frontend, or generated adapters. The
+close handler saves preferences and prevents closing on failure. Its pinned
+Go MyGo tool supports development, diagnostics, UI vetting, and packaging.
 
 ## Delegated MyGo commands
 
-`framework dev` and `framework build` run writable framework generation exactly
+For web projects, `framework dev` and `framework build` run writable framework generation exactly
 once, then execute `bun run mygo dev|build`, which resolves the project-pinned
 MyGo CLI. `framework doctor` instead runs `generate --check` semantics once and
 stops before MyGo if framework configuration or committed output is stale. All
 MyGo arguments, standard input, output, error output, and cancellation pass
-through the wrapper.
+through the wrapper. Native projects identified by `mygo.json` skip framework
+web generation and use `go tool mygo dev|build|doctor` instead.
 
 There is no framework watcher. MyGo continues to own its normal Go/frontend
 reload cycle. After manually changing an exposed service signature or a

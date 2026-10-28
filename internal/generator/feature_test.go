@@ -125,7 +125,7 @@ func featureFixture(t *testing.T) string {
 	directory := generatorFixture(t)
 	const module = `module example.test/project
 
-go 1.27.1
+go 1.27.3
 
 require gorm.io/gorm v0.0.0
 
@@ -151,7 +151,7 @@ func (v *Validator) Struct(any) error { return nil }
 	if err := os.MkdirAll(stubDirectory, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(stubDirectory, "go.mod"), []byte("module gorm.io/gorm\n\ngo 1.27.1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(stubDirectory, "go.mod"), []byte("module gorm.io/gorm\n\ngo 1.27.3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	const gorm = `package gorm

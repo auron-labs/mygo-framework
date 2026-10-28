@@ -28,3 +28,17 @@ func TestNewProjectCommandCreatesOneSupportedTemplate(t *testing.T) {
 		t.Fatalf("duplicate error = %v", err)
 	}
 }
+
+func TestNewNativeProjectCommand(t *testing.T) {
+	parent := t.TempDir()
+	t.Chdir(parent)
+	if _, err := execute(t.Context(), New("test", NewProjectCommand()), "new", "NativeApp", "--native"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(parent, "native-app", "mygo.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(parent, "native-app", "package.json")); !os.IsNotExist(err) {
+		t.Fatalf("native starter has package.json: %v", err)
+	}
+}

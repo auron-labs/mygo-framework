@@ -1,15 +1,16 @@
 module mygo-framework
 
-go 1.27.1
+go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.5.5
+	github.com/egoist/mygo v0.7.1
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/google/jsonschema-go v0.4.3
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
+	github.com/oneo-me/onevra/source v0.2026.16
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/samber/do/v2 v2.1.0
 	github.com/spf13/cobra v1.10.2
@@ -20,7 +21,7 @@ require (
 )
 
 require (
-	github.com/ebitengine/purego v0.11.1 // indirect
+	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -40,7 +41,7 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/image v0.46.0 // indirect
+	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect

@@ -13,12 +13,12 @@ down its listener and storage in dependency order.
 
 ## Requirements
 
-- Go 1.27.3 or a compatible Go 1.27 release
-- Bun 1.4.2
+- Go 1.27.3 or newer
+- Bun 1.4.2 (web projects only)
 - Git
 - The native libraries required by MyGo on your operating system
 
-The manifests pin MyGo 0.5.5 and the frontend toolchain. Run
+The manifests pin MyGo 0.7.1 and the frontend toolchain. Run
 `framework doctor` inside a generated project to check the local MyGo build
 requirements.
 
@@ -50,9 +50,18 @@ note.
 
 ## Native Go UI
 
-For native MyGo views without a web frontend, see the [native example and
-consumer guide](docs/native.md). The current framework CLI scaffolds the web
-starter; native consumers can reuse the framework packages directly.
+Create a native starter with Onevra components and persisted preferences:
+
+```sh
+framework new my-native-app --native
+cd my-native-app
+go mod download
+framework dev
+```
+
+Native projects use the pinned Go MyGo tool for development, diagnostics, and
+packaging. See the [native guide](docs/native.md) for persistence, testing, and
+using framework packages in another application.
 
 ## Add the first feature
 
@@ -86,9 +95,9 @@ flow.
 
 | Command | Purpose |
 | --- | --- |
-| `framework dev` | Generate framework files once, then start MyGo development |
-| `framework build` | Generate framework files once, then build with MyGo |
-| `framework doctor` | Check generated files, then run the pinned MyGo doctor |
+| `framework dev` | Start MyGo development; generate adapters first for web projects |
+| `framework build` | Build with MyGo; generate adapters first for web projects |
+| `framework doctor` | Run the pinned MyGo doctor; check adapters first for web projects |
 | `framework generate` | Refresh framework-owned Go adapters and registrations |
 | `framework generate --check` | Fail if committed generated files are stale |
 | `framework make feature NAME` | Create a complete feature and regenerate adapters |

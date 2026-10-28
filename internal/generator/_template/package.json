@@ -13,10 +13,10 @@
     "test:web": "bun test tests/web"
   },
   "dependencies": {
-    "mygo-runtime": "0.5.5"
+    "mygo-runtime": "0.7.1"
   },
   "devDependencies": {
-    "mygo-cli": "0.5.5",
+    "mygo-cli": "0.7.1",
     "typescript": "7.0.2",
     "vite": "8.3.5"
   }

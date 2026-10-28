@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io"
 	"mygo-framework/internal/generator"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -105,5 +108,64 @@ func TestMyGoCommandReturnsDelegationFailure(t *testing.T) {
 	_, err := execute(context.Background(), New("test", command), "build")
 	if !errors.Is(err, want) {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestNativeMyGoCommandSkipsWebGeneration(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("mygo.json", []byte(`{"name":"Native"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	command := newMyGoCommand("build", false,
+		func(context.Context, generator.GenerateConfig) (generator.GenerateResult, error) {
+			t.Fatal("native project must not generate web adapters")
+			return generator.GenerateResult{}, nil
+		},
+		func(_ context.Context, _ string, _ io.Reader, _ io.Writer, _ io.Writer, args ...string) error {
+			calls++
+			if strings.Join(args, " ") != "build --platform linux/amd64" {
+				t.Fatalf("args = %v", args)
+			}
+			return nil
+		},
+	)
+	if _, err := execute(t.Context(), New("test", command), "build", "--platform", "linux/amd64"); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("runner calls = %d", calls)
+	}
+}
+
+func TestRunMyGoChoosesProjectToolchain(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses shell fixtures")
+	}
+	bin := t.TempDir()
+	for _, name := range []string{"go", "bun"} {
+		script := "#!/bin/sh\nprintf '%s\\n' '" + name + "' \"$@\"\ncat\n"
+		// #nosec G306 -- executable fixture scripts are private to this test directory.
+		if err := os.WriteFile(filepath.Join(bin, name), []byte(script), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	for _, native := range []bool{false, true} {
+		directory := t.TempDir()
+		want := "bun\nrun\nmygo\nbuild\n--platform\nlinux/amd64\ninput"
+		if native {
+			if err := os.WriteFile(filepath.Join(directory, "mygo.json"), []byte(`{}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			want = "go\ntool\nmygo\nbuild\n--platform\nlinux/amd64\ninput"
+		}
+		var output strings.Builder
+		if err := runMyGo(t.Context(), directory, strings.NewReader("input"), &output, &output, "build", "--platform", "linux/amd64"); err != nil {
+			t.Fatal(err)
+		}
+		if output.String() != want {
+			t.Fatalf("native=%v: output = %q", native, output.String())
+		}
 	}
 }

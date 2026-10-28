@@ -22,8 +22,8 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.5.5", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
-		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.5.5"`},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.7.1", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.7.1"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
 		"app/bootstrap/bootstrap.go":                 {`"acme-notes/app/services"`, "registerGeneratedServices"},
@@ -123,5 +123,32 @@ func assertFileContainsAll(t *testing.T, directory, path string, expected ...str
 		if !strings.Contains(string(content), value) {
 			t.Errorf("%s does not contain %q", path, value)
 		}
+	}
+}
+
+func TestCreateNativeProject(t *testing.T) {
+	t.Parallel()
+	result, err := CreateProject(t.Context(), ProjectConfig{Dir: t.TempDir(), Name: "AcmeNative", Native: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, expected := range map[string][]string{
+		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.7.1", "github.com/oneo-me/onevra/source v0.2026.16", "tool github.com/egoist/mygo/cmd/mygo"},
+		"mygo.json":               {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
+		"main.go":                 {`"acme-native/settings"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault"},
+		"main_test.go":            {"TestNativePreferenceControl", "TestPreferenceSaveAndFailure"},
+		"settings/bbolt/bbolt.go": {`"acme-native/settings"`},
+	} {
+		assertFileContainsAll(t, result.Path, path, expected...)
+	}
+	for _, path := range []string{"package.json", "bun.lock", "src", "mygo.config.ts", "app", "database", "settings/sqlite", "framework_bindings_generated.go"} {
+		if _, err := os.Stat(filepath.Join(result.Path, path)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("native starter includes %s: %v", path, err)
+		}
+	}
+	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
+		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
 	}
 }

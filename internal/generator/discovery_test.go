@@ -214,7 +214,7 @@ func (s *Service) Ordinary(ctx context.Context, input Input) (Output, error) { r
 func fixtureModule(t *testing.T, source string) string {
 	t.Helper()
 	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module fixture\n\ngo 1.27.1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module fixture\n\ngo 1.27.3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(directory, "service.go"), []byte(source), 0o600); err != nil {

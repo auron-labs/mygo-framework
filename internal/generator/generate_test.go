@@ -127,7 +127,7 @@ func TestGenerateCompilesWithoutAnnotatedMethods(t *testing.T) {
 	if err := os.MkdirAll(serviceDirectory, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/empty\n\ngo 1.27.1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/empty\n\ngo 1.27.3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	const source = `package services
@@ -210,7 +210,7 @@ func generatorFixture(t *testing.T) string {
 	if err := os.MkdirAll(serviceDirectory, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/project\n\ngo 1.27.1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte("module example.test/project\n\ngo 1.27.3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	const source = `package services

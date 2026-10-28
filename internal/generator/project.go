@@ -13,13 +13,14 @@ import (
 	"strings"
 )
 
-//go:embed all:_template
+//go:embed all:_template all:_native
 var projectTemplate embed.FS
 
 // ProjectConfig selects the parent directory and new project name.
 type ProjectConfig struct {
-	Dir  string
-	Name string
+	Dir    string
+	Name   string
+	Native bool
 }
 
 // ProjectResult reports the created project directory and file count.
@@ -28,7 +29,7 @@ type ProjectResult struct {
 	Files int
 }
 
-// CreateProject creates the one supported MyGo web application template.
+// CreateProject creates a web or native MyGo application template.
 func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, err error) {
 	if ctx == nil {
 		return ProjectResult{}, errors.New("create project: context is required")
@@ -71,44 +72,60 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 	)
 
 	files := 0
-	err = fs.WalkDir(projectTemplate, "_template", func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return fmt.Errorf("walk project template: %w", walkErr)
-		}
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("create project: %w", err)
-		}
-		relative := strings.TrimPrefix(path, "_template/")
-		if path == "_template" {
-			return nil
-		}
-		relative = strings.TrimSuffix(relative, ".tmpl")
-		destination := filepath.Join(target, filepath.FromSlash(relative))
-		if entry.IsDir() {
-			if err := os.Mkdir(destination, 0o750); err != nil {
-				return fmt.Errorf("create project directory %s: %w", relative, err)
+	roots := []string{"_template"}
+	if config.Native {
+		roots = append(roots, "_native")
+	}
+	for _, root := range roots {
+		err = fs.WalkDir(projectTemplate, root, func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return fmt.Errorf("walk project template: %w", walkErr)
 			}
-			return nil
-		}
-		content, err := fs.ReadFile(projectTemplate, path)
-		if err != nil {
-			return fmt.Errorf("read project template %s: %w", relative, err)
-		}
-		rendered := []byte(replacer.Replace(string(content)))
-		if strings.HasSuffix(relative, ".go") {
-			rendered, err = format.Source(rendered)
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("create project: %w", err)
+			}
+			relative := strings.TrimPrefix(path, root+"/")
+			if path == root {
+				return nil
+			}
+			if config.Native && root == "_template" {
+				switch relative {
+				case ".gitignore", "settings", "settings/settings.go", "settings/overlay.go", "settings/bbolt", "settings/bbolt/bbolt.go":
+				default:
+					if entry.IsDir() {
+						return fs.SkipDir
+					}
+					return nil
+				}
+			}
+			relative = strings.TrimSuffix(relative, ".tmpl")
+			destination := filepath.Join(target, filepath.FromSlash(relative))
+			if entry.IsDir() {
+				if err := os.Mkdir(destination, 0o750); err != nil {
+					return fmt.Errorf("create project directory %s: %w", relative, err)
+				}
+				return nil
+			}
+			content, err := fs.ReadFile(projectTemplate, path)
 			if err != nil {
-				return fmt.Errorf("format project file %s: %w", relative, err)
+				return fmt.Errorf("read project template %s: %w", relative, err)
 			}
+			rendered := []byte(replacer.Replace(string(content)))
+			if strings.HasSuffix(relative, ".go") {
+				rendered, err = format.Source(rendered)
+				if err != nil {
+					return fmt.Errorf("format project file %s: %w", relative, err)
+				}
+			}
+			if err := writeNewFile(destination, rendered); err != nil {
+				return fmt.Errorf("write project file %s: %w", relative, err)
+			}
+			files++
+			return nil
+		})
+		if err != nil {
+			return ProjectResult{}, fmt.Errorf("create project from template: %w", err)
 		}
-		if err := writeNewFile(destination, rendered); err != nil {
-			return fmt.Errorf("write project file %s: %w", relative, err)
-		}
-		files++
-		return nil
-	})
-	if err != nil {
-		return ProjectResult{}, fmt.Errorf("create project from template: %w", err)
 	}
 	command := exec.CommandContext(ctx, "git", "init", "--quiet", "--initial-branch=main")
 	command.Dir = target
