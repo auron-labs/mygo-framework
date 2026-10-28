@@ -116,9 +116,16 @@ command's `--help` output for the pinned MyGo options.
   implementation, direct evidence, and platform limits.
 - [Foundation and architecture notes](docs/foundation.md) record ownership,
   lifecycle, generator, security, platform, and performance behavior.
-- [Implementation plan](PLAN.md) is the authoritative scope and design record.
-- [Execution checklist](TODO.md) records completed items and their verification.
 
 The framework intentionally has no Goravel dependency, mandatory UI server,
 global service facade, automatic database repair, plaintext secret fallback, or
 second file watcher.
+
+## Development
+
+See [development and releases](docs/development.md) for mise setup, repository
+hooks, checks, builds, and the release-please workflow.
+
+## License
+
+[MIT](LICENSE).

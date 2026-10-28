@@ -1,11 +1,46 @@
 [tools]
 betterleaks = "1.9.0"
+bun = "1.4.2"
 go = "1.27.3"
 golangci-lint = "2.15.0"
 hk = { version = "2.8.0", workflow = "release.yml" }
 "npm:@ls-lint/ls-lint" = "2.3.2"
+node = "26.12.1"
 pkl = "0.32.1"
 tombi = "1.8.9"
 
 [env]
+_.path = ["{{ config_root }}/node_modules/.bin"]
 BETTERLEAKS_CONFIG = "{{ config_root }}/.betterleaks.toml"
+
+[tasks.install]
+description = "Install Go and frontend dependencies"
+run = ["go mod download", "bun install --frozen-lockfile"]
+
+[tasks.check]
+description = "Run the repository's configured lint and formatting checks"
+run = "hk check --all"
+
+[tasks.fix]
+description = "Apply the repository's configured fixes"
+run = "hk fix --all"
+
+[tasks.test]
+description = "Run Go and frontend tests"
+run = ["go test ./...", "bun run test:web"]
+
+[tasks.typecheck]
+description = "Check frontend types"
+run = "bun run typecheck"
+
+[tasks."check:generated"]
+description = "Check framework-owned generated files"
+run = "go run ./cmd/framework generate --check"
+
+[tasks.build]
+description = "Package the reference desktop application with MyGo"
+run = "bun run build"
+
+[tasks."build:web"]
+description = "Typecheck and build frontend assets"
+run = "bun run build:web"
