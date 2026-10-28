@@ -5,6 +5,8 @@ from a webview. The native example uses typed settings and the owning bbolt
 store, without starting the reference app's SQLite database, MCP server, or
 TypeScript frontend.
 
+The native starter includes a pinned `auron-labs/mygo-mcp` dependency.
+
 Create a native project with Go 1.27.3 or newer and the framework CLI installed:
 
 ```sh
@@ -45,6 +47,32 @@ go test ./examples/native
 ```
 
 Its preference directory is `mygo-framework-native` under `os.UserConfigDir()`.
+
+## Inspect native views through MCP
+
+Generated native projects include a headless MCP harness for their real view:
+
+```sh
+go run . -mcp 127.0.0.1:8080
+```
+
+From this checkout, use `go run ./examples/native -mcp 127.0.0.1:8080`.
+Connect an MCP client using Streamable HTTP to `http://127.0.0.1:8080/mcp`.
+Ask it to list sessions, inspect the view, click **Toggle compact spacing**,
+and capture a screenshot. Stop the harness with Ctrl+C.
+
+The harness reuses the desktop view and Onevra theme with independent in-memory
+state; it does not open a window or load or save preferences. Restart to reset it.
+Extend `nativeFixture` in `mcp.go` with test state and services as your view grows.
+Only an explicit loopback IP and port are accepted. The endpoint has no
+authentication, so keep it local.
+
+MyGo MCP operates on isolated native fixtures. It cannot control running windows,
+OS dialogs, or webviews. The web starter's authenticated service MCP server is
+separate. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-mcp/blob/9f095775017aafe64c22e934d2178fa7b6657209/docs/AGENT_GUIDE.md)
+for tools and observation rules. The included MCP integration test covers
+discovery, inspection, checkbox interaction, screenshots, fixture isolation,
+and shutdown over a real loopback connection.
 
 ## Reusing the packages in a separate application
 

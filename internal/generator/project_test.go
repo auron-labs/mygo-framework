@@ -133,10 +133,12 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.7.1", "github.com/oneo-me/onevra/source v0.2026.16", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.7.1", "github.com/oneo-me/onevra/source v0.2026.16", "tool github.com/egoist/mygo/cmd/mygo"},
 		"mygo.json":               {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
 		"main.go":                 {`"acme-native/settings"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault"},
 		"main_test.go":            {"TestNativePreferenceControl", "TestPreferenceSaveAndFailure"},
+		"mcp.go":                  {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":             {"TestNativeMCP"},
 		"settings/bbolt/bbolt.go": {`"acme-native/settings"`},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)

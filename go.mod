@@ -3,6 +3,7 @@ module mygo-framework
 go 1.27.3
 
 require (
+	github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a
 	github.com/egoist/mygo v0.7.1
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-resty/resty/v2 v2.17.2

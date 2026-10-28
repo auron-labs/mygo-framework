@@ -4,13 +4,16 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"mygo-framework/settings"
 	boltsettings "mygo-framework/settings/bbolt"
 	"os"
+	"os/signal"
 	"path/filepath"
 
+	mygomcp "github.com/auron-labs/mygo-mcp"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/components"
@@ -37,7 +40,7 @@ func (s *screen) view(c *ui.Context) {
 	}
 	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
 		components.Text(c, appName).FontSize(22).Bold()
-		components.Checkbox(c, &s.compact, "Compact spacing")
+		components.Checkbox(c, &s.compact, "Compact spacing").Label("Toggle compact spacing")
 		components.Text(c, "Your preference is saved when you close the window.").Wrap()
 		if s.saveError != "" {
 			components.Text(c, s.saveError).Wrap()
@@ -55,6 +58,17 @@ func (s *screen) save(values *settings.Values) error {
 }
 
 func main() {
+	mcpAddress := flag.String("mcp", "", "Serve an isolated headless UI over MCP at a loopback IP:port instead of opening a window")
+	flag.Parse()
+	if *mcpAddress != "" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		err := mygomcp.Run(ctx, *mcpAddress, []mygomcp.Fixture{nativeFixture()})
+		stop()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
