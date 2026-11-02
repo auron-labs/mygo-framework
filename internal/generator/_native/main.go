@@ -102,6 +102,7 @@ func run() (err error) {
 		shell := plain.NewShell(plain.ShellOptions{
 			Title: appName, Width: 640, Height: 360, MinWidth: 360, MinHeight: 300,
 			StateKey: "main", Theme: theme.Onevra, Content: s.view,
+			Hidden: true,
 		})
 		win := shell.Window()
 		// MyGo also calls OnClose during application quit, before destroying the window.
@@ -113,6 +114,7 @@ func run() (err error) {
 			}
 		})
 		win.OnClosed(func() { mygo.App.Quit() })
+		win.OnReadyToShow(win.Show)
 	})
 	if err := mygo.App.Run(); err != nil {
 		return fmt.Errorf("run native app: %w", err)

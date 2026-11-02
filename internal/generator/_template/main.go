@@ -51,6 +51,7 @@ func main() {
 			BackgroundColor: "light-dark(#f7f7f5, #171816)",
 			StateKey:        "main",
 			URL:             "/",
+			Page:            mygo.PageOptions{PinchZoom: true},
 		})
 	})
 

@@ -4,14 +4,14 @@ go 1.27.3
 
 require (
 	github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a
-	github.com/egoist/mygo v0.7.1
+	github.com/egoist/mygo v0.7.4
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/google/jsonschema-go v0.4.3
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
-	github.com/oneo-me/onevra/source v0.2026.16
+	github.com/oneo-me/onevra/source v0.2026.17
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/samber/do/v2 v2.1.0
 	github.com/spf13/cobra v1.10.2

@@ -8,9 +8,9 @@ It describes unreleased repository behavior, not a published compatibility promi
 | Component | Version |
 | --- | --- |
 | Go toolchain | 1.27.3 locally and module minimum |
-| MyGo Go module | 0.7.1 |
-| MyGo CLI and runtime packages | 0.7.1 |
-| Onevra (native starter) | 0.2026.16 |
+| MyGo Go module | 0.7.4 |
+| MyGo CLI and runtime packages | 0.7.4 |
+| Onevra (native starter) | 0.2026.17 |
 | ncruces SQLite driver | 0.35.6 |
 | ncruces gormlite | 0.34.0 |
 | GORM | 1.31.2 |
@@ -20,14 +20,20 @@ It describes unreleased repository behavior, not a published compatibility promi
 | Lumberjack | 2.2.1 |
 | bbolt (optional) | 1.5.0 |
 
-The MyGo and Onevra pins were updated on 28 October 2026. The MyGo packages
+The MyGo and Onevra pins were updated on 2 November 2026. The MyGo packages
 use the same release to keep the generated client and Go runtime compatible.
+
+The native example and starter now show their Onevra window from
+`OnReadyToShow`, after the first frame is drawn. The Notes page explicitly
+enables pinch zoom because MyGo 0.7.2 made it opt-in. Other new APIs, including
+embedded webview scrolling, themed subtrees, decimal inputs, destructive dialogs,
+Markdown anchors, and updater state, have no matching flow in these starters.
 
 ## Compatibility corrections
 
 The MyGo 0.5.5 initializer selected the latest Go module, which was 0.6.2.
 The generated npm packages remained on 0.5.5. The repository now pins the Go
-module, CLI, and runtime packages to 0.7.1 instead of accepting that mismatch.
+module, CLI, and runtime packages to 0.7.4 instead of accepting that mismatch.
 
 The current gormlite release is a separate Go module at
 `github.com/ncruces/go-sqlite3/gormlite`. It is pinned to 0.34.0 alongside the
@@ -416,7 +422,7 @@ name, and reverse-DNS identifier, then formats Go files so generated import orde
 remains current for every module name.
 
 The template pins Go dependencies in a tidy `go.mod`/`go.sum`, pins Bun 1.4.2,
-MyGo 0.7.1, TypeScript 7.0.2, and Vite 8.3.5, and includes the lockfile. It ships
+MyGo 0.7.4, TypeScript 7.0.2, and Vite 8.3.5, and includes the lockfile. It ships
 the explicit bootstrap/runtime, embedded Goose migration, Notes vertical slice,
 generated Go and TypeScript bindings, framework-neutral form/request helpers,
 tests, README quick start, and `AGENTS.md` feature boundaries. Dependencies are not installed during project creation.

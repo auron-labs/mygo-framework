@@ -26,6 +26,7 @@ Toggle **Compact spacing**, close the window, and reopen it. Preferences live
 in `__PROJECT_SLUG__/preferences.db` under `os.UserConfigDir()`. A save failure
 keeps the window open with a visible error. The settings store is closed after
 the native event loop stops. The shell remembers window bounds under `main`.
+It opens after its first frame is drawn, with the close handler already installed.
 
 ## Inspect and interact through MCP
 

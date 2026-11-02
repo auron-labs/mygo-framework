@@ -22,8 +22,8 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.7.1", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
-		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.7.1"`},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.7.4", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.7.4"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
 		"app/bootstrap/bootstrap.go":                 {`"acme-notes/app/services"`, "registerGeneratedServices"},
@@ -133,7 +133,7 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.7.1", "github.com/oneo-me/onevra/source v0.2026.16", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.7.4", "github.com/oneo-me/onevra/source v0.2026.17", "tool github.com/egoist/mygo/cmd/mygo"},
 		"mygo.json":               {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
 		"main.go":                 {`"acme-native/settings"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault"},
 		"main_test.go":            {"TestNativePreferenceControl", "TestPreferenceSaveAndFailure"},
