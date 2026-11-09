@@ -8,9 +8,9 @@ import (
 
 func nativeFixture() mygomcp.Fixture {
 	return mygomcp.Fixture{
-		Name: appName, Width: 640, Height: 360,
+		Name: appName, Width: 640, Height: 420,
 		Factory: func() (func(*ui.Context), func(), error) {
-			s := &screen{}
+			s := &screen{prefs: preferences{Units: unitsMetric, Theme: themeSystem}}
 			return func(c *ui.Context) { theme.Apply(c); s.view(c) }, nil, nil
 		},
 	}

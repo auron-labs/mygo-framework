@@ -28,22 +28,34 @@ const (
 	profileName = "mygo-framework-native"
 )
 
-var compactKey = settings.NewKey("native.compact", false, nil)
-
 type screen struct {
-	compact   bool
+	prefs     preferences
 	saveError string
+	// themeChanged applies the selected appearance to the running application.
+	themeChanged func()
 }
 
 func (s *screen) view(c *ui.Context) {
 	gap := float32(24)
-	if s.compact {
+	if s.prefs.Compact {
 		gap = 8
 	}
 	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
 		components.Text(c, appName).FontSize(22).Bold()
-		components.Checkbox(c, &s.compact, "Compact spacing").Label("Toggle compact spacing")
-		components.Text(c, "Your preference is saved when you close the window.").Wrap()
+		components.Checkbox(c, &s.prefs.Compact, "Compact spacing").Label("Toggle compact spacing")
+		ui.RadioGroup(c, func() {
+			components.Radio(c, &s.prefs.Units, unitsMetric, "Metric")
+			components.Radio(c, &s.prefs.Units, unitsImperial, "Imperial")
+		}).Label("Units")
+		ui.RadioGroup(c, func() {
+			for _, option := range []struct{ value, label string }{{themeSystem, "System"}, {themeLight, "Light"}, {themeDark, "Dark"}} {
+				radio := components.Radio(c, &s.prefs.Theme, option.value, option.label)
+				if s.themeChanged != nil {
+					radio.OnChange(s.themeChanged)
+				}
+			}
+		}).Label("Theme")
+		components.Text(c, "Your preferences are saved when you close the window.").Wrap()
 		if s.saveError != "" {
 			components.Text(c, s.saveError).Wrap()
 		}
@@ -51,8 +63,8 @@ func (s *screen) view(c *ui.Context) {
 }
 
 func (s *screen) save(values *settings.Values) error {
-	if err := settings.Set(context.Background(), values, compactKey, s.compact); err != nil {
-		s.saveError = "Could not save your preference. Please try closing the window again."
+	if err := s.prefs.save(context.Background(), values); err != nil {
+		s.saveError = "Could not save your preferences. Please try closing the window again."
 		return fmt.Errorf("save preferences: %w", err)
 	}
 	s.saveError = ""
@@ -73,7 +85,7 @@ func openPreferences(ctx context.Context, dir string) (*database.Database, *sett
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("open preferences: %w", err), db.Close())
 	}
-	values, err := settings.New(store, compactKey)
+	values, err := settings.New(store, compactKey, timezoneKey, unitsKey, themeKey, profileKey, importFolderKey)
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("register preferences: %w", err), db.Close())
 	}
@@ -112,15 +124,17 @@ func run(dataDir string) (err error) {
 		return err
 	}
 	defer func() { err = errors.Join(err, db.Close()) }()
-	compact, err := settings.Get(ctx, values, compactKey)
+	prefs, err := loadPreferences(ctx, values)
 	if err != nil {
 		return fmt.Errorf("load preferences: %w", err)
 	}
-	s := &screen{compact: compact}
+	s := &screen{prefs: prefs}
+	s.themeChanged = func() { mygo.Theme.SetSource(mygo.ThemeSource(s.prefs.Theme)) }
 	mygo.App.SetName(appName)
+	s.themeChanged()
 	mygo.App.WhenReady(func() {
 		shell := plain.NewShell(plain.ShellOptions{
-			Title: appName, Width: 640, Height: 360, MinWidth: 360, MinHeight: 300,
+			Title: appName, Width: 640, Height: 420, MinWidth: 360, MinHeight: 380,
 			StateKey: "main", Theme: theme.Onevra, Content: s.view,
 			Hidden: true,
 		})

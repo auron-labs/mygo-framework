@@ -22,10 +22,12 @@ CGO_ENABLED=0 go test ./...
 go tool mygo vet .
 ```
 
-Toggle **Compact spacing**, close the window, and reopen it. Preferences live in `__PROJECT_SLUG__/app.db` under
+Toggle **Compact spacing**, choose units and a theme, close the window, and
+reopen it. Preferences live in `__PROJECT_SLUG__/app.db` under
 `os.UserConfigDir()`; run with `-data-dir DIR` to use another directory.
 Startup applies the migrations in `database/migrations` (add yours after
-`00001`). A save failure
+`00001`). `preferences.go` defines the typed settings: compact spacing, time
+zone, units, theme, profile name, and last import folder. A save failure
 keeps the window open with a visible error. The database is closed after
 the native event loop stops. The shell remembers window bounds under `main`.
 It opens after its first frame is drawn, with the close handler already installed.

@@ -18,18 +18,23 @@ framework dev
 ```
 
 The starter pins MyGo v0.8.3 and Onevra v0.2026.18. It includes a Onevra plain
-shell, retained Go view state, and a typed preference in SQLite.
+shell, retained Go view state, and typed settings in SQLite.
 The shell stays hidden until its first frame is drawn, so it opens with its
 content ready while the preference-saving close handler is already installed.
 `framework build` packages it through the pinned `go tool mygo`; no Bun or
 TypeScript frontend is required. `go run .` also runs the application.
 
-Toggle **Compact spacing**, close the window, and reopen it. The preference is
-stored in `my-native-app/app.db` under
+Toggle **Compact spacing**, choose units and a theme, close the window, and
+reopen it. The preferences are stored in `my-native-app/app.db` under
 `os.UserConfigDir()`; pass `-data-dir DIR` to use another directory. Startup
 opens the database and applies pending migrations from `database/migrations`
 before the window is created. Add your own migrations there, numbered after
 `00001`. The database is closed after the event loop stops.
+
+The typed keys in `preferences.go` cover compact spacing, time zone, units,
+theme, profile name, and last import folder. The window edits compact spacing,
+units, and theme; the theme applies immediately. Time zone, profile name, and
+the import folder are validated and persisted, ready for your own views.
 UI builders only change retained Go state. The close handler saves preferences
 before allowing the window to close, including during application quit. If a
 save fails, it keeps the window open and displays an error so the user can retry.
@@ -40,8 +45,8 @@ CGO_ENABLED=0 go test ./...
 go tool mygo vet .
 ```
 
-The headless tests cover the preference control, database creation and
-migration, persistence across restarts, and visible save errors. Check resizing, focus, keyboard traversal, and light/dark appearance in
+The headless tests cover the preference controls, database creation and
+migration, persistence across restarts, validation, and visible save errors. Check resizing, focus, keyboard traversal, and light/dark appearance in
 the actual window on your target platform.
 
 The same example is available from this checkout:
