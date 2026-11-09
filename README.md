@@ -67,7 +67,9 @@ for headless UI inspection, interaction, and screenshots. Start the harness with
 
 See the [native guide](docs/native.md) for persistence, translations, signed
 updates, folder import, PDF reports, large lists, per-platform verification
-status, testing, and using framework packages in another application.
+status, testing, and using framework packages in another application. In a
+native project `framework make feature NAME` writes a native view, store,
+migration and test instead.
 
 ## Add the first feature
 

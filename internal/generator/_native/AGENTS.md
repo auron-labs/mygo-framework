@@ -8,7 +8,7 @@
 - Preserve the cancelable close handler: a failed preference save must leave the window open. Close the database after the event loop stops.
 - Preferences are typed settings in SQLite (`preferences.go`). Add schema changes as new Goose migrations in `database/migrations`, numbered after the existing ones.
 - Run long work with `jobs.Manager` (`importjob.go` shows the pattern): `Start` returns `jobs.ErrRunning` while a job of that name runs, jobs must honor their context, and views read `Status` and redraw from a `Subscribe` callback via `Window.Invalidate`. `run` shuts the manager down before the database closes.
-- This starter uses native views and direct Go calls. Framework web adapter generation and feature scaffolds target the web starter.
+- This starter uses native views and direct Go calls. Framework web adapter generation targets the web starter; `framework make feature NAME` writes a native view, store, migration and test here.
 - Put user-visible strings in `locales/en.json` and call the generated `locales` functions; run `go tool mygo generate` after editing a catalog. Product names stay untranslated.
 - Updates are opt-in through an `updates` section in `mygo.json`; never commit `mygo-update.key`. Without it `mygo.Updater.Enabled()` is false and nothing is contacted.
 - The import flow takes a folder from a drop zone (`Element.DroppedFiles`/`FileDragOver`) or from `mygo.Dialog.Open{Directory: true}`. `Dialog.Open` blocks, so call it from a goroutine and apply the result with `Window.Update`. Persist the choice as `native.import_folder`.

@@ -170,5 +170,14 @@ func TestCreateNativeProject(t *testing.T) {
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
+		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy", "-diff")
+
+		feature, err := ScaffoldFeature(t.Context(), FeatureConfig{Dir: result.Path, Name: "Bookmark"})
+		if err != nil || !feature.Native {
+			t.Fatalf("native feature = %+v, %v", feature, err)
+		}
+		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "vet", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
 	}
 }

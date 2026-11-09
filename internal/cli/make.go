@@ -39,7 +39,11 @@ func newMakeFeatureCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("create feature scaffold: %w", err)
 			}
-			_, err = fmt.Fprintf(command.OutOrStdout(), "created %d feature files; generated %d files (%d changed)\n", len(result.Files), len(result.Generated.Files), len(result.Generated.Changed))
+			if result.Native {
+				_, err = fmt.Fprintf(command.OutOrStdout(), "created %d feature files\n", len(result.Files))
+			} else {
+				_, err = fmt.Fprintf(command.OutOrStdout(), "created %d feature files; generated %d files (%d changed)\n", len(result.Files), len(result.Generated.Files), len(result.Generated.Changed))
+			}
 			if err != nil {
 				return fmt.Errorf("write feature result: %w", err)
 			}

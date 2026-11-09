@@ -120,6 +120,50 @@ func (s *Notes) Broken() {}
 	}
 }
 
+func TestScaffoldFeatureInNativeProjectWritesViewStoreMigrationAndTest(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	for path, content := range map[string]string{
+		"go.mod":    "module example.test/native\n\ngo 1.27.3\n",
+		"mygo.json": "{}\n",
+		"database/migrations/00001_create_base.sql": "-- +goose Up\n",
+	} {
+		full := filepath.Join(directory, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	result, err := ScaffoldFeature(context.Background(), FeatureConfig{Dir: directory, Name: "RecipeBox"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"recipe_box.go", "recipe_box_test.go", "database/migrations/00002_create_recipe_box_records.sql"}
+	if !result.Native || len(result.Files) != len(want) || len(result.Generated.Files) != 0 {
+		t.Fatalf("feature result = %+v", result)
+	}
+	for _, path := range want {
+		if !containsString(result.Files, path) {
+			t.Errorf("feature files lack %q: %v", path, result.Files)
+		}
+	}
+	assertFileContains(t, directory, "recipe_box.go", "type recipeBoxView struct")
+	assertFileContains(t, directory, "database/migrations/00002_create_recipe_box_records.sql", "CREATE TABLE recipe_box_records")
+	for _, path := range []string{"app", "framework_bindings_generated.go"} {
+		if _, statErr := os.Stat(filepath.Join(directory, path)); !os.IsNotExist(statErr) {
+			t.Errorf("native feature wrote web file %s: %v", path, statErr)
+		}
+	}
+
+	_, err = ScaffoldFeature(context.Background(), FeatureConfig{Dir: directory, Name: "RecipeBox"})
+	if err == nil || !strings.Contains(err.Error(), "refuse to overwrite") {
+		t.Fatalf("duplicate feature error = %v", err)
+	}
+}
+
 func featureFixture(t *testing.T) string {
 	t.Helper()
 	directory := generatorFixture(t)

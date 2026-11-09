@@ -18,7 +18,9 @@ type FeatureConfig struct {
 
 // FeatureResult reports hand-written feature files and regenerated framework files.
 type FeatureResult struct {
-	Files     []string
+	Files []string
+	// Native is set for a native project, which has no framework adapters to regenerate.
+	Native    bool
 	Generated GenerateResult
 }
 
@@ -27,6 +29,9 @@ type featureData struct {
 	Snake      string
 	ModulePath string
 	Table      string
+	// Var and Title are used by native features only.
+	Var   string
+	Title string
 }
 
 // ScaffoldFeature creates one complete feature skeleton and then regenerates adapters.
@@ -46,7 +51,15 @@ func ScaffoldFeature(ctx context.Context, config FeatureConfig) (_ FeatureResult
 	if err != nil {
 		return FeatureResult{}, err
 	}
-	files, err := renderFeatureFiles(directory, featureData{
+	native, err := isNativeProject(directory)
+	if err != nil {
+		return FeatureResult{}, err
+	}
+	render := renderFeatureFiles
+	if native {
+		render = renderNativeFeatureFiles
+	}
+	files, err := render(directory, featureData{
 		Name:       name.Go,
 		Snake:      name.Snake,
 		ModulePath: modulePath,
@@ -83,6 +96,9 @@ func ScaffoldFeature(ctx context.Context, config FeatureConfig) (_ FeatureResult
 		created = append(created, file.path)
 	}
 
+	if native {
+		return FeatureResult{Files: created, Native: true}, nil
+	}
 	generated, err := Generate(ctx, GenerateConfig{Dir: directory})
 	if err != nil {
 		return FeatureResult{}, fmt.Errorf("generate feature adapters: %w", err)

@@ -40,6 +40,10 @@ framework generate --check
 
 Method-body-only edits do not need `framework generate`.
 
+In a native project (one with `mygo.json`) the same command writes
+`bookmark.go`, `bookmark_test.go` and a migration instead, and there is nothing
+to regenerate; see [Adding a feature](native.md#adding-a-feature).
+
 ## Save a typed setting
 
 Define keys once and register them with one `settings.Values` instance. The

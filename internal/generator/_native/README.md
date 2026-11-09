@@ -72,6 +72,8 @@ release location); then the app checks once at launch and offers **Install
 update** when a newer version exists. Keep the private signing key out of the
 repository.
 
+`framework make feature NAME` adds a native view, store, migration and test.
+
 Extend the retained screen state and compose Onevra components in its view.
-Keep disk and network work outside builders. Framework feature scaffolding and
-web/MCP adapter generation are intended for the web starter.
+Keep disk and network work outside builders. Web/MCP adapter generation is
+intended for the web starter.

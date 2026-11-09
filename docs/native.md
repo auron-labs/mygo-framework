@@ -386,6 +386,25 @@ for tools and observation rules. The included MCP integration test covers
 discovery, inspection, checkbox interaction, screenshots, fixture isolation,
 and shutdown over a real loopback connection.
 
+## Adding a feature
+
+Run `framework make feature Bookmark` in a native project. It writes three
+files and changes nothing else, so there are no adapters to regenerate:
+
+```text
+bookmark.go                                          model, store and view
+bookmark_test.go                                     store and view tests
+database/migrations/<sequence>_create_bookmark_records.sql
+```
+
+`BookmarkStore` (GORM over the shared pool) creates and lists records, and
+`bookmarkView` is a Onevra view with a text box, an **Add** button and the
+record list; the button runs the store call from its click callback, outside
+view construction. The files are the starting point for your own code. Wire the
+view in by creating `newBookmarkStore(db.GORM)`, loading it, and calling
+`bookmarkView.view` from your screen. Existing files are never overwritten. A
+web project (no `mygo.json`) still gets the web feature scaffold.
+
 ## Reusing the packages in a separate application
 
 This repository is source-first and currently declares `module mygo-framework`.
@@ -419,8 +438,9 @@ dev`, `build`, and `doctor` skip web adapter generation and delegate through
 `go tool mygo`. Web projects retain generation and `bun run mygo` delegation.
 
 The native starter intentionally uses direct Go calls and typed settings.
-`framework make feature` and framework web/MCP adapter generation target the
-web starter; they are not part of the native starter workflow.
+Framework web/MCP adapter generation targets the web starter. `framework make
+feature NAME` detects a native project by its `mygo.json` and writes a native
+feature instead; see [Adding a feature](#adding-a-feature).
 
 Native dependencies still need their target-platform review. In particular,
 MyGo's packager builds with cgo disabled; an application using a cgo-backed
