@@ -36,9 +36,12 @@ const (
 type screen struct {
 	prefs     preferences
 	saveError string
-	// jobs runs the sample import; work is the job it starts.
+	// jobs runs the sample import; work builds the job for a folder.
 	jobs *jobs.Manager
-	work jobs.Func
+	work func(folder string) jobs.Func
+	// win is set once the window exists; the folder picker reports through it.
+	win           *mygo.Window
+	importMessage string
 	// themeChanged applies the selected appearance to the running application.
 	themeChanged func()
 }
@@ -149,11 +152,12 @@ func run(dataDir string) (err error) {
 	s.themeChanged()
 	mygo.App.WhenReady(func() {
 		shell := plain.NewShell(plain.ShellOptions{
-			Title: appName, Width: 640, Height: 520, MinWidth: 360, MinHeight: 480,
+			Title: appName, Width: 640, Height: 640, MinWidth: 360, MinHeight: 560,
 			StateKey: "main", Theme: theme.Onevra, Content: s.view,
 			Hidden: true,
 		})
 		win := shell.Window()
+		s.win = win
 		// Invalidate is safe from the job goroutine; the view reads the job status itself.
 		jobManager.Subscribe(func(jobs.Status) { win.Invalidate() })
 		// MyGo also calls OnClose during application quit, before destroying the window.

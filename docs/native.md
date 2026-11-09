@@ -100,9 +100,50 @@ err = manager.Shutdown(shutdownCtx)
   the event loop stops and before the database closes. Jobs must return
   promptly when their context is canceled.
 
-The starter's import flow runs `sampleImport` in `importjob.go`, renders
-`components.Progress` from `Status.Fraction()` and offers **Cancel import**;
-replace the function with real work.
+The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
+renders `components.Progress` from `Status.Fraction()` and offers **Cancel
+import**; replace the function with real work. See
+[Importing a folder](#importing-a-folder) for how the folder is chosen.
+
+## Importing a folder
+
+A native window accepts a folder dragged from Finder, Explorer or a Linux file
+manager. MyGo reports the dropped paths to the element that asks for them:
+
+```go
+zone := ui.Column(c).FillWidth().Padding(16).Border(1, t.Border)
+if zone.FileDragOver() {
+	zone.Border(2, t.Accent) // files are over the zone and it would take them
+}
+if files := zone.DroppedFiles(); len(files) > 0 { // absolute paths, since the last frame
+	startImport(files)
+}
+```
+
+`Element.DroppedFiles` and `Element.FileDragOver` are the whole API; no framework
+helper is needed. A window can also take files anywhere with
+`Window.OnFileDrop`, which gets the files no element took. Drops on Linux
+(`internal/linux/surface_drop.go`) and Windows (`internal/windows/surface_drop.go`,
+an OLE drop target) arrive as file events; on macOS the pasteboard's
+`public.file-url` drag (`internal/darwin/surface_drag.go`) is turned into the
+same event by `windowHandler.SurfaceEvent` in MyGo's `content.go`. Files dropped
+elsewhere in the window are ignored. A drop is a list of files and folders, so
+check `os.Stat(path)` before treating one as a folder.
+
+The starter wires both entry points to the same job and to the persisted last
+import folder (`native.import_folder`, saved when the window closes):
+
+- the drop zone in `importjob.go` takes the first dropped folder and says so
+  when only files were dropped;
+- **Choose folder...** calls `mygo.Dialog.Open(OpenDialogOptions{Directory:
+  true})`. The call blocks until the dialog closes, so it runs in a goroutine
+  and returns its result through `Window.Update`;
+- **Start import** re-imports the remembered folder, or opens the picker when
+  none was chosen.
+
+Only the headless path is tested: `ui.Tester.DropFiles` delivers the same
+events MyGo's backends do. No real drag from a file manager and no real
+`Dialog.Open` was exercised on any platform.
 
 ## Time-series charts
 

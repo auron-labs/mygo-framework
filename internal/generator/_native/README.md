@@ -32,8 +32,10 @@ keeps the window open with a visible error. The database is closed after
 the native event loop stops. The shell remembers window bounds under `main`.
 It opens after its first frame is drawn, with the close handler already installed.
 
-**Start import** runs a sample background job from `importjob.go` with a
-progress bar and a **Cancel import** button. The job service in `jobs/` runs
+Drop a folder on the import area, or choose one with **Choose folder...**, to
+run a sample background job from `importjob.go` with a progress bar and a
+**Cancel import** button. The last folder is remembered; **Start import** runs
+it again. The job service in `jobs/` runs
 one job per name, recovers panics as job errors, and stops running jobs when
 the app quits. Replace `sampleImport` with your own work.
 

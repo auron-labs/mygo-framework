@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"mygo-framework/jobs"
 	"os"
 	"path/filepath"
@@ -15,18 +17,21 @@ func newTester(s *screen) *ui.Tester {
 	if s.jobs == nil {
 		s.jobs = jobs.New(context.Background())
 	}
-	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 520)
+	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 640)
 }
 
 func TestImportJobProgressAndCancel(t *testing.T) {
 	reported := make(chan struct{})
 	s := &screen{
-		jobs: jobs.New(t.Context()),
-		work: func(ctx context.Context, report jobs.Report) error {
-			report(1, 4, "Imported 1 of 4 items")
-			reported <- struct{}{}
-			<-ctx.Done()
-			return ctx.Err()
+		jobs:  jobs.New(t.Context()),
+		prefs: preferences{ImportFolder: t.TempDir()},
+		work: func(string) jobs.Func {
+			return func(ctx context.Context, report jobs.Report) error {
+				report(1, 4, "Imported 1 of 4 items")
+				reported <- struct{}{}
+				<-ctx.Done()
+				return ctx.Err()
+			}
 		},
 	}
 	finished := make(chan jobs.Status, 8)
@@ -58,8 +63,11 @@ func TestImportJobProgressAndCancel(t *testing.T) {
 
 func TestImportJobFailureIsShown(t *testing.T) {
 	s := &screen{
-		jobs: jobs.New(t.Context()),
-		work: func(context.Context, jobs.Report) error { panic("unexpected input") },
+		jobs:  jobs.New(t.Context()),
+		prefs: preferences{ImportFolder: t.TempDir()},
+		work: func(string) jobs.Func {
+			return func(context.Context, jobs.Report) error { panic("unexpected input") }
+		},
 	}
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
@@ -75,6 +83,79 @@ func TestImportJobFailureIsShown(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("Import failed: job panicked: unexpected input") {
 		t.Fatalf("failed view = %q", tt.Texts())
+	}
+}
+
+func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
+	folder := t.TempDir()
+	for _, name := range []string{"a.txt", "b.txt"} {
+		if err := os.WriteFile(filepath.Join(folder, name), []byte(name), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := &screen{jobs: jobs.New(t.Context()), work: func(folder string) jobs.Func {
+		return func(_ context.Context, report jobs.Report) error {
+			entries, err := os.ReadDir(folder)
+			if err != nil {
+				return fmt.Errorf("read folder: %w", err)
+			}
+			report(len(entries), len(entries), "Imported everything")
+			return nil
+		}
+	}}
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		if st.State != jobs.Running {
+			finished <- st
+		}
+	})
+	tt := newTester(s)
+	tt.Frame()
+	zone, ok := tt.Find("Drop a folder here to import it.")
+	if !ok {
+		t.Fatalf("no drop zone in %q", tt.Texts())
+	}
+	dropX, dropY := zone.X+zone.W/2, zone.Y+zone.H/2
+	if !tt.DropFiles(dropX, dropY, filepath.Join(folder, "a.txt")) {
+		t.Fatal("the drop zone did not take the files")
+	}
+	tt.Frame()
+	if !tt.HasText("Drop a folder, not a file.") || s.prefs.ImportFolder != "" {
+		t.Fatalf("file drop view = %q, folder = %q", tt.Texts(), s.prefs.ImportFolder)
+	}
+	if !tt.DropFiles(dropX, dropY, filepath.Join(folder, "a.txt"), folder) {
+		t.Fatal("the drop zone did not take the files")
+	}
+	if st := <-finished; st.State != jobs.Done {
+		t.Fatalf("final = %+v", st)
+	}
+	tt.Frame()
+	if s.prefs.ImportFolder != folder || !tt.HasText("Import finished.") {
+		t.Fatalf("folder = %q, view = %q", s.prefs.ImportFolder, tt.Texts())
+	}
+}
+
+func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
+	folder := t.TempDir()
+	for _, name := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(folder, name), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var messages []string
+	if err := sampleImport(folder)(t.Context(), func(_, _ int, message string) { messages = append(messages, message) }); err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 2 || messages[1] != "Imported b (2 of 2)" {
+		t.Fatalf("messages = %q", messages)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := sampleImport(folder)(ctx, func(int, int, string) {}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled import returned %v", err)
+	}
+	if err := sampleImport(filepath.Join(folder, "missing"))(t.Context(), nil); err == nil {
+		t.Fatal("a missing folder was imported")
 	}
 }
 

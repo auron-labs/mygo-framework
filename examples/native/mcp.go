@@ -11,7 +11,7 @@ import (
 
 func nativeFixture() mygomcp.Fixture {
 	return mygomcp.Fixture{
-		Name: appName, Width: 640, Height: 520,
+		Name: appName, Width: 640, Height: 640,
 		Factory: func() (func(*ui.Context), func(), error) {
 			manager := jobs.New(context.Background())
 			s := &screen{prefs: preferences{Units: unitsMetric, Theme: themeSystem}, jobs: manager, work: sampleImport}

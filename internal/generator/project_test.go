@@ -137,7 +137,7 @@ func TestCreateNativeProject(t *testing.T) {
 		"mygo.json":                     {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
 		"main.go":                       {`"acme-native/internal/database"`, `"acme-native/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
 		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestPreferenceSaveFailure"},
-		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport"},
+		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
 		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
 		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
 		"timechart/decimate.go":         {"func Decimate"},
