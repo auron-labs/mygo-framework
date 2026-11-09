@@ -11,6 +11,7 @@ import (
 	"mygo-framework/app/desktop"
 	appMCP "mygo-framework/app/mcp"
 	"mygo-framework/app/profile"
+	"mygo-framework/errorreport"
 	"os"
 	"strconv"
 	"strings"
@@ -26,10 +27,22 @@ const (
 )
 
 func main() {
+	if err := errorreport.Init(mygo.App.Version()); err != nil {
+		log.Print(err)
+	}
+	if err := runApp(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func runApp() error {
+	defer errorreport.Flush()
+	defer errorreport.RecoverAndRepanic()
 	mygo.App.SetName(profile.Name)
 	applicationRuntime := bootstrap.New()
 	applicationContext, cancelApplication := context.WithCancel(context.Background())
 	bindGenerated(applicationRuntime)
+	mygo.Bind(desktop.NewErrorReporting())
 	quitStage := desktop.NewQuitStage(
 		cancelApplication,
 		applicationRuntime.Shutdown,
@@ -56,8 +69,10 @@ func main() {
 	})
 
 	if err := mygo.App.Run(); err != nil {
-		log.Fatal(err)
+		errorreport.Capture(err, "app.run", "runtime")
+		return fmt.Errorf("run application: %w", err)
 	}
+	return nil
 }
 
 func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) {
@@ -156,6 +171,7 @@ func writeMCPConnectionDetails(writer io.Writer, details appMCP.ConnectionDetail
 }
 
 func publishStartupFailure(applicationRuntime *bootstrap.Bootstrap, cause error) {
+	errorreport.Capture(cause, "runtime.start", "runtime")
 	if err := applicationRuntime.Readiness().Fail(cause); err != nil {
 		log.Print("runtime startup failure could not be published")
 	}

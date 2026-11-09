@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"mygo-framework/database/migrations"
+	"mygo-framework/errorreport"
 	"mygo-framework/internal/database"
 	"mygo-framework/jobs"
 	"mygo-framework/locales"
@@ -109,6 +110,17 @@ func openPreferences(ctx context.Context, dir string) (*database.Database, *sett
 }
 
 func main() {
+	if err := errorreport.Init(mygo.App.Version()); err != nil {
+		log.Print(err)
+	}
+	if err := start(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func start() error {
+	defer errorreport.Flush()
+	defer errorreport.RecoverAndRepanic()
 	mcpAddress := flag.String("mcp", "", "Serve an isolated headless UI over MCP at a loopback IP:port instead of opening a window")
 	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to a profile under the user configuration directory")
 	flag.Parse()
@@ -117,13 +129,15 @@ func main() {
 		err := mygomcp.Run(ctx, *mcpAddress, []mygomcp.Fixture{nativeFixture()})
 		stop()
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("serve MCP: %w", err)
 		}
-		return
+		return nil
 	}
-	if err := run(*dataDir); err != nil {
-		log.Fatal(err)
+	err := run(*dataDir)
+	if err != nil {
+		errorreport.Capture(err, "run", "runtime")
 	}
+	return err
 }
 
 func run(dataDir string) (err error) {
@@ -169,6 +183,7 @@ func run(dataDir string) (err error) {
 			if err := s.save(values); err != nil {
 				event.PreventDefault()
 				log.Print(err)
+				errorreport.Capture(err, "preferences.save", "ui")
 				win.Invalidate()
 			}
 		})

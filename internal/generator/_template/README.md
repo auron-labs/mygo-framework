@@ -36,6 +36,12 @@ MyGo generation step. Method-body-only edits use MyGo's normal rebuild flow.
 Use `framework generate --check` in CI. Do not edit files carrying the standard
 generated-code header.
 
+## Report errors
+
+Set `SENTRY_DSN` in the environment the app is launched from to send unexpected
+errors and panics to Sentry, including uncaught frontend errors (the page reads the DSN from the Go process). Without it nothing is initialised or sent. Only
+errors are reported, and the home directory is replaced with `~` in error text.
+
 ## Maintain the database offline
 
 Close the desktop app before inspecting or applying migrations:

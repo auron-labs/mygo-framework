@@ -71,6 +71,12 @@ verification status, testing, and using framework packages in another
 application. In a native project `framework make feature NAME` writes a native
 view, store, migration and test instead.
 
+## Report errors
+
+Set `SENTRY_DSN` to send unexpected Go errors, panics and (in the web starter)
+uncaught frontend errors to Sentry. With no DSN nothing is initialised or sent.
+See [Reporting errors](docs/native.md#reporting-errors).
+
 ## Add the first feature
 
 From the generated project root, create a complete vertical slice:

@@ -44,6 +44,21 @@ In a native project (one with `mygo.json`) the same command writes
 `bookmark.go`, `bookmark_test.go` and a migration instead, and there is nothing
 to regenerate; see [Adding a feature](native.md#adding-a-feature).
 
+## Report errors to Sentry
+
+Set `SENTRY_DSN` in the environment the app is launched from:
+
+```sh
+SENTRY_DSN=https://<key>@<host>/<project> framework dev
+```
+
+Without it the Go and browser SDKs stay uninitialised and send nothing. The Go
+side initialises in `main` with `errorreport.Init`; `logging.ReportUnexpected`,
+failed and panicked `jobs` and startup failures report through
+`errorreport.Capture`. The page asks the bound `ErrorReporting.dsn()` service
+for the DSN at startup, so no DSN is compiled into the frontend. Call
+`errorreport.Flush()` before any new exit path.
+
 ## Save a typed setting
 
 Define keys once and register them with one `settings.Values` instance. The

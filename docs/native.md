@@ -358,6 +358,24 @@ macOS and Windows file systems. Switching profiles means closing the current
 profile database and opening another; services holding the old handle must be
 rebuilt.
 
+## Reporting errors
+
+The Go side reports unexpected errors and panics to Sentry when `SENTRY_DSN` is
+set in the environment the app is launched from. With no DSN the SDK is not
+initialised and nothing is sent. Only errors are reported: no tracing, profiling,
+session replay or breadcrumbs. `mygo-framework/errorreport` wraps
+`sentry-go` and is shared with the web starter.
+
+```sh
+SENTRY_DSN=https://<key>@<host>/<project> go run .
+```
+
+Reported: errors returned from `run` (startup failures), failed and panicked
+background jobs (`jobs.Manager`), a failed preference save when closing, and a
+panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
+before the process exits, and the home directory is replaced with `~` in error
+text. Logging is unchanged.
+
 ## Platform status
 
 What has actually been run, as of 9 November 2026. "Compiled" means

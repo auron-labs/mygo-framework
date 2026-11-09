@@ -1,6 +1,9 @@
+import { flushErrorReports, startErrorReporting } from "./framework/errorReporting";
 import { createForm, type FormState } from "./framework/form";
 import { runRequest } from "./framework/request";
-import { Notes, events, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
+import { ErrorReporting, Notes, events, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
+
+void startErrorReporting(ErrorReporting.dsn);
 
 const formElement = document.querySelector<HTMLFormElement>("#note-form")!;
 const input = document.querySelector<HTMLInputElement>("#note-body")!;
@@ -122,6 +125,7 @@ input.addEventListener("input", () => {
 window.addEventListener("pagehide", () => {
   noteForm.dispose();
   stopNoteChanges();
+  void flushErrorReports();
 }, { once: true });
 
 showStarting();

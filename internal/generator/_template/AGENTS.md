@@ -33,6 +33,10 @@
 
 ## Preserve trust boundaries
 
+- Errors reach Sentry only through `errorreport` and only when `SENTRY_DSN` is
+  set. Report at boundaries (`logging.ReportUnexpected`, jobs, startup); call
+  `errorreport.Flush()` before any new exit path. Do not add tracing or replay.
+
 - Return safe application problems to UI and MCP callers. Log unexpected causes
   once without request bodies, authorization values, secrets, or database paths.
 - Store secrets only through the OS credential adapter. Do not add a plaintext

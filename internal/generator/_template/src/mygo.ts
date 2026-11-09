@@ -64,6 +64,17 @@ export const Notes = {
   },
 } as const;
 
+/** ErrorReporting tells pages where to report their errors. */
+export const ErrorReporting = {
+  /**
+   * DSN returns the DSN the application reports errors to, or "" when error
+   * reporting is off.
+   */
+  dsn(): Promise<string> {
+    return call("ErrorReporting.DSN");
+  },
+} as const;
+
 // ---- Events ----
 
 /** Events sent by the Go side. Subscribe with `events.name.on(listener)`. */

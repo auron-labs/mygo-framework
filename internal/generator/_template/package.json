@@ -13,6 +13,7 @@
     "test:web": "bun test tests/web"
   },
   "dependencies": {
+    "@sentry/browser": "11.11.0",
     "mygo-runtime": "0.8.3"
   },
   "devDependencies": {

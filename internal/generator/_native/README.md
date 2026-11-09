@@ -74,6 +74,9 @@ repository. `profiles/` keeps one SQLite file per named profile.
 
 `framework make feature NAME` adds a native view, store, migration and test.
 
+Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
+nothing is initialised or sent. The home directory is replaced with `~` in error text.
+
 Extend the retained screen state and compose Onevra components in its view.
 Keep disk and network work outside builders. Web/MCP adapter generation is
 intended for the web starter.

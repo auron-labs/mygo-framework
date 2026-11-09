@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mygo-framework/errorreport"
 	"sync"
 )
 
@@ -25,6 +26,8 @@ var (
 	ErrRunning = errors.New("job is already running")
 	// ErrStopped is returned by Start after Shutdown.
 	ErrStopped = errors.New("job manager is stopped")
+
+	errPanicked = errors.New("job panicked")
 )
 
 // Status is a snapshot of a job, delivered to subscribers on every change.
@@ -107,9 +110,13 @@ func (m *Manager) Start(name string, fn Func) error {
 func (m *Manager) run(ctx context.Context, j *job, fn Func) {
 	defer m.wg.Done()
 	defer j.cancel()
-	err := call(ctx, fn, func(done, total int, message string) {
+	err := call(ctx, j.status.Name, fn, func(done, total int, message string) {
 		m.update(j, func(s *Status) { s.Done, s.Total, s.Message = done, total, message })
 	})
+	// call has already reported a panic with its stack.
+	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, errPanicked) {
+		errorreport.Capture(err, "job."+j.status.Name, "jobs")
+	}
 	m.update(j, func(s *Status) {
 		switch {
 		case err == nil:
@@ -122,10 +129,11 @@ func (m *Manager) run(ctx context.Context, j *job, fn Func) {
 	})
 }
 
-func call(ctx context.Context, fn Func, report Report) (err error) {
+func call(ctx context.Context, name string, fn Func, report Report) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("job panicked: %v", r)
+			errorreport.CapturePanic(r, "job."+name, "jobs")
+			err = fmt.Errorf("%w: %v", errPanicked, r)
 		}
 	}()
 	return fn(ctx, report)

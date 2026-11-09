@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"mygo-framework/errorreport"
 )
 
-// ReportUnexpected logs an unexpected failure at the adapter boundary.
+// ReportUnexpected logs an unexpected failure at the adapter boundary and
+// reports it when error reporting is configured.
 func ReportUnexpected(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -27,4 +29,5 @@ func ReportUnexpected(
 	)
 	fields = append(fields, attrs...)
 	logger.LogAttrs(ctx, slog.LevelError, "operation failed", fields...)
+	errorreport.Capture(err, operation, component)
 }
