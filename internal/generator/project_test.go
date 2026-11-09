@@ -139,6 +139,8 @@ func TestCreateNativeProject(t *testing.T) {
 		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestPreferenceSaveFailure"},
 		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport"},
 		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
+		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
+		"timechart/decimate.go":         {"func Decimate"},
 		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},
 		"mcp_test.go":                   {"TestNativeMCP"},
 		"settings/sqlite/sqlite.go":     {`"acme-native/settings"`},

@@ -104,6 +104,72 @@ The starter's import flow runs `sampleImport` in `importjob.go`, renders
 `components.Progress` from `Status.Fraction()` and offers **Cancel import**;
 replace the function with real work.
 
+## Time-series charts
+
+`mygo-framework/timechart` draws continuous time series: a clock-aligned time
+(or plain numeric) x-axis, line, step and min/max band series, point and
+interval event markers, and a hover crosshair with a readout. Wheel or pinch
+zooms around the cursor, dragging pans, and a double click resets; with the
+plot focused, the arrow keys pan, `=` and `-` zoom and Home resets. It builds
+on MyGo's `ui/chart` scales and `Draw` callbacks and depends on nothing else
+in this framework, and it is copied into native projects.
+
+```go
+rng := timechart.NewRange(start, end) // Unix seconds; bounds the zoom and pan
+flow := &timechart.Chart{
+	Range: rng, Label: "Airflow", HideXAxis: true,
+	Series: []timechart.Series{{ID: "flow", Label: "Airflow", Provider: provider}},
+	Events: []timechart.Event{{Start: t0, End: t1, Label: "Apnea"}, {Start: t2, Label: "Arousal"}},
+}
+spo2 := &timechart.Chart{Range: rng, Label: "Oxygen", YMin: 80, YMax: 100, Series: ...} // linked
+// In the view, every frame:
+flow.Build(c)
+spo2.Build(c)
+// When discarding the charts:
+flow.Close()
+```
+
+- **Linking.** Charts built with the same `*Range` zoom, pan and show the
+  crosshair together. Each row's y-axis column has the same width, so stacked
+  plots line up; set `HideXAxis` on all but the last row. `Range.Set`,
+  `ZoomAt`, `Pan` and `Reset` move the range from code, and `Crosshair` reads
+  the shared position. The range never leaves its bounds and never narrows
+  below `Range.MinSpan` (a millionth of the bounds by default).
+- **Data.** A `Provider` receives `(ctx, from, to, pixelWidth)` and returns
+  ascending `Points` decimated for that width. The chart calls it off the UI
+  thread for a window 25% wider than the view on each side, keeps drawing the
+  previous points while it runs, drops answers for a view it has since left,
+  and requests a frame when an answer arrives. It asks again only when the
+  view leaves the fetched window or zooms in far enough to make it coarse.
+  Providers should return when `ctx` is canceled and log their own errors: a
+  failed window leaves the previous points on screen and is not retried until
+  the view moves out of it. `Chart.Loaded` reports when the visible window has
+  arrived, which is useful in tests.
+- **In-memory samples.** `timechart.Decimate(xs, ys, from, to, pixelWidth)`
+  finds the window by binary search and keeps the lowest and highest sample of
+  each pixel column in time order, plus one neighbour past each edge. The
+  result is at most `2*pixelWidth+2` points whatever the zoom, and narrow
+  spikes survive. Use it as the provider for slices; a database-backed
+  provider returns the same shape from a grouped query.
+- **Series kinds.** `Line` joins points, `Step` holds each value until the
+  next, and `Band` fills between the lowest and highest point of each pixel
+  column, so the same decimated points serve any kind. Colors default to theme
+  tokens by series order; set `Series.Color` or `Event.Color` to override.
+- **Axes.** Time ticks are clock-aligned in `Chart.Location` (default local
+  time), from milliseconds to days, with at most one label per 90 DIPs;
+  midnight is labelled with the date. `Numeric` switches the x-axis to plain
+  numbers. The y-axis fits the visible data unless `YMin`/`YMax` fix it;
+  `FormatY` formats its labels and the readout.
+
+`examples/timechart` stacks three linked charts over a synthetic eight-hour,
+25 Hz night (720,000 samples per channel). Run it with
+`go run ./examples/timechart`, or serve it to an MCP client with
+`go run ./examples/timechart -mcp 127.0.0.1:8080`.
+`go test -bench . ./examples/timechart` measures a full frame (build, layout and
+paint on MyGo's CPU renderer, points already fetched) against the 16.6 ms
+budget of 60 Hz, and the provider work done off the UI thread. A headless
+benchmark does not prove frame pacing on a GPU.
+
 ## Inspect native views through MCP
 
 Generated native projects include a headless MCP harness for their real view:
