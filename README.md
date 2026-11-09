@@ -18,7 +18,7 @@ down its listener and storage in dependency order.
 - Git
 - The native libraries required by MyGo on your operating system
 
-The manifests pin MyGo 0.7.4 and the frontend toolchain. Run
+The manifests pin MyGo 0.8.3 and the frontend toolchain. Run
 `framework doctor` inside a generated project to check the local MyGo build
 requirements.
 

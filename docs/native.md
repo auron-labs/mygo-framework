@@ -17,7 +17,7 @@ framework doctor
 framework dev
 ```
 
-The starter pins MyGo v0.7.4 and Onevra v0.2026.17. It includes a Onevra plain
+The starter pins MyGo v0.8.3 and Onevra v0.2026.18. It includes a Onevra plain
 shell, retained Go view state, typed settings, and a bbolt preferences store.
 The shell stays hidden until its first frame is drawn, so it opens with its
 content ready while the preference-saving close handler is already installed.
