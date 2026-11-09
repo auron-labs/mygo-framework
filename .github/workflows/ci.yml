@@ -28,3 +28,29 @@ jobs:
       - run: mise run check:generated
       - run: mise run test
       - run: mise run build:web
+
+  # Hosted macOS and Windows runners have no usable display, so these jobs run
+  # the headless Go tests and compile and test the generated starters; they do
+  # not open a native window.
+  cross-platform:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v4
+        with:
+          cache: true
+          install_args: go
+      - run: mise run test:go
+      - run: mise run build:go
+      - run: mise run test:generated

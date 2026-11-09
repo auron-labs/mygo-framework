@@ -29,6 +29,19 @@ run = "hk fix --all"
 description = "Run Go and frontend tests"
 run = ["go test ./...", "bun run test:web"]
 
+[tasks."test:go"]
+description = "Run the Go tests only"
+run = "go test ./..."
+
+[tasks."build:go"]
+description = "Build every Go package, including the native examples"
+run = "go build ./..."
+
+[tasks."test:generated"]
+description = "Generate the web and native starters, then test and build them"
+env = { MYGO_GENERATOR_ACCEPTANCE = "1" }
+run = "go test -count=1 ./internal/generator"
+
 [tasks.typecheck]
 description = "Check frontend types"
 run = "bun run typecheck"

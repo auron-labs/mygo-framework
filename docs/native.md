@@ -143,7 +143,8 @@ import folder (`native.import_folder`, saved when the window closes):
 
 Only the headless path is tested: `ui.Tester.DropFiles` delivers the same
 events MyGo's backends do. No real drag from a file manager and no real
-`Dialog.Open` was exercised on any platform.
+`Dialog.Open` was exercised on any platform; see the
+[platform status](#platform-status).
 
 ## PDF reports
 
@@ -250,6 +251,36 @@ flow.Close()
 paint on MyGo's CPU renderer, points already fetched) against the 16.6 ms
 budget of 60 Hz, and the provider work done off the UI thread. A headless
 benchmark does not prove frame pacing on a GPU.
+
+## Platform status
+
+What has actually been run, as of 9 November 2026. "Compiled" means
+`CGO_ENABLED=0 go build` and `go test -c` of the generated native starter (and
+`go build ./...` of this repository) succeeded from a Linux amd64 host for that
+target; it says nothing about behaviour. The macOS and Windows runtime cells are
+unverified because no such machine was available to this work.
+
+| Area | Linux amd64 | Linux arm64 | macOS amd64, arm64 | Windows amd64 |
+| --- | --- | --- | --- | --- |
+| Go tests (headless UI, jobs, settings, SQLite, PDF) | Run, passing | Compiled | CI job added, not yet run | CI job added, not yet run |
+| Starter and examples build, `CGO_ENABLED=0` | Run | Compiled | Compiled, CI job added | Compiled, CI job added |
+| Native window opens, draws, closes cleanly | Run under Xvfb with software GL, exits 0 on SIGTERM | Not verified | Not verified | Not verified |
+| SQLite preferences in the real app | Run (the window created `app.db`) | Not verified | Not verified; covered by CI tests once they run | Not verified; covered by CI tests once they run |
+| Dark mode and theme source | Headless selection only | Not verified | Not verified | Not verified |
+| Folder dropped from a file manager | Headless `Tester.DropFiles` only | Not verified | Not verified | Not verified |
+| `Dialog.Open` folder picker | Not verified | Not verified | Not verified | Not verified |
+| `mygo build` package | Run: binary, `.deb`, `.tar.gz`, `PKGBUILD` | Not verified | `.app` bundle not verified | Not verified |
+| DMG, Windows installer | n/a | n/a | Not verified | Not verified |
+| Signing and notarisation | n/a | n/a | Not verified; no signing secrets are configured | Not verified; no signing secrets are configured |
+
+The `cross-platform` job in `.github/workflows/ci.yml` runs `mise run test:go`,
+`mise run build:go` and `mise run test:generated` (a fresh native and web
+project, its tests, build and `mygo vet`) on `macos-latest` and
+`windows-latest`. It has not run yet. Hosted runners have no display session
+the application can be assumed to use, so the job does not open a window,
+dialog or package; those rows stay unverified until someone runs them on a real
+machine. If a window launch becomes possible on a runner, add it as a separate
+step instead of folding it into these.
 
 ## Inspect native views through MCP
 
