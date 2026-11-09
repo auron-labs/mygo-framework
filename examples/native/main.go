@@ -42,6 +42,8 @@ type screen struct {
 	// win is set once the window exists; the folder picker reports through it.
 	win           *mygo.Window
 	importMessage string
+	// update is the newer version found at launch, if the build checks for updates.
+	update *mygo.Update
 	// themeChanged applies the selected appearance to the running application.
 	themeChanged func()
 }
@@ -53,6 +55,7 @@ func (s *screen) view(c *ui.Context) {
 	}
 	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
 		components.Text(c, appName).FontSize(22).Bold()
+		s.updateView(c)
 		components.Checkbox(c, &s.prefs.Compact, "Compact spacing").Label("Toggle compact spacing")
 		ui.RadioGroup(c, func() {
 			components.Radio(c, &s.prefs.Units, unitsMetric, "Metric")
@@ -170,6 +173,7 @@ func run(dataDir string) (err error) {
 		})
 		win.OnClosed(func() { mygo.App.Quit() })
 		win.OnReadyToShow(win.Show)
+		s.checkForUpdates()
 	})
 	if err := mygo.App.Run(); err != nil {
 		return fmt.Errorf("run native app: %w", err)

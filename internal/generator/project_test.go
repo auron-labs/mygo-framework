@@ -148,6 +148,7 @@ func TestCreateNativeProject(t *testing.T) {
 		"pdfreport/report.go":           {"package pdfreport", "func New"},
 		"pdfreport/chart.go":            {"func (r *Report) LineChart"},
 		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
+		"updates.go":                    {"mygo.Updater.Enabled()", "checkForUpdates"},
 		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
 		"timechart/decimate.go":         {"func Decimate"},
 		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},

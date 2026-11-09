@@ -283,6 +283,31 @@ paint on MyGo's CPU renderer, points already fetched) against the 16.6 ms
 budget of 60 Hz, and the provider work done off the UI thread. A headless
 benchmark does not prove frame pacing on a GPU.
 
+## Signed updates
+
+`mygo.Updater` installs signed updates, and it is off until the build is
+configured for it. Add an `updates` section with your public key and a release
+location to `mygo.json`:
+
+```json
+{ "updates": { "publicKey": "<contents of mygo-update.pub>", "github": "you/my-app" } }
+```
+
+Create the key pair with `go tool mygo keygen` and keep `mygo-update.key` out of
+the repository, in your CI secrets; `mygo build` signs the update files with it
+through `MYGO_UPDATER_PRIVATE_KEY`. Without an `updates` section
+`mygo.Updater.Enabled()` is false, so the starter never checks for updates and
+contacts no server, and the screen shows nothing about updates. With one, the
+starter checks once in the background at launch (`updates.go`). A failed check,
+such as being offline, is logged and ignored. When a newer version is found, the
+screen offers **Install update**, shows download progress, and then **Restart to
+finish updating**. MyGo verifies the archive's signature against the public key
+built into the app. Web projects call `mygo.Updater` from their own Go service
+in the same way; the build configuration is `updates` in `mygo.config.ts`.
+
+Updating a package-manager install, an AppImage, or an app directory the user
+cannot write is left to MyGo, which reports it as a failed install.
+
 ## Platform status
 
 What has actually been run, as of 9 November 2026. "Compiled" means

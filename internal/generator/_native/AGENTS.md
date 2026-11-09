@@ -9,5 +9,6 @@
 - Preferences are typed settings in SQLite (`preferences.go`). Add schema changes as new Goose migrations in `database/migrations`, numbered after the existing ones.
 - Run long work with `jobs.Manager` (`importjob.go` shows the pattern): `Start` returns `jobs.ErrRunning` while a job of that name runs, jobs must honor their context, and views read `Status` and redraw from a `Subscribe` callback via `Window.Invalidate`. `run` shuts the manager down before the database closes.
 - This starter uses native views and direct Go calls. Framework web adapter generation and feature scaffolds target the web starter.
+- Updates are opt-in through an `updates` section in `mygo.json`; never commit `mygo-update.key`. Without it `mygo.Updater.Enabled()` is false and nothing is contacted.
 - The import flow takes a folder from a drop zone (`Element.DroppedFiles`/`FileDragOver`) or from `mygo.Dialog.Open{Directory: true}`. `Dialog.Open` blocks, so call it from a goroutine and apply the result with `Window.Update`. Persist the choice as `native.import_folder`.
 - `pdfreport` writes report PDFs (text, tables, line charts, header and footer); native windows cannot print themselves to PDF. Use `components.TableVirtualized` or `components.List` for long data and keep the data in memory or behind a job, since only visible rows are built.

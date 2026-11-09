@@ -62,6 +62,11 @@ keep it local and use test state and services when extending `nativeFixture` in
 or webviews. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-mcp/blob/9f095775017aafe64c22e934d2178fa7b6657209/docs/AGENT_GUIDE.md)
 for tool inputs and observation rules.
 
+Signed updates are off until `mygo.json` has an `updates` section (public key and
+release location); then the app checks once at launch and offers **Install
+update** when a newer version exists. Keep the private signing key out of the
+repository.
+
 Extend the retained screen state and compose Onevra components in its view.
 Keep disk and network work outside builders. Framework feature scaffolding and
 web/MCP adapter generation are intended for the web starter.

@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"mygo-framework/jobs"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"
 )
@@ -287,5 +290,68 @@ func TestOpenPreferencesAcceptsRelativeDataDirectories(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(root, "data", "app.db")); err != nil {
 		t.Fatalf("database is not in the directory relative to the working directory: %v", err)
+	}
+}
+
+// requestCounter stands in for an update server and counts what reaches it.
+type requestCounter struct{ requests atomic.Int32 }
+
+func (r *requestCounter) Manifest(context.Context, bool) (io.ReadCloser, error) {
+	r.requests.Add(1)
+	return nil, errors.New("unexpected update request")
+}
+
+func (r *requestCounter) Open(context.Context, string) (io.ReadCloser, error) {
+	r.requests.Add(1)
+	return nil, errors.New("unexpected update request")
+}
+
+func TestUpdatesAreOffUnlessTheBuildConfiguresThem(t *testing.T) {
+	server := &requestCounter{}
+	mygo.Updater.SetSource(server)
+	t.Cleanup(func() { mygo.Updater.SetSource(nil) })
+	s := &screen{jobs: jobs.New(t.Context())}
+
+	s.checkForUpdates()
+
+	if _, started := s.jobs.Status(updateCheckJob); started {
+		t.Fatal("an update check started in a build without updates")
+	}
+	if server.requests.Load() != 0 {
+		t.Fatal("the update source was contacted")
+	}
+	if _, err := mygo.Updater.Check(t.Context()); !errors.Is(err, mygo.ErrUpdatesDisabled) {
+		t.Fatalf("Check = %v, want ErrUpdatesDisabled", err)
+	}
+	tt := newTester(s)
+	tt.Frame()
+	if tt.HasText("Install update") {
+		t.Fatalf("update controls shown without an update: %q", tt.Texts())
+	}
+}
+
+func TestFoundUpdateOffersInstallAndReportsFailure(t *testing.T) {
+	s := &screen{jobs: jobs.New(t.Context()), update: &mygo.Update{Version: "2.0.0"}}
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		if st.State != jobs.Running {
+			finished <- st
+		}
+	})
+	tt := newTester(s)
+	tt.Frame()
+	if !tt.HasText("Version 2.0.0 is available.") {
+		t.Fatalf("view = %q", tt.Texts())
+	}
+	// An update that was not made by Check has no signed manifest, so it cannot install.
+	if err := tt.Click("Install update"); err != nil {
+		t.Fatal(err)
+	}
+	if st := <-finished; st.State != jobs.Failed {
+		t.Fatalf("final = %+v", st)
+	}
+	tt.Frame()
+	if !tt.HasText("The update could not be installed.") || !tt.HasText("Install update") {
+		t.Fatalf("failed view = %q", tt.Texts())
 	}
 }
