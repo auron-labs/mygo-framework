@@ -199,3 +199,29 @@ func migrationFiles(migrations ...migrationFile) fs.FS {
 	}
 	return files
 }
+
+func TestOpenResolvesRelativePaths(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "work"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "data"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(root, "work"))
+
+	for _, path := range []string{filepath.Join("..", "data", "parent.db"), "child.db", filepath.Join(".", "dot.db")} {
+		db, err := Open(context.Background(), path, migrations.FS())
+		if err != nil {
+			t.Fatalf("open %q: %v", path, err)
+		}
+		if err := db.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, want := range []string{filepath.Join(root, "data", "parent.db"), filepath.Join(root, "work", "child.db"), filepath.Join(root, "work", "dot.db")} {
+		if _, err := os.Stat(want); err != nil {
+			t.Errorf("database not created at the path relative to the working directory: %v", err)
+		}
+	}
+}

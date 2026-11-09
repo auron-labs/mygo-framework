@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"mygo-framework/settings"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -81,5 +82,24 @@ func TestPreferenceSaveFailure(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 360)
 	if !tt.HasText(s.saveError) {
 		t.Fatalf("error is not visible: %v", tt.Texts())
+	}
+}
+
+func TestOpenPreferencesAcceptsRelativeDataDirectories(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "launch"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(root, "launch"))
+
+	db, _, err := openPreferences(t.Context(), filepath.Join("..", "..", filepath.Base(root), "data"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "data", "app.db")); err != nil {
+		t.Fatalf("database is not in the directory relative to the working directory: %v", err)
 	}
 }

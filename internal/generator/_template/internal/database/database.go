@@ -168,7 +168,13 @@ func Migrate(ctx context.Context, path string, migrations fs.FS) (_ int, err err
 }
 
 func openSQL(ctx context.Context, path string, readOnly bool) (*sql.DB, error) {
-	sqlDB, err := driver.Open(dataSourceName(path, readOnly))
+	// A relative path in a file: URI becomes the URI's host ("file://../x" has
+	// the host ".."), so the path must be absolute before it is encoded.
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("resolve SQLite database path %q: %w", path, err)
+	}
+	sqlDB, err := driver.Open(dataSourceName(absolute, readOnly))
 	if err != nil {
 		return nil, fmt.Errorf("open SQLite database %q: %w", path, err)
 	}
