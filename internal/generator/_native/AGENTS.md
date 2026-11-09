@@ -11,5 +11,6 @@
 - This starter uses native views and direct Go calls. Framework web adapter generation targets the web starter; `framework make feature NAME` writes a native view, store, migration and test here.
 - Put user-visible strings in `locales/en.json` and call the generated `locales` functions; run `go tool mygo generate` after editing a catalog. Product names stay untranslated.
 - Updates are opt-in through an `updates` section in `mygo.json`; never commit `mygo-update.key`. Without it `mygo.Updater.Enabled()` is false and nothing is contacted.
+- `profiles` opens one SQLite file per validated profile name; never join a user-supplied name into a path yourself.
 - The import flow takes a folder from a drop zone (`Element.DroppedFiles`/`FileDragOver`) or from `mygo.Dialog.Open{Directory: true}`. `Dialog.Open` blocks, so call it from a goroutine and apply the result with `Window.Update`. Persist the choice as `native.import_folder`.
 - `pdfreport` writes report PDFs (text, tables, line charts, header and footer); native windows cannot print themselves to PDF. Use `components.TableVirtualized` or `components.List` for long data and keep the data in memory or behind a job, since only visible rows are built.

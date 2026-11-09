@@ -70,7 +70,7 @@ User-visible strings live in `locales/en.json`; views call the generated
 Signed updates are off until `mygo.json` has an `updates` section (public key and
 release location); then the app checks once at launch and offers **Install
 update** when a newer version exists. Keep the private signing key out of the
-repository.
+repository. `profiles/` keeps one SQLite file per named profile.
 
 `framework make feature NAME` adds a native view, store, migration and test.
 

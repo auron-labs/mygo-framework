@@ -66,10 +66,10 @@ for headless UI inspection, interaction, and screenshots. Start the harness with
 `http://127.0.0.1:8080/mcp` using Streamable HTTP.
 
 See the [native guide](docs/native.md) for persistence, translations, signed
-updates, folder import, PDF reports, large lists, per-platform verification
-status, testing, and using framework packages in another application. In a
-native project `framework make feature NAME` writes a native view, store,
-migration and test instead.
+updates, profiles, folder import, PDF reports, large lists, per-platform
+verification status, testing, and using framework packages in another
+application. In a native project `framework make feature NAME` writes a native
+view, store, migration and test instead.
 
 ## Add the first feature
 

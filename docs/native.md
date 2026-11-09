@@ -330,6 +330,34 @@ in the same way; the build configuration is `updates` in `mygo.config.ts`.
 Updating a package-manager install, an AppImage, or an app directory the user
 cannot write is left to MyGo, which reports it as a failed install.
 
+## Profiles
+
+`mygo-framework/profiles` gives each named profile its own SQLite file,
+`<data dir>/profiles/<name>.db`, opened with the same `database.Open` and
+migrations as the preferences database. The helper is not wired into the
+starter's window.
+
+```go
+db, err := profiles.Open(ctx, dataDir, prefs.Profile, migrations.FS())
+```
+
+One file per profile was chosen over a `profile_id` column because nothing in
+the schema or any query has to know about profiles: the same migrations and
+queries serve every profile, one profile's rows can never leak into another's
+query, and deleting or exporting a profile is a single-file operation. The
+cost is that a query cannot span profiles; that needs opening each file.
+
+The active profile name stays in the preferences database as the existing
+`native.profile` setting, so the profile choice is shared across profiles.
+`profiles.Validate` (also the setting's validator) accepts 1 to 64 ASCII
+letters, digits, spaces, underscores and hyphens, starting and ending with a
+letter or digit, and rejects names Windows reserves (`CON`, `NUL`, `COM1`...).
+Dots and path separators are not allowed, so a name cannot leave the profiles
+directory. Names that differ only in case share a file, as they would on
+macOS and Windows file systems. Switching profiles means closing the current
+profile database and opening another; services holding the old handle must be
+rebuilt.
+
 ## Platform status
 
 What has actually been run, as of 9 November 2026. "Compiled" means

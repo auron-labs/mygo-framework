@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mygo-framework/profiles"
 	"mygo-framework/settings"
 	"path/filepath"
 	"slices"
@@ -18,7 +19,7 @@ var (
 	timezoneKey     = settings.NewKey("native.timezone", "UTC", validateTimezone)
 	unitsKey        = settings.NewKey("native.units", unitsMetric, oneOf(unitsMetric, unitsImperial))
 	themeKey        = settings.NewKey("native.theme", themeSystem, oneOf(themeSystem, themeLight, themeDark))
-	profileKey      = settings.NewKey("native.profile", "Default", validateProfile)
+	profileKey      = settings.NewKey("native.profile", "Default", profiles.Validate)
 	importFolderKey = settings.NewKey("native.import_folder", "", validateImportFolder)
 )
 
@@ -78,13 +79,6 @@ func validateTimezone(name string) error {
 	}
 	if _, err := time.LoadLocation(name); err != nil {
 		return fmt.Errorf("load time zone: %w", err)
-	}
-	return nil
-}
-
-func validateProfile(name string) error {
-	if name == "" {
-		return errors.New("profile is required")
 	}
 	return nil
 }
