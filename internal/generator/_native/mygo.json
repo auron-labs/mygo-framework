@@ -2,5 +2,6 @@
   "name": "__PROJECT_TITLE__",
   "identifier": "__PROJECT_IDENTIFIER__",
   "version": "0.1.0",
-  "out": "build"
+  "out": "build",
+  "i18n": { "dir": "locales", "source": "en" }
 }

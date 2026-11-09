@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"mygo-framework/jobs"
+	"mygo-framework/locales"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -58,19 +59,19 @@ func (s *screen) updateView(c *ui.Context) {
 	status, started := s.jobs.Status(updateInstallJob)
 	switch {
 	case started && status.State == jobs.Running:
-		components.Text(c, "Installing version "+s.update.Version+"...").Wrap()
-		components.Progress(c, status.Fraction()).Label("Update progress")
+		components.Text(c, locales.UpdateInstalling(s.update.Version)).Wrap()
+		components.Progress(c, status.Fraction()).Label(locales.UpdateProgressLabel())
 	case started && status.State == jobs.Done:
-		components.Text(c, "Version "+s.update.Version+" is installed.").Wrap()
-		if components.Button(c, "Restart to finish updating", components.ButtonPrimary).Clicked() {
+		components.Text(c, locales.UpdateInstalled(s.update.Version)).Wrap()
+		if components.Button(c, locales.UpdateRestart(), components.ButtonPrimary).Clicked() {
 			mygo.App.Relaunch()
 		}
 	default:
 		if started && status.State == jobs.Failed {
-			components.Text(c, "The update could not be installed.").Wrap()
+			components.Text(c, locales.UpdateFailed()).Wrap()
 		}
-		components.Text(c, "Version "+s.update.Version+" is available.").Wrap()
-		if components.Button(c, "Install update", components.ButtonPrimary).Clicked() {
+		components.Text(c, locales.UpdateAvailable(s.update.Version)).Wrap()
+		if components.Button(c, locales.UpdateInstall(), components.ButtonPrimary).Clicked() {
 			s.installUpdate()
 		}
 	}

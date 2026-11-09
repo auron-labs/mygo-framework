@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"mygo-framework/jobs"
+	"mygo-framework/locales"
 	"os"
 	"path/filepath"
 	"time"
@@ -35,7 +36,7 @@ func sampleImport(folder string) jobs.Func {
 				return fmt.Errorf("import canceled: %w", ctx.Err())
 			case <-time.After(importStepWait):
 			}
-			report(i+1, len(entries), fmt.Sprintf("Imported %s (%d of %d)", entry.Name(), i+1, len(entries)))
+			report(i+1, len(entries), locales.ImportProgressMessage(entry.Name(), i+1, len(entries)))
 		}
 		return nil
 	}
@@ -47,31 +48,31 @@ func sampleImport(folder string) jobs.Func {
 func (s *screen) importView(c *ui.Context) {
 	status, started := s.jobs.Status(importJobName)
 	running := started && status.State == jobs.Running
-	components.Text(c, "Import").Bold()
+	components.Text(c, locales.ImportTitle()).Bold()
 	s.dropZone(c, !running)
 	if running {
-		components.Progress(c, status.Fraction()).Label("Import progress")
+		components.Progress(c, status.Fraction()).Label(locales.ImportProgressLabel())
 		components.Text(c, status.Message).Wrap()
-		if components.Button(c, "Cancel import", components.ButtonSecondary).Clicked() {
+		if components.Button(c, locales.ImportCancel(), components.ButtonSecondary).Clicked() {
 			s.jobs.Cancel(importJobName)
 		}
 		return
 	}
 	switch {
 	case started && status.State == jobs.Done:
-		components.Text(c, "Import finished.").Wrap()
+		components.Text(c, locales.ImportFinished()).Wrap()
 	case started && status.State == jobs.Canceled:
-		components.Text(c, "Import canceled.").Wrap()
+		components.Text(c, locales.ImportCanceled()).Wrap()
 	case started && status.State == jobs.Failed:
-		components.Text(c, "Import failed: "+status.Err).Wrap()
+		components.Text(c, locales.ImportFailed(status.Err)).Wrap()
 	}
 	if s.importMessage != "" {
 		components.Text(c, s.importMessage).Wrap()
 	}
-	if components.Button(c, "Choose folder...", components.ButtonSecondary).Clicked() {
+	if components.Button(c, locales.ChooseFolder(), components.ButtonSecondary).Clicked() {
 		s.chooseFolder()
 	}
-	if components.Button(c, "Start import", components.ButtonPrimary).Clicked() {
+	if components.Button(c, locales.StartImport(), components.ButtonPrimary).Clicked() {
 		if s.prefs.ImportFolder == "" {
 			s.chooseFolder()
 		} else {
@@ -85,13 +86,13 @@ func (s *screen) importView(c *ui.Context) {
 func (s *screen) dropZone(c *ui.Context, enabled bool) {
 	t := c.Theme()
 	zone := ui.Column(c).FillWidth().Padding(16).Radius(t.Radius).Border(1, t.Border)
-	label := "Drop a folder here to import it."
+	label := locales.DropFolder()
 	if s.prefs.ImportFolder != "" {
-		label = "Last import folder: " + s.prefs.ImportFolder + "\nDrop a folder here to import another."
+		label = locales.DropFolderLast(s.prefs.ImportFolder)
 	}
 	if enabled && zone.FileDragOver() {
 		zone.Border(2, t.Accent)
-		label = "Release to import this folder."
+		label = locales.DropFolderRelease()
 	}
 	zone.Children(func() { components.Text(c, label).Wrap() })
 	if files := zone.DroppedFiles(); enabled && len(files) > 0 {
@@ -107,7 +108,7 @@ func (s *screen) importDropped(paths []string) {
 			return
 		}
 	}
-	s.importMessage = "Drop a folder, not a file."
+	s.importMessage = locales.DropNotAFolder()
 }
 
 // chooseFolder opens the system folder picker. Dialog.Open blocks until the
@@ -116,14 +117,14 @@ func (s *screen) importDropped(paths []string) {
 func (s *screen) chooseFolder() {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent: s.win, Title: "Choose a folder to import", ButtonLabel: "Import",
+			Parent: s.win, Title: locales.ChooseFolderTitle(), ButtonLabel: locales.ChooseFolderButton(),
 			DefaultPath: s.prefs.ImportFolder, Directory: true,
 		})
 		s.win.Update(func() {
 			switch {
 			case err != nil:
 				log.Printf("choose import folder: %v", err)
-				s.importMessage = "Could not open the folder picker."
+				s.importMessage = locales.FolderPickerFailed()
 			case len(paths) > 0:
 				s.startImport(paths[0])
 			}
@@ -135,7 +136,7 @@ func (s *screen) chooseFolder() {
 func (s *screen) startImport(folder string) {
 	folder, err := filepath.Abs(folder)
 	if err != nil {
-		s.importMessage = "That folder could not be used."
+		s.importMessage = locales.FolderUnusable()
 		log.Printf("resolve import folder: %v", err)
 		return
 	}
@@ -144,7 +145,7 @@ func (s *screen) startImport(folder string) {
 		return
 	}
 	if err != nil {
-		s.importMessage = "The import could not be started."
+		s.importMessage = locales.ImportStartFailed()
 		log.Print(err)
 		return
 	}

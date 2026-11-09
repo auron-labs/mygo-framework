@@ -149,6 +149,8 @@ func TestCreateNativeProject(t *testing.T) {
 		"pdfreport/chart.go":            {"func (r *Report) LineChart"},
 		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
 		"updates.go":                    {"mygo.Updater.Enabled()", "checkForUpdates"},
+		"locales/en.json":               {"compactSpacing"},
+		"locales/catalog_gen.go":        {"func CompactSpacing()"},
 		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
 		"timechart/decimate.go":         {"func Decimate"},
 		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},

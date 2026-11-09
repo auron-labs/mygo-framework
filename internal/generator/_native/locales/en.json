@@ -1,0 +1,95 @@
+{
+  "@@locale": "en",
+  "compactSpacing": "Compact spacing",
+  "compactSpacingLabel": "Toggle compact spacing",
+  "unitsLabel": "Units",
+  "unitsMetric": "Metric",
+  "unitsImperial": "Imperial",
+  "themeLabel": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "preferencesSavedOnClose": "Your preferences are saved when you close the window.",
+  "preferencesSaveFailed": "Could not save your preferences. Please try closing the window again.",
+  "importTitle": "Import",
+  "importProgressLabel": "Import progress",
+  "importProgressMessage": "Imported {name} ({done} of {total})",
+  "@importProgressMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "notes.txt"
+      },
+      "done": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "importCancel": "Cancel import",
+  "importFinished": "Import finished.",
+  "importCanceled": "Import canceled.",
+  "importFailed": "Import failed: {reason}",
+  "@importFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String",
+        "example": "read import folder: permission denied"
+      }
+    }
+  },
+  "importStartFailed": "The import could not be started.",
+  "chooseFolder": "Choose folder...",
+  "startImport": "Start import",
+  "chooseFolderTitle": "Choose a folder to import",
+  "chooseFolderButton": "Import",
+  "folderPickerFailed": "Could not open the folder picker.",
+  "folderUnusable": "That folder could not be used.",
+  "dropFolder": "Drop a folder here to import it.",
+  "dropFolderLast": "Last import folder: {folder}\nDrop a folder here to import another.",
+  "@dropFolderLast": {
+    "placeholders": {
+      "folder": {
+        "type": "String",
+        "example": "/home/me/Documents"
+      }
+    }
+  },
+  "dropFolderRelease": "Release to import this folder.",
+  "dropNotAFolder": "Drop a folder, not a file.",
+  "updateAvailable": "Version {version} is available.",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.2.0"
+      }
+    }
+  },
+  "updateInstall": "Install update",
+  "updateInstalling": "Installing version {version}...",
+  "@updateInstalling": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.2.0"
+      }
+    }
+  },
+  "updateProgressLabel": "Update progress",
+  "updateInstalled": "Version {version} is installed.",
+  "@updateInstalled": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.2.0"
+      }
+    }
+  },
+  "updateRestart": "Restart to finish updating",
+  "updateFailed": "The update could not be installed."
+}

@@ -10,6 +10,7 @@ import (
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
 	"mygo-framework/jobs"
+	"mygo-framework/locales"
 	"mygo-framework/settings"
 	sqlitesettings "mygo-framework/settings/sqlite"
 	"os"
@@ -56,20 +57,20 @@ func (s *screen) view(c *ui.Context) {
 	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
 		components.Text(c, appName).FontSize(22).Bold()
 		s.updateView(c)
-		components.Checkbox(c, &s.prefs.Compact, "Compact spacing").Label("Toggle compact spacing")
+		components.Checkbox(c, &s.prefs.Compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel())
 		ui.RadioGroup(c, func() {
-			components.Radio(c, &s.prefs.Units, unitsMetric, "Metric")
-			components.Radio(c, &s.prefs.Units, unitsImperial, "Imperial")
-		}).Label("Units")
+			components.Radio(c, &s.prefs.Units, unitsMetric, locales.UnitsMetric())
+			components.Radio(c, &s.prefs.Units, unitsImperial, locales.UnitsImperial())
+		}).Label(locales.UnitsLabel())
 		ui.RadioGroup(c, func() {
-			for _, option := range []struct{ value, label string }{{themeSystem, "System"}, {themeLight, "Light"}, {themeDark, "Dark"}} {
+			for _, option := range []struct{ value, label string }{{themeSystem, locales.ThemeSystem()}, {themeLight, locales.ThemeLight()}, {themeDark, locales.ThemeDark()}} {
 				radio := components.Radio(c, &s.prefs.Theme, option.value, option.label)
 				if s.themeChanged != nil {
 					radio.OnChange(s.themeChanged)
 				}
 			}
-		}).Label("Theme")
-		components.Text(c, "Your preferences are saved when you close the window.").Wrap()
+		}).Label(locales.ThemeLabel())
+		components.Text(c, locales.PreferencesSavedOnClose()).Wrap()
 		if s.saveError != "" {
 			components.Text(c, s.saveError).Wrap()
 		}
@@ -79,7 +80,7 @@ func (s *screen) view(c *ui.Context) {
 
 func (s *screen) save(values *settings.Values) error {
 	if err := s.prefs.save(context.Background(), values); err != nil {
-		s.saveError = "Could not save your preferences. Please try closing the window again."
+		s.saveError = locales.PreferencesSaveFailed()
 		return fmt.Errorf("save preferences: %w", err)
 	}
 	s.saveError = ""

@@ -283,6 +283,28 @@ paint on MyGo's CPU renderer, points already fetched) against the 16.6 ms
 budget of 60 Hz, and the provider work done off the UI thread. A headless
 benchmark does not prove frame pacing on a GPU.
 
+## Translations
+
+User-visible strings come from MyGo i18n catalogs, so a language can be added
+without touching the views. `locales/en.json` is the only shipped catalog and
+`mygo.json` enables it (`"i18n": {"dir": "locales", "source": "en"}`).
+`locales/catalog_gen.go` is generated from the catalogs by `go tool mygo
+generate`, and `framework dev` and `framework build` refresh it; commit it so
+`go build` and `go test` work without the CLI.
+
+```go
+components.Checkbox(c, &s.prefs.Compact, locales.CompactSpacing())
+components.Text(c, locales.ImportFailed(status.Err))
+```
+
+Views call the typed function per message, so text follows the language as it
+changes. To add a language, copy `en.json` to `<tag>.json` (for example
+`de.json`), translate the values, and run `go tool mygo generate`; the app
+shows the catalog language that best matches the user's system languages. The
+starter has no language picker. The application name and other product names
+are not translated, and `framework make feature` writes plain English strings
+that you move into the catalog when the feature is stable.
+
 ## Signed updates
 
 `mygo.Updater` installs signed updates, and it is off until the build is
