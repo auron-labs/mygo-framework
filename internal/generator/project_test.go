@@ -133,17 +133,19 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                  {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
-		"mygo.json":               {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
-		"main.go":                 {`"acme-native/settings"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault"},
-		"main_test.go":            {"TestNativePreferenceControl", "TestPreferenceSaveAndFailure"},
-		"mcp.go":                  {"nativeFixture", "theme.Apply(c); s.view(c)"},
-		"mcp_test.go":             {"TestNativeMCP"},
-		"settings/bbolt/bbolt.go": {`"acme-native/settings"`},
+		"go.mod":                        {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
+		"mygo.json":                     {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
+		"main.go":                       {`"acme-native/internal/database"`, `"acme-native/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
+		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestPreferenceSaveFailure"},
+		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":                   {"TestNativeMCP"},
+		"settings/sqlite/sqlite.go":     {`"acme-native/settings"`},
+		"internal/database/database.go": {"package database"},
+		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
 	}
-	for _, path := range []string{"package.json", "bun.lock", "src", "mygo.config.ts", "app", "database", "settings/sqlite", "framework_bindings_generated.go"} {
+	for _, path := range []string{"package.json", "bun.lock", "src", "mygo.config.ts", "app", "settings/bbolt", "database/migrations/00002_create_mygo_framework_settings.sql", "framework_bindings_generated.go"} {
 		if _, err := os.Stat(filepath.Join(result.Path, path)); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("native starter includes %s: %v", path, err)
 		}

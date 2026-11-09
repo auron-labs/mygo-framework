@@ -90,7 +90,8 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 			}
 			if config.Native && root == "_template" {
 				switch relative {
-				case ".gitignore", "settings", "settings/settings.go", "settings/overlay.go", "settings/bbolt", "settings/bbolt/bbolt.go":
+				case ".gitignore", "settings", "settings/settings.go", "settings/overlay.go", "settings/sqlite", "settings/sqlite/sqlite.go",
+					"internal", "internal/database", "internal/database/database.go", "database", "database/migrations", "database/migrations/migrations.go":
 				default:
 					if entry.IsDir() {
 						return fs.SkipDir
@@ -101,7 +102,7 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 			relative = strings.TrimSuffix(relative, ".tmpl")
 			destination := filepath.Join(target, filepath.FromSlash(relative))
 			if entry.IsDir() {
-				if err := os.Mkdir(destination, 0o750); err != nil {
+				if err := os.MkdirAll(destination, 0o750); err != nil {
 					return fmt.Errorf("create project directory %s: %w", relative, err)
 				}
 				return nil

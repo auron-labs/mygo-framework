@@ -18,7 +18,7 @@ It describes unreleased repository behavior, not a published compatibility promi
 | validator | 10.30.5 |
 | samber/do | 2.1.0 |
 | Lumberjack | 2.2.1 |
-| bbolt (optional) | 1.5.0 |
+| bbolt (optional, web starter) | 1.5.0 |
 
 The MyGo and Onevra pins were updated on 9 November 2026 (MyGo 0.7.4 to 0.8.3, Onevra 0.2026.17 to 0.2026.18). The MyGo packages
 use the same release to keep the generated client and Go runtime compatible.

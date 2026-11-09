@@ -7,8 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"mygo-framework/database/migrations"
+	"mygo-framework/internal/database"
 	"mygo-framework/settings"
-	boltsettings "mygo-framework/settings/bbolt"
+	sqlitesettings "mygo-framework/settings/sqlite"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -57,8 +59,30 @@ func (s *screen) save(values *settings.Values) error {
 	return nil
 }
 
+// openPreferences opens the SQLite database in dir, applies pending
+// migrations, and binds the typed preferences to it.
+func openPreferences(ctx context.Context, dir string) (*database.Database, *settings.Values, error) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, nil, fmt.Errorf("create data directory: %w", err)
+	}
+	db, err := database.Open(ctx, filepath.Join(dir, "app.db"), migrations.FS())
+	if err != nil {
+		return nil, nil, fmt.Errorf("open database: %w", err)
+	}
+	store, err := sqlitesettings.New(db.SQL)
+	if err != nil {
+		return nil, nil, errors.Join(fmt.Errorf("open preferences: %w", err), db.Close())
+	}
+	values, err := settings.New(store, compactKey)
+	if err != nil {
+		return nil, nil, errors.Join(fmt.Errorf("register preferences: %w", err), db.Close())
+	}
+	return db, values, nil
+}
+
 func main() {
 	mcpAddress := flag.String("mcp", "", "Serve an isolated headless UI over MCP at a loopback IP:port instead of opening a window")
+	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to a profile under the user configuration directory")
 	flag.Parse()
 	if *mcpAddress != "" {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -69,30 +93,26 @@ func main() {
 		}
 		return
 	}
-	if err := run(); err != nil {
+	if err := run(*dataDir); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run() (err error) {
-	dir, err := os.UserConfigDir()
+func run(dataDir string) (err error) {
+	if dataDir == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return fmt.Errorf("locate data directory: %w", err)
+		}
+		dataDir = filepath.Join(configDir, profileName)
+	}
+	ctx := context.Background()
+	db, values, err := openPreferences(ctx, dataDir)
 	if err != nil {
-		return fmt.Errorf("locate preferences: %w", err)
+		return err
 	}
-	dir = filepath.Join(dir, profileName)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create preferences directory: %w", err)
-	}
-	store, err := boltsettings.Open(filepath.Join(dir, "preferences.db"))
-	if err != nil {
-		return fmt.Errorf("open preferences: %w", err)
-	}
-	defer func() { err = errors.Join(err, store.Close()) }()
-	values, err := settings.New(store, compactKey)
-	if err != nil {
-		return fmt.Errorf("register preferences: %w", err)
-	}
-	compact, err := settings.Get(context.Background(), values, compactKey)
+	defer func() { err = errors.Join(err, db.Close()) }()
+	compact, err := settings.Get(ctx, values, compactKey)
 	if err != nil {
 		return fmt.Errorf("load preferences: %w", err)
 	}

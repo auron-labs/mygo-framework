@@ -1,9 +1,9 @@
 # Native Go applications
 
 The framework's packages are usable from MyGo's native `ui.View` as well as
-from a webview. The native example uses typed settings and the owning bbolt
-store, without starting the reference app's SQLite database, MCP server, or
-TypeScript frontend.
+from a webview. The native example stores typed settings in the same SQLite database
+package the web starter uses (WAL, foreign keys, embedded Goose migrations),
+without the reference app's service MCP server or TypeScript frontend.
 
 The native starter includes a pinned `auron-labs/mygo-mcp` dependency.
 
@@ -18,15 +18,18 @@ framework dev
 ```
 
 The starter pins MyGo v0.8.3 and Onevra v0.2026.18. It includes a Onevra plain
-shell, retained Go view state, typed settings, and a bbolt preferences store.
+shell, retained Go view state, and a typed preference in SQLite.
 The shell stays hidden until its first frame is drawn, so it opens with its
 content ready while the preference-saving close handler is already installed.
 `framework build` packages it through the pinned `go tool mygo`; no Bun or
 TypeScript frontend is required. `go run .` also runs the application.
 
-Toggle **Compact spacing**, close the window, and reopen it. The preference
-is stored in `my-native-app/preferences.db` under `os.UserConfigDir()`.
-The bbolt store holds a process lock and is closed after the event loop stops.
+Toggle **Compact spacing**, close the window, and reopen it. The preference is
+stored in `my-native-app/app.db` under
+`os.UserConfigDir()`; pass `-data-dir DIR` to use another directory. Startup
+opens the database and applies pending migrations from `database/migrations`
+before the window is created. Add your own migrations there, numbered after
+`00001`. The database is closed after the event loop stops.
 UI builders only change retained Go state. The close handler saves preferences
 before allowing the window to close, including during application quit. If a
 save fails, it keeps the window open and displays an error so the user can retry.
@@ -37,8 +40,8 @@ CGO_ENABLED=0 go test ./...
 go tool mygo vet .
 ```
 
-The headless tests cover the preference control, persistence, and visible save
-errors. Check resizing, focus, keyboard traversal, and light/dark appearance in
+The headless tests cover the preference control, database creation and
+migration, persistence across restarts, and visible save errors. Check resizing, focus, keyboard traversal, and light/dark appearance in
 the actual window on your target platform.
 
 The same example is available from this checkout:
@@ -90,8 +93,8 @@ go mod edit -replace=mygo-framework=../mygo-framework
 
 The replacement path is relative to the consumer's `go.mod`; adjust it for
 nested `source/` layouts. Pin the framework checkout to a reviewed commit
-for reproducible builds. Import `mygo-framework/settings` and
-`mygo-framework/settings/bbolt` directly, as the example does. Alternatively,
+for reproducible builds. Import `mygo-framework/settings` and a store such as
+`mygo-framework/settings/sqlite` directly. Alternatively,
 copy the source-first packages into the application and change import paths
 as with a generated application.
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"mygo-framework/settings"
-	boltsettings "mygo-framework/settings/bbolt"
 	"path/filepath"
 	"testing"
 
@@ -28,29 +27,52 @@ func TestNativePreferenceControl(t *testing.T) {
 	}
 }
 
-func TestPreferenceSaveAndFailure(t *testing.T) {
-	store, err := boltsettings.Open(filepath.Join(t.TempDir(), "preferences.db"))
+func TestOpenPreferencesMigratesAndPersists(t *testing.T) {
+	ctx := context.Background()
+	dir := filepath.Join(t.TempDir(), "data")
+
+	db, values, err := openPreferences(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var applied int
+	if err := db.SQL.QueryRowContext(ctx, "SELECT COUNT(*) FROM goose_db_version WHERE version_id = 1 AND is_applied").Scan(&applied); err != nil || applied != 1 {
+		t.Fatalf("settings migration applied = %d, %v", applied, err)
+	}
+	if got, err := settings.Get(ctx, values, compactKey); err != nil || got {
+		t.Fatalf("default preference = %v, %v", got, err)
+	}
+	if err := settings.Set(ctx, values, compactKey, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	db, values, err = openPreferences(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
+		if err := db.Close(); err != nil {
 			t.Error(err)
 		}
 	})
-	values, err := settings.New(store, compactKey)
+	if got, err := settings.Get(ctx, values, compactKey); err != nil || !got {
+		t.Fatalf("reloaded preference = %v, %v", got, err)
+	}
+}
+
+func TestPreferenceSaveFailure(t *testing.T) {
+	db, values, err := openPreferences(context.Background(), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := &screen{compact: true}
-	if err := s.save(values); err != nil {
-		t.Fatal(err)
+	if err := s.save(values); err != nil || s.saveError != "" {
+		t.Fatalf("save = %v, error text %q", err, s.saveError)
 	}
-	got, err := settings.Get(context.Background(), values, compactKey)
-	if err != nil || !got {
-		t.Fatalf("saved preference = %v, %v", got, err)
-	}
-	if err := store.Close(); err != nil {
+	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.save(values); err == nil || s.saveError == "" {

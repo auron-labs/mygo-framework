@@ -4,9 +4,9 @@ This matrix maps the requested framework capabilities to the current source and
 direct verification. The status describes this repository on 22 October 2026;
 it is not a claim about an external release.
 
-The generated project template includes the SQLite and bbolt settings stores,
+The generated web project template includes the SQLite and bbolt settings stores,
 memory and MyGo secret adapters, outbound HTTP client, and settings migration.
-The final fresh-project acceptance compiles and exercises those copied packages
+The native starter copies the shared SQLite database package, Goose migrations, and the SQLite settings store; it does not include bbolt. The final fresh-project acceptance compiles and exercises those copied packages
 so their availability does not depend on the framework checkout.
 
 | Capability | Implementation | Direct evidence | Status and limits |
