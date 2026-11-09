@@ -66,8 +66,8 @@ for headless UI inspection, interaction, and screenshots. Start the harness with
 `http://127.0.0.1:8080/mcp` using Streamable HTTP.
 
 See the [native guide](docs/native.md) for persistence, folder import, PDF
-reports, per-platform verification status, testing, and using framework
-packages in another application.
+reports, large lists, per-platform verification status, testing, and using
+framework packages in another application.
 
 ## Add the first feature
 

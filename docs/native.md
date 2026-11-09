@@ -186,6 +186,37 @@ and a line chart. Its test parses the PDF with `ledongthuc/pdf` (test only),
 checks that it has exactly one page and that the table, legend and footer text
 extract. The output was also rendered with `pdftoppm` and inspected.
 
+## Large tables and long lists
+
+Onevra's `components.TableVirtualized` and `components.List` build only the rows
+on screen, so a frame costs the same at 1,000 and 10,000,000 rows.
+`go test -bench . ./examples/tablebench` measures a frame (build, layout and
+MyGo's CPU paint, through `ui.Tester`) of a four-column table and a one-column
+list with a selection, in a 640x480 viewport, on an i7-9700K:
+
+| Rows | Table, steady frame | Table, first frame | Table, one wheel notch | List, steady frame | List, wheel notch |
+| --- | --- | --- | --- | --- | --- |
+| 1,000 | 0.27 ms | 1.9 ms | 10.7 ms | 0.13 ms | 5.3 ms |
+| 100,000 | 0.27 ms | 1.9 ms | 10.7 ms | 0.13 ms | 5.3 ms |
+| 10,000,000 | 0.27 ms | 2.0 ms | 10.8 ms | 0.13 ms | 6.3 ms |
+
+Jumping with `ScrollTo` to the middle costs 1.1 ms (table) and 0.4 ms (list) at
+every size. A wheel notch includes MyGo's scroll glide, which spans several
+frames, so it is the cost of the whole gesture. `TestOnlyVisibleRowsAreBuilt`
+guards the property behind these numbers: at 1k, 10k and 100k rows the builders
+run for a bounded number of rows at the top and after scrolling to the middle.
+
+Limits:
+
+- The cost is in the data, not the widget. Your `cell` and `row` callbacks run
+  during layout and must index into data already in memory; sorting, filtering
+  or querying 100,000 rows belongs in a job, with the view reading the result.
+- Row height is uniform in the benchmark. Rows that grow to their tallest
+  cell are measured as they scroll into view, which was not measured.
+- Numbers are for the CPU renderer on one machine; a GPU frame and a 60 Hz
+  display's pacing are not measured. A table with many columns or heavy cells
+  (images, rich text) costs proportionally more per visible row.
+
 ## Time-series charts
 
 `mygo-framework/timechart` draws continuous time series: a clock-aligned time
