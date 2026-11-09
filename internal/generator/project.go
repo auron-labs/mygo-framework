@@ -91,7 +91,8 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 			if config.Native && root == "_template" {
 				switch relative {
 				case ".gitignore", "settings", "settings/settings.go", "settings/overlay.go", "settings/sqlite", "settings/sqlite/sqlite.go",
-					"internal", "internal/database", "internal/database/database.go", "database", "database/migrations", "database/migrations/migrations.go":
+					"internal", "internal/database", "internal/database/database.go", "database", "database/migrations", "database/migrations/migrations.go",
+					"jobs", "jobs/jobs.go":
 				default:
 					if entry.IsDir() {
 						return fs.SkipDir

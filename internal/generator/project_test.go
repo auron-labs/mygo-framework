@@ -137,6 +137,8 @@ func TestCreateNativeProject(t *testing.T) {
 		"mygo.json":                     {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
 		"main.go":                       {`"acme-native/internal/database"`, `"acme-native/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
 		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestPreferenceSaveFailure"},
+		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport"},
+		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
 		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},
 		"mcp_test.go":                   {"TestNativeMCP"},
 		"settings/sqlite/sqlite.go":     {`"acme-native/settings"`},

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"mygo-framework/jobs"
+
 	mygomcp "github.com/auron-labs/mygo-mcp"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"
@@ -8,10 +11,12 @@ import (
 
 func nativeFixture() mygomcp.Fixture {
 	return mygomcp.Fixture{
-		Name: appName, Width: 640, Height: 420,
+		Name: appName, Width: 640, Height: 520,
 		Factory: func() (func(*ui.Context), func(), error) {
-			s := &screen{prefs: preferences{Units: unitsMetric, Theme: themeSystem}}
-			return func(c *ui.Context) { theme.Apply(c); s.view(c) }, nil, nil
+			manager := jobs.New(context.Background())
+			s := &screen{prefs: preferences{Units: unitsMetric, Theme: themeSystem}, jobs: manager, work: sampleImport}
+			cleanup := func() { _ = manager.Shutdown(context.Background()) }
+			return func(c *ui.Context) { theme.Apply(c); s.view(c) }, cleanup, nil
 		},
 	}
 }

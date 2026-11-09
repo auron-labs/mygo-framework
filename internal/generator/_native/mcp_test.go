@@ -114,7 +114,7 @@ func TestNativeMCP(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if image.MIMEType != "image/png" || decoded.Bounds().Dx() != 640 || decoded.Bounds().Dy() != 420 {
+			if image.MIMEType != "image/png" || decoded.Bounds().Dx() != 640 || decoded.Bounds().Dy() != 520 {
 				t.Fatalf("unexpected screenshot: %s %v", image.MIMEType, decoded.Bounds())
 			}
 			return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"mygo-framework/jobs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,7 +12,70 @@ import (
 )
 
 func newTester(s *screen) *ui.Tester {
-	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 420)
+	if s.jobs == nil {
+		s.jobs = jobs.New(context.Background())
+	}
+	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 520)
+}
+
+func TestImportJobProgressAndCancel(t *testing.T) {
+	reported := make(chan struct{})
+	s := &screen{
+		jobs: jobs.New(t.Context()),
+		work: func(ctx context.Context, report jobs.Report) error {
+			report(1, 4, "Imported 1 of 4 items")
+			reported <- struct{}{}
+			<-ctx.Done()
+			return ctx.Err()
+		},
+	}
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		if st.State != jobs.Running {
+			finished <- st
+		}
+	})
+	tt := newTester(s)
+	if err := tt.Click("Start import"); err != nil {
+		t.Fatal(err)
+	}
+	<-reported
+	tt.Frame()
+	if !tt.HasText("Imported 1 of 4 items") || !tt.HasText("Cancel import") {
+		t.Fatalf("running view = %q", tt.Texts())
+	}
+	if err := tt.Click("Cancel import"); err != nil {
+		t.Fatal(err)
+	}
+	if st := <-finished; st.State != jobs.Canceled {
+		t.Fatalf("final = %+v", st)
+	}
+	tt.Frame()
+	if !tt.HasText("Import canceled.") || !tt.HasText("Start import") {
+		t.Fatalf("canceled view = %q", tt.Texts())
+	}
+}
+
+func TestImportJobFailureIsShown(t *testing.T) {
+	s := &screen{
+		jobs: jobs.New(t.Context()),
+		work: func(context.Context, jobs.Report) error { panic("unexpected input") },
+	}
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		if st.State != jobs.Running {
+			finished <- st
+		}
+	})
+	tt := newTester(s)
+	if err := tt.Click("Start import"); err != nil {
+		t.Fatal(err)
+	}
+	<-finished
+	tt.Frame()
+	if !tt.HasText("Import failed: job panicked: unexpected input") {
+		t.Fatalf("failed view = %q", tt.Texts())
+	}
 }
 
 func TestPreferenceControls(t *testing.T) {

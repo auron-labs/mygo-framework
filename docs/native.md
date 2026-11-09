@@ -58,6 +58,52 @@ go test ./examples/native
 
 Its preference directory is `mygo-framework-native` under `os.UserConfigDir()`.
 
+## Background jobs
+
+`mygo-framework/jobs` runs named, cancellable jobs with progress. It is copied
+into native projects and has no UI dependency, so the web starter can import it
+too.
+
+```go
+manager := jobs.New(ctx) // jobs stop when ctx is canceled
+err := manager.Start("export", func(ctx context.Context, report jobs.Report) error {
+	for i := 1; i <= total; i++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		report(i, total, "Exported "+name(i))
+	}
+	return nil
+})
+manager.Cancel("export")
+status, ok := manager.Status("export")
+off := manager.Subscribe(func(s jobs.Status) { /* every change, including the final one */ })
+err = manager.Shutdown(shutdownCtx)
+```
+
+- Only one job per name runs at a time. Starting a name that is still running
+  returns `jobs.ErrRunning` and leaves the running job untouched; cancel it or
+  wait for it first. A finished job's name can be started again.
+- A job ends as `Done` (returned nil), `Canceled` (returned an error wrapping
+  `context.Canceled`), or `Failed` (any other error, or a panic, which is
+  recovered and reported in `Status.Err`). A job that returns nil after being
+  canceled is `Done`.
+- `Subscribe` callbacks run on the goroutine that changed the status and must
+  not block. The first event for a job is always `Running`, and the last is its
+  terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
+  native view subscribes with a callback: the starter calls `Window.Invalidate`
+  (safe from any goroutine) and reads `Status` while building the view. A web
+  page can forward the same callback to a `mygo.Event` or a bound method's
+  `*mygo.Channel`.
+- `Shutdown` rejects new jobs, cancels running ones, and waits for them within
+  its context. The native starter calls it with a five-second deadline after
+  the event loop stops and before the database closes. Jobs must return
+  promptly when their context is canceled.
+
+The starter's import flow runs `sampleImport` in `importjob.go`, renders
+`components.Progress` from `Status.Fraction()` and offers **Cancel import**;
+replace the function with real work.
+
 ## Inspect native views through MCP
 
 Generated native projects include a headless MCP harness for their real view:

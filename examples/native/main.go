@@ -9,11 +9,13 @@ import (
 	"log"
 	"mygo-framework/database/migrations"
 	"mygo-framework/internal/database"
+	"mygo-framework/jobs"
 	"mygo-framework/settings"
 	sqlitesettings "mygo-framework/settings/sqlite"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"time"
 
 	mygomcp "github.com/auron-labs/mygo-mcp"
 	"github.com/egoist/mygo"
@@ -23,6 +25,9 @@ import (
 	"github.com/oneo-me/onevra/source/theme"
 )
 
+// shutdownTimeout bounds how long quitting waits for background jobs to stop.
+const shutdownTimeout = 5 * time.Second
+
 const (
 	appName     = "Framework Native"
 	profileName = "mygo-framework-native"
@@ -31,6 +36,9 @@ const (
 type screen struct {
 	prefs     preferences
 	saveError string
+	// jobs runs the sample import; work is the job it starts.
+	jobs *jobs.Manager
+	work jobs.Func
 	// themeChanged applies the selected appearance to the running application.
 	themeChanged func()
 }
@@ -59,6 +67,7 @@ func (s *screen) view(c *ui.Context) {
 		if s.saveError != "" {
 			components.Text(c, s.saveError).Wrap()
 		}
+		s.importView(c)
 	})
 }
 
@@ -128,17 +137,25 @@ func run(dataDir string) (err error) {
 	if err != nil {
 		return fmt.Errorf("load preferences: %w", err)
 	}
-	s := &screen{prefs: prefs}
+	jobManager := jobs.New(ctx)
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
+	}()
+	s := &screen{prefs: prefs, jobs: jobManager, work: sampleImport}
 	s.themeChanged = func() { mygo.Theme.SetSource(mygo.ThemeSource(s.prefs.Theme)) }
 	mygo.App.SetName(appName)
 	s.themeChanged()
 	mygo.App.WhenReady(func() {
 		shell := plain.NewShell(plain.ShellOptions{
-			Title: appName, Width: 640, Height: 420, MinWidth: 360, MinHeight: 380,
+			Title: appName, Width: 640, Height: 520, MinWidth: 360, MinHeight: 480,
 			StateKey: "main", Theme: theme.Onevra, Content: s.view,
 			Hidden: true,
 		})
 		win := shell.Window()
+		// Invalidate is safe from the job goroutine; the view reads the job status itself.
+		jobManager.Subscribe(func(jobs.Status) { win.Invalidate() })
 		// MyGo also calls OnClose during application quit, before destroying the window.
 		win.OnClose(func(event *mygo.CloseEvent) {
 			if err := s.save(values); err != nil {
