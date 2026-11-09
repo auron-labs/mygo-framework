@@ -145,6 +145,46 @@ Only the headless path is tested: `ui.Tester.DropFiles` delivers the same
 events MyGo's backends do. No real drag from a file manager and no real
 `Dialog.Open` was exercised on any platform.
 
+## PDF reports
+
+A native `ui.View` cannot be exported to PDF. MyGo's `Page.PrintToPDF` prints a
+web page and returns an error for a window that shows native content
+(`errNoPage` in `window.go`), and `ui` has no PDF or print API; the only
+native capture is a bitmap (`Window.captureContent`, `Tester.Image`).
+
+`mygo-framework/pdfreport` lays out report PDFs directly. It wraps
+[`signintech/gopdf`](https://github.com/signintech/gopdf), is pure Go (builds
+with `CGO_ENABLED=0`), and is copied into native projects only, so the web
+starter does not depend on it. gopdf was chosen over `go-pdf/fpdf`, which is
+archived (last push March 2025, last release September 2023), and over
+`phpdave11/gofpdf`, whose recent commits only bump its importer dependency.
+gopdf is MIT licensed, was last pushed on 31 October 2026, has the smallest dependency
+set (one importer library) and embeds TrueType fonts, so text is selectable
+and extractable. The package embeds the Go fonts from `golang.org/x/image`,
+which cover Latin scripts; embed another font with gopdf directly for other
+scripts.
+
+```go
+r, err := pdfreport.New(pdfreport.Options{Title: "Weekly report", Footer: "Acme"})
+r.Heading("Weekly report", 20)
+r.Paragraph("Text wraps to the page width.")
+r.Table([]pdfreport.Column{{Title: "Night", Width: 2}, {Title: "Hours", Width: 1, Right: true}}, rows)
+r.LineChart(pdfreport.LineChart{Title: "Hours", Series: []pdfreport.Series{{Name: "Hours", Points: points}}})
+data, err := r.Bytes() // write it with os.WriteFile or mygo.Dialog.Save's path
+```
+
+A4 portrait, a header with the title and a footer with the text and page number
+on every page. Tables and paragraphs continue on the next page, and a table
+repeats its header row there; a chart stays whole on one page. Content errors
+(ragged table rows, an empty chart, non-finite values) are reported by `Bytes`.
+Not included: images, cell wrapping inside tables, other page sizes, pie or bar
+charts.
+
+`go run ./examples/report -o report.pdf` writes a one-page report with a table
+and a line chart. Its test parses the PDF with `ledongthuc/pdf` (test only),
+checks that it has exactly one page and that the table, legend and footer text
+extract. The output was also rendered with `pdftoppm` and inspected.
+
 ## Time-series charts
 
 `mygo-framework/timechart` draws continuous time series: a clock-aligned time

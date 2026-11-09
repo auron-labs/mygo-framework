@@ -8,14 +8,17 @@ require (
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/google/jsonschema-go v0.4.3
+	github.com/ledongthuc/pdf v0.0.0-20261020125853-5e46805f718e
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
 	github.com/oneo-me/onevra/source v0.2026.18
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/samber/do/v2 v2.1.0
+	github.com/signintech/gopdf v0.38.4
 	github.com/spf13/cobra v1.10.2
 	go.etcd.io/bbolt v1.5.0
+	golang.org/x/image v0.47.0
 	golang.org/x/tools v0.52.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/gorm v1.31.2
@@ -34,6 +37,8 @@ require (
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/ncruces/go-sqlite3-wasm/v6 v6.3.35304 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
+	github.com/phpdave11/gofpdi v1.0.14-0.20211212211723-1f10f9844311 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/samber/go-type-to-string v1.8.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
@@ -42,7 +47,6 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/image v0.47.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect

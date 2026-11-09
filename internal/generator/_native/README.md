@@ -39,6 +39,9 @@ it again. The job service in `jobs/` runs
 one job per name, recovers panics as job errors, and stops running jobs when
 the app quits. Replace `sampleImport` with your own work.
 
+`pdfreport/` writes report PDFs with text, tables, simple line charts and a page
+header and footer, since a native window cannot be exported to PDF. It is pure Go.
+
 ## Inspect and interact through MCP
 
 Start the headless UI harness instead of a desktop window:

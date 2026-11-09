@@ -53,6 +53,13 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		assertFileContainsAll(t, result.Path, path, expected...)
 	}
 
+	if _, err := os.Stat(filepath.Join(result.Path, "pdfreport")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("web starter includes the native-only pdfreport package: %v", err)
+	}
+	if goMod, err := os.ReadFile(filepath.Join(result.Path, "go.mod")); err != nil || strings.Contains(string(goMod), "gopdf") {
+		t.Errorf("web starter go.mod depends on the PDF library: %v", err)
+	}
+
 	err = filepath.WalkDir(result.Path, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil || entry.IsDir() {
 			return walkErr
@@ -133,11 +140,13 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                        {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                        {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "github.com/signintech/gopdf v0.38.4", "tool github.com/egoist/mygo/cmd/mygo"},
 		"mygo.json":                     {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
 		"main.go":                       {`"acme-native/internal/database"`, `"acme-native/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
 		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestPreferenceSaveFailure"},
 		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
+		"pdfreport/report.go":           {"package pdfreport", "func New"},
+		"pdfreport/chart.go":            {"func (r *Report) LineChart"},
 		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
 		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
 		"timechart/decimate.go":         {"func Decimate"},
