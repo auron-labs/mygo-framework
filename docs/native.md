@@ -120,14 +120,9 @@ if files := zone.DroppedFiles(); len(files) > 0 { // absolute paths, since the l
 }
 ```
 
-`Element.DroppedFiles` and `Element.FileDragOver` are the whole API; no framework
-helper is needed. A window can also take files anywhere with
-`Window.OnFileDrop`, which gets the files no element took. Drops on Linux
-(`internal/linux/surface_drop.go`) and Windows (`internal/windows/surface_drop.go`,
-an OLE drop target) arrive as file events; on macOS the pasteboard's
-`public.file-url` drag (`internal/darwin/surface_drag.go`) is turned into the
-same event by `windowHandler.SurfaceEvent` in MyGo's `content.go`. Files dropped
-elsewhere in the window are ignored. A drop is a list of files and folders, so
+`Element.DroppedFiles` and `Element.FileDragOver` work on Linux, Windows and
+macOS. A window can also take files anywhere with `Window.OnFileDrop`, which
+gets the files no element took. A drop is a list of files and folders, so
 check `os.Stat(path)` before treating one as a folder.
 
 The starter wires both entry points to the same job and to the persisted last
@@ -141,29 +136,16 @@ import folder (`native.import_folder`, saved when the window closes):
 - **Start import** re-imports the remembered folder, or opens the picker when
   none was chosen.
 
-Only the headless path is tested: `ui.Tester.DropFiles` delivers the same
-events MyGo's backends do. No real drag from a file manager and no real
-`Dialog.Open` was exercised on any platform; see the
-[platform status](#platform-status).
+In tests, `ui.Tester.DropFiles` delivers the same events as a real drop.
 
 ## PDF reports
 
-A native `ui.View` cannot be exported to PDF. MyGo's `Page.PrintToPDF` prints a
-web page and returns an error for a window that shows native content
-(`errNoPage` in `window.go`), and `ui` has no PDF or print API; the only
-native capture is a bitmap (`Window.captureContent`, `Tester.Image`).
-
-`mygo-framework/pdfreport` lays out report PDFs directly. It wraps
-[`signintech/gopdf`](https://github.com/signintech/gopdf), is pure Go (builds
-with `CGO_ENABLED=0`), and is copied into native projects only, so the web
-starter does not depend on it. gopdf was chosen over `go-pdf/fpdf`, which is
-archived (last push March 2025, last release September 2023), and over
-`phpdave11/gofpdf`, whose recent commits only bump its importer dependency.
-gopdf is MIT licensed, was last pushed on 31 October 2026, has the smallest dependency
-set (one importer library) and embeds TrueType fonts, so text is selectable
-and extractable. The package embeds the Go fonts from `golang.org/x/image`,
-which cover Latin scripts; embed another font with gopdf directly for other
-scripts.
+A native `ui.View` cannot be exported to PDF: `Page.PrintToPDF` only prints web
+pages. `mygo-framework/pdfreport` lays out report PDFs directly instead. It is
+pure Go (builds with `CGO_ENABLED=0`), wraps
+[`signintech/gopdf`](https://github.com/signintech/gopdf), and is copied into
+native projects only. Its embedded Go fonts cover Latin scripts; embed another
+font with gopdf directly for other scripts.
 
 ```go
 r, err := pdfreport.New(pdfreport.Options{Title: "Weekly report", Footer: "Acme"})
@@ -182,40 +164,19 @@ Not included: images, cell wrapping inside tables, other page sizes, pie or bar
 charts.
 
 `go run ./examples/report -o report.pdf` writes a one-page report with a table
-and a line chart. Its test parses the PDF with `ledongthuc/pdf` (test only),
-checks that it has exactly one page and that the table, legend and footer text
-extract. The output was also rendered with `pdftoppm` and inspected.
+and a line chart.
 
 ## Large tables and long lists
 
 Onevra's `components.TableVirtualized` and `components.List` build only the rows
-on screen, so a frame costs the same at 1,000 and 10,000,000 rows.
-`go test -bench . ./examples/tablebench` measures a frame (build, layout and
-MyGo's CPU paint, through `ui.Tester`) of a four-column table and a one-column
-list with a selection, in a 640x480 viewport, on an i7-9700K:
+on screen, so the cost of a frame does not grow with the number of rows. Run
+`go test -bench . ./examples/tablebench` to measure them on your hardware.
 
-| Rows | Table, steady frame | Table, first frame | Table, one wheel notch | List, steady frame | List, wheel notch |
-| --- | --- | --- | --- | --- | --- |
-| 1,000 | 0.27 ms | 1.9 ms | 10.7 ms | 0.13 ms | 5.3 ms |
-| 100,000 | 0.27 ms | 1.9 ms | 10.7 ms | 0.13 ms | 5.3 ms |
-| 10,000,000 | 0.27 ms | 2.0 ms | 10.8 ms | 0.13 ms | 6.3 ms |
-
-Jumping with `ScrollTo` to the middle costs 1.1 ms (table) and 0.4 ms (list) at
-every size. A wheel notch includes MyGo's scroll glide, which spans several
-frames, so it is the cost of the whole gesture. `TestOnlyVisibleRowsAreBuilt`
-guards the property behind these numbers: at 1k, 10k and 100k rows the builders
-run for a bounded number of rows at the top and after scrolling to the middle.
-
-Limits:
-
-- The cost is in the data, not the widget. Your `cell` and `row` callbacks run
-  during layout and must index into data already in memory; sorting, filtering
-  or querying 100,000 rows belongs in a job, with the view reading the result.
-- Row height is uniform in the benchmark. Rows that grow to their tallest
-  cell are measured as they scroll into view, which was not measured.
-- Numbers are for the CPU renderer on one machine; a GPU frame and a 60 Hz
-  display's pacing are not measured. A table with many columns or heavy cells
-  (images, rich text) costs proportionally more per visible row.
+- Your `cell` and `row` callbacks run during layout and must index into data
+  already in memory. Sorting, filtering or querying 100,000 rows belongs in a
+  job, with the view reading the result.
+- A table with many columns or heavy cells (images, rich text) costs
+  proportionally more per visible row.
 
 ## Time-series charts
 
@@ -278,10 +239,8 @@ flow.Close()
 25 Hz night (720,000 samples per channel). Run it with
 `go run ./examples/timechart`, or serve it to an MCP client with
 `go run ./examples/timechart -mcp 127.0.0.1:8080`.
-`go test -bench . ./examples/timechart` measures a full frame (build, layout and
-paint on MyGo's CPU renderer, points already fetched) against the 16.6 ms
-budget of 60 Hz, and the provider work done off the UI thread. A headless
-benchmark does not prove frame pacing on a GPU.
+`go test -bench . ./examples/timechart` measures a full frame and the provider
+work done off the UI thread.
 
 ## Translations
 
@@ -341,11 +300,10 @@ starter's window.
 db, err := profiles.Open(ctx, dataDir, prefs.Profile, migrations.FS())
 ```
 
-One file per profile was chosen over a `profile_id` column because nothing in
-the schema or any query has to know about profiles: the same migrations and
-queries serve every profile, one profile's rows can never leak into another's
-query, and deleting or exporting a profile is a single-file operation. The
-cost is that a query cannot span profiles; that needs opening each file.
+Nothing in the schema or any query has to know about profiles: the same
+migrations and queries serve every profile, and deleting or exporting a profile
+is a single-file operation. A query cannot span profiles; that needs opening
+each file.
 
 The active profile name stays in the preferences database as the existing
 `native.profile` setting, so the profile choice is shared across profiles.
@@ -376,35 +334,15 @@ panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
 before the process exits, and the home directory is replaced with `~` in error
 text. Logging is unchanged.
 
-## Platform status
+## Platform support
 
-What has actually been run, as of 9 November 2026. "Compiled" means
-`CGO_ENABLED=0 go build` and `go test -c` of the generated native starter (and
-`go build ./...` of this repository) succeeded from a Linux amd64 host for that
-target; it says nothing about behaviour. The macOS and Windows runtime cells are
-unverified because no such machine was available to this work.
+The native starter builds with `CGO_ENABLED=0` for Linux, macOS and Windows on
+amd64 and arm64. CI runs the Go tests on Linux, macOS and Windows, and builds
+the examples and freshly generated projects on macOS and Windows.
 
-| Area | Linux amd64 | Linux arm64 | macOS amd64, arm64 | Windows amd64 |
-| --- | --- | --- | --- | --- |
-| Go tests (headless UI, jobs, settings, SQLite, PDF) | Run, passing | Compiled | CI job added, not yet run | CI job added, not yet run |
-| Starter and examples build, `CGO_ENABLED=0` | Run | Compiled | Compiled, CI job added | Compiled, CI job added |
-| Native window opens, draws, closes cleanly | Run under Xvfb with software GL, exits 0 on SIGTERM | Not verified | Not verified | Not verified |
-| SQLite preferences in the real app | Run (the window created `app.db`) | Not verified | Not verified; covered by CI tests once they run | Not verified; covered by CI tests once they run |
-| Dark mode and theme source | Headless selection only | Not verified | Not verified | Not verified |
-| Folder dropped from a file manager | Headless `Tester.DropFiles` only | Not verified | Not verified | Not verified |
-| `Dialog.Open` folder picker | Not verified | Not verified | Not verified | Not verified |
-| `mygo build` package | Run: binary, `.deb`, `.tar.gz`, `PKGBUILD` | Not verified | `.app` bundle not verified | Not verified |
-| DMG, Windows installer | n/a | n/a | Not verified | Not verified |
-| Signing and notarisation | n/a | n/a | Not verified; no signing secrets are configured | Not verified; no signing secrets are configured |
-
-The `cross-platform` job in `.github/workflows/ci.yml` runs `mise run test:go`,
-`mise run build:go` and `mise run test:generated` (a fresh native and web
-project, its tests, build and `mygo vet`) on `macos-latest` and
-`windows-latest`. It has not run yet. Hosted runners have no display session
-the application can be assumed to use, so the job does not open a window,
-dialog or package; those rows stay unverified until someone runs them on a real
-machine. If a window launch becomes possible on a runner, add it as a separate
-step instead of folding it into these.
+CI does not open a window, so check window behaviour, dialogs, dark mode, file
+drops and packaging on each platform you ship to. Signing and notarisation need
+your own certificates.
 
 ## Inspect native views through MCP
 

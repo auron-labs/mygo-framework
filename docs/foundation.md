@@ -20,11 +20,8 @@ It describes unreleased repository behavior, not a published compatibility promi
 | Lumberjack | 2.2.1 |
 | bbolt (optional, web starter) | 1.5.0 |
 
-The MyGo and Onevra pins were updated on 9 November 2026 (MyGo 0.7.4 to 0.8.3, Onevra 0.2026.17 to 0.2026.18). The MyGo packages
-use the same release to keep the generated client and Go runtime compatible.
-The upgrade needed no source changes in the starters or reference app. The
-framework's compile, vet, and headless UI tests pass unchanged against both
-releases; new APIs such as Onevra's `Menu` and `FileIcon` are not used.
+The MyGo packages use the same release to keep the generated client and Go
+runtime compatible.
 
 The native example and starter now show their Onevra window from
 `OnReadyToShow`, after the first frame is drawn. The Notes page explicitly
