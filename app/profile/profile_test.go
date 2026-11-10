@@ -2,6 +2,7 @@ package profile
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -37,6 +38,13 @@ func TestResolveUsesNamedPlatformProfile(t *testing.T) {
 
 func TestResolveDoesNotCollapseExplicitWhitespaceToDefaultProfile(t *testing.T) {
 	paths, err := Resolve(" ")
+	if runtime.GOOS == "windows" {
+		// Windows has no directory named " ", so rejecting it is the only way not to collapse it.
+		if err == nil {
+			t.Fatalf("resolved whitespace directory to %q, want an error", paths.DataDirectory)
+		}
+		return
+	}
 	if err != nil {
 		t.Fatalf("resolve whitespace directory: %v", err)
 	}

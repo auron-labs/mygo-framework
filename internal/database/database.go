@@ -227,11 +227,9 @@ func up(ctx context.Context, sqlDB *sql.DB, path string, migrations fs.FS) (int,
 
 func dataSourceName(path string, readOnly bool) string {
 	slashPath := filepath.ToSlash(path)
-	if filepath.IsAbs(path) && !strings.HasPrefix(slashPath, "/") {
-		// Windows drive paths like C:/data need the leading slash of a file:/// URI.
-		slashPath = "/" + slashPath
-	}
-	source := &url.URL{Scheme: "file", Path: slashPath}
+	// A Windows drive path must have no authority: SQLite reads file:///C:/data
+	// as /C:/data, which its Go file layer cannot open, but file:C:/data as C:/data.
+	source := &url.URL{Scheme: "file", Path: slashPath, OmitHost: !strings.HasPrefix(slashPath, "/")}
 	query := url.Values{
 		"_pragma": {
 			fmt.Sprintf("busy_timeout(%d)", busyTimeoutMilliseconds),

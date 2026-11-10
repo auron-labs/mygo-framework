@@ -13,6 +13,19 @@ import (
 	"testing/fstest"
 )
 
+func TestDataSourceNameKeepsPathsIntact(t *testing.T) {
+	t.Parallel()
+
+	for path, want := range map[string]string{
+		"C:/My Data/app.db":   "file:C:/My%20Data/app.db?",
+		"/home/me/my data.db": "file:///home/me/my%20data.db?",
+	} {
+		if got := dataSourceName(path, false); !strings.HasPrefix(got, want) {
+			t.Errorf("dataSourceName(%q) = %q, want prefix %q", path, got, want)
+		}
+	}
+}
+
 func TestOpenMigratesAndPersistsThroughSharedPool(t *testing.T) {
 	t.Parallel()
 
