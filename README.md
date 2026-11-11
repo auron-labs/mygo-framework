@@ -65,9 +65,9 @@ for headless UI inspection, interaction, and screenshots. Start the harness with
 `go run . -mcp 127.0.0.1:8080` and connect an MCP client to
 `http://127.0.0.1:8080/mcp` using Streamable HTTP.
 
-See the [native guide](docs/native.md) for persistence, translations, signed
-updates, profiles, folder import, PDF reports, large lists, platform
-support, testing, and using framework packages in another
+See the [native guide](docs/native.md) for reactive state, persistence,
+translations, signed updates, profiles, folder import, PDF reports, large
+lists, platform support, testing, and using framework packages in another
 application. In a native project `framework make feature NAME` writes a native
 view, store, migration and test instead.
 

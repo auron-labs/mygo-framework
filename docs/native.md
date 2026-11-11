@@ -35,9 +35,10 @@ The typed keys in `preferences.go` cover compact spacing, time zone, units,
 theme, profile name, and last import folder. The window edits compact spacing,
 units, and theme; the theme applies immediately. Time zone, profile name, and
 the import folder are validated and persisted, ready for your own views.
-UI builders only change retained Go state. The close handler saves preferences
-before allowing the window to close, including during application quit. If a
-save fails, it keeps the window open and displays an error so the user can retry.
+Preferences live in a [reactive cell](#reactive-state) and are saved 300 ms
+after the last change. Closing the window, including during application quit,
+first saves anything still pending. If a save fails, the window shows an error
+and stays open so the user can try again.
 
 ```sh
 go test ./...
@@ -45,9 +46,11 @@ CGO_ENABLED=0 go test ./...
 go tool mygo vet .
 ```
 
-The headless tests cover the preference controls, database creation and
-migration, persistence across restarts, validation, and visible save errors. Check resizing, focus, keyboard traversal, and light/dark appearance in
-the actual window on your target platform.
+The headless tests cover the preference controls, theme changes, database
+creation and migration, saving without closing the window, persistence across
+restarts, validation, and visible save errors. Check resizing, focus, keyboard
+traversal, and light/dark appearance in the actual window on your target
+platform.
 
 The same example is available from this checkout:
 
@@ -126,7 +129,7 @@ gets the files no element took. A drop is a list of files and folders, so
 check `os.Stat(path)` before treating one as a folder.
 
 The starter wires both entry points to the same job and to the persisted last
-import folder (`native.import_folder`, saved when the window closes):
+import folder (`native.import_folder`, saved automatically):
 
 - the drop zone in `importjob.go` takes the first dropped folder and says so
   when only files were dropped;
@@ -333,6 +336,88 @@ background jobs (`jobs.Manager`), a failed preference save when closing, and a
 panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
 before the process exits, and the home directory is replaced with `~` in error
 text. Logging is unchanged.
+
+## Reactive state
+
+`mygo-framework/state` holds values that views, background goroutines and
+storage share, and tells subscribers when they change. Both starters include
+it, and the native starter keeps its preferences in a cell. It uses only the
+standard library.
+
+A `Cell` holds one value:
+
+```go
+prefs := state.NewCell(loaded)
+
+p := prefs.Get()
+prefs.Update(func(p *preferences) { p.Compact = true })
+prefs.Set(next)
+stop := prefs.Subscribe(func(p preferences) { log.Print(p.Theme) })
+```
+
+`Update` edits a copy and commits it; `Set` replaces the value. `Subscribe`
+calls back after later changes, not with the current value, and returns a
+function that stops it.
+
+Use a cell for values that something besides the view reads or writes, such as
+preferences, the results of background work, or anything you save. Keep values
+only the view uses, such as a status message or a text draft, in plain fields.
+Treat stored values as immutable and replace a slice or map rather than
+changing it in place. `Update` runs its function while holding the cell's
+lock, so the function must not call the same cell; if it panics, nothing is
+committed.
+
+Read the cell once per build. Bind controls to local copies and commit in
+`OnChange`:
+
+```go
+p := s.prefs.Get()
+compact := p.Compact
+components.Checkbox(c, &compact, "Compact spacing").OnChange(func() {
+	s.prefs.Update(func(p *preferences) { p.Compact = compact })
+})
+```
+
+To redraw the window after any change, subscribe once the window exists and
+stop when it closes. `Invalidate` is safe from any goroutine, and calls before
+the next frame make one frame.
+
+```go
+win.OnClosed(s.prefs.Subscribe(func(preferences) { win.Invalidate() }))
+```
+
+**Threading.** Any goroutine may read or write a cell. Subscribers run on the
+goroutine that wrote, outside the cell's lock, and must not block. The
+callbacks of one cell never run at the same time and never see a value older
+than one they have already seen. Rapid changes can arrive as one call, and a
+write can return before its subscribers run when another goroutine is already
+delivering. A subscriber may write to the cell it listens to. Call MyGo APIs
+that are not documented as safe from other goroutines, such as
+`mygo.Theme.SetSource`, through `mygo.RunOnMain`.
+
+**Derived values.** `state.Select` derives a value from a cell:
+
+```go
+themes := state.Select(prefs, func(p preferences) string { return p.Theme })
+themes.Subscribe(func(name string) { mygo.RunOnMain(func() { /* apply name */ }) })
+```
+
+Its `Get` recomputes only after the cell changes, and its `Subscribe` calls
+back only when the selected value changes, so the starter's theme listener
+ignores the other preferences. `SelectFunc` takes an equality function for
+values that `==` cannot compare. A derived value can be selected from again,
+and needs no cleanup.
+
+**Autosave.** `state.Autosave(prefs, 300*time.Millisecond, save)` calls `save`
+with the latest value once it has stayed unchanged for 300 ms. The value at the
+time of the call counts as saved. Saves run on their own goroutine and never
+overlap; a change during a save causes one more save. A failed save is retried
+on the next change or `Flush`. `Err()` holds the latest failure, or nil after a
+successful save, and can be subscribed to like a cell. `Flush(ctx)` saves now
+and waits; if `ctx` ends first, the save keeps running. `Close(ctx)` saves
+anything pending and stops the saver; if `ctx` ends first, it cancels the save.
+Call it after the event loop stops and before closing the storage that `save`
+writes to.
 
 ## Platform support
 
