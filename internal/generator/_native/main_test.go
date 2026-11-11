@@ -259,10 +259,10 @@ func TestOpenPreferencesMigratesAndPersists(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if defaults != (preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default"}) {
+	if defaults != (preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default", ErrorReports: true}) {
 		t.Fatalf("defaults = %+v", defaults)
 	}
-	want := preferences{Compact: true, Timezone: "Australia/Sydney", Units: unitsImperial, Theme: themeDark, Profile: "Work", ImportFolder: t.TempDir()}
+	want := preferences{Compact: true, Timezone: "Australia/Sydney", Units: unitsImperial, Theme: themeDark, Profile: "Work", ImportFolder: t.TempDir(), ErrorReports: false}
 	if err := want.save(ctx, values); err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +296,7 @@ func TestPreferencesRejectInvalidValues(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	valid := preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default"}
+	valid := preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default", ErrorReports: true}
 	for name, p := range map[string]preferences{
 		"timezone": {Timezone: "Mars/Olympus", Units: valid.Units, Theme: valid.Theme, Profile: valid.Profile},
 		"units":    {Timezone: valid.Timezone, Units: "furlongs", Theme: valid.Theme, Profile: valid.Profile},

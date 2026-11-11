@@ -22,6 +22,8 @@ var (
 	themeKey        = settings.NewKey("native.theme", themeSystem, oneOf(themeSystem, themeLight, themeDark))
 	profileKey      = settings.NewKey("native.profile", "Default", profiles.Validate)
 	importFolderKey = settings.NewKey("native.import_folder", "", validateImportFolder)
+	// errorReportsKey only matters to builds with a Sentry DSN.
+	errorReportsKey = settings.NewKey("native.error_reports", true, nil)
 )
 
 const (
@@ -40,17 +42,19 @@ type preferences struct {
 	Theme        string
 	Profile      string
 	ImportFolder string
+	ErrorReports bool
 }
 
 func loadPreferences(ctx context.Context, values *settings.Values) (preferences, error) {
 	var p preferences
-	var errs [6]error
+	var errs [7]error
 	p.Compact, errs[0] = settings.Get(ctx, values, compactKey)
 	p.Timezone, errs[1] = settings.Get(ctx, values, timezoneKey)
 	p.Units, errs[2] = settings.Get(ctx, values, unitsKey)
 	p.Theme, errs[3] = settings.Get(ctx, values, themeKey)
 	p.Profile, errs[4] = settings.Get(ctx, values, profileKey)
 	p.ImportFolder, errs[5] = settings.Get(ctx, values, importFolderKey)
+	p.ErrorReports, errs[6] = settings.Get(ctx, values, errorReportsKey)
 	return p, errors.Join(errs[:]...)
 }
 
@@ -62,6 +66,7 @@ func (p preferences) save(ctx context.Context, values *settings.Values) error {
 		settings.Set(ctx, values, themeKey, p.Theme),
 		settings.Set(ctx, values, profileKey, p.Profile),
 		settings.Set(ctx, values, importFolderKey, p.ImportFolder),
+		settings.Set(ctx, values, errorReportsKey, p.ErrorReports),
 	)
 }
 

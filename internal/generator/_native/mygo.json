@@ -3,6 +3,6 @@
   "identifier": "__PROJECT_IDENTIFIER__",
   "version": "0.1.0",
   "out": "build",
-  "urlSchemes": ["__PROJECT_SLUG__"],
+  "urlSchemes": ["mygo-framework-native"],
   "i18n": { "dir": "locales", "source": "en" }
 }

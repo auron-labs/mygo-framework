@@ -120,6 +120,7 @@ flow.
 | `go run ./cmd/appctl db up` | Apply pending migrations while the desktop app is closed |
 | `go run ./cmd/appctl db backup FILE` | Write a consistent copy of the database; safe while the app runs |
 | `go run ./cmd/appctl db restore FILE` | Replace the database with a backup while the desktop app is closed |
+| `go run ./cmd/appctl support-bundle FILE` | Write versions, migration status and logs to a zip for a bug report |
 
 MyGo flags pass through `framework dev` and `framework build`. Use each
 command's `--help` output for the pinned MyGo options.

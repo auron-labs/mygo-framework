@@ -20,6 +20,8 @@ func reset(t *testing.T) {
 	t.Helper()
 	t.Cleanup(func() {
 		dsn.Store(nil)
+		disabled.Store(false)
+		buildDSN = ""
 		sentry.CurrentHub().BindClient(nil)
 	})
 }
@@ -102,5 +104,55 @@ func TestInvalidDSNLeavesReportingOff(t *testing.T) {
 	}
 	if DSN() != "" {
 		t.Fatal("DSN is set after a failed Init")
+	}
+}
+
+func TestBuildDSNIsUsedWhenTheEnvironmentHasNone(t *testing.T) {
+	reset(t)
+	t.Setenv(dsnEnvironment, "")
+	buildDSN = "http://public@127.0.0.1:1/7"
+
+	if err := Init("1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+	if DSN() != buildDSN {
+		t.Fatalf("DSN = %q, want the build-time DSN", DSN())
+	}
+
+	t.Setenv(dsnEnvironment, "http://public@127.0.0.1:1/8")
+	if err := Init("1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+	if DSN() != "http://public@127.0.0.1:1/8" {
+		t.Fatalf("DSN = %q, want the environment to override the build-time DSN", DSN())
+	}
+}
+
+func TestDisabledReportingSendsNothing(t *testing.T) {
+	reset(t)
+	events := &collector{}
+	server := httptest.NewServer(events)
+	t.Cleanup(server.Close)
+	t.Setenv(dsnEnvironment, fmt.Sprintf("http://public@%s/42", server.Listener.Addr()))
+	if err := Init("1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+
+	SetEnabled(false)
+	Capture(errors.New("while off"), "op", "component")
+	CapturePanic("while off", "op", "component")
+	Flush()
+	if DSN() != "" || !Configured() {
+		t.Fatalf("DSN = %q, Configured = %v, want no DSN but still configured", DSN(), Configured())
+	}
+	if sent := events.all(); sent != "" {
+		t.Fatalf("a disabled client sent %q", sent)
+	}
+
+	SetEnabled(true)
+	Capture(errors.New("while on"), "op", "component")
+	Flush()
+	if sent := events.all(); !strings.Contains(sent, "while on") || strings.Contains(sent, "while off") {
+		t.Fatalf("after re-enabling, sent = %q", sent)
 	}
 }

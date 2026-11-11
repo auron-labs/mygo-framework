@@ -60,6 +60,12 @@ failed and panicked `jobs` and startup failures report through
 for the DSN at startup, so no DSN is compiled into the frontend. Call
 `errorreport.Flush()` before any new exit path.
 
+A packaged build has no launch environment: compile the DSN in with
+`MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=<dsn>"`.
+`SENTRY_DSN` still overrides it. Call `errorreport.SetEnabled(false)` when the
+user turns reporting off; `errorreport.Configured()` tells a settings screen
+whether there is anything to turn off.
+
 ## Save a typed setting
 
 Define keys once and register them with one `settings.Values` instance. The

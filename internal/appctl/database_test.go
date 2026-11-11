@@ -1,6 +1,7 @@
 package appctl
 
 import (
+	"archive/zip"
 	"bytes"
 	"os"
 	"path/filepath"
@@ -64,6 +65,33 @@ func TestDatabaseBackupAndRestore(t *testing.T) {
 	}
 	if got, _ := filepath.Glob(filepath.Join(directory, "backups", "*.db")); len(got) != 1 {
 		t.Fatalf("restore kept snapshots %v, want one", got)
+	}
+}
+
+func TestSupportBundleIsWrittenOnceAndNeverOverwritten(t *testing.T) {
+	t.Parallel()
+
+	directory := filepath.Join(t.TempDir(), "portable data")
+	bundle := filepath.Join(t.TempDir(), "support.zip")
+	output := execute(t, "--data-directory", directory, "support-bundle", bundle)
+	if !strings.Contains(output, "support bundle: "+bundle) {
+		t.Fatalf("output = %q", output)
+	}
+	archive, err := zip.OpenReader(bundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = archive.Close() }()
+	if len(archive.File) == 0 || archive.File[0].Name != "info.txt" {
+		t.Fatalf("bundle entries = %v", archive.File)
+	}
+
+	command := New("test", migrations.FS())
+	command.SetArgs([]string{"--data-directory", directory, "support-bundle", bundle})
+	command.SetOut(&bytes.Buffer{})
+	command.SetErr(&bytes.Buffer{})
+	if err := command.ExecuteContext(t.Context()); err == nil {
+		t.Fatal("an existing file was overwritten")
 	}
 }
 

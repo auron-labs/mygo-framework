@@ -321,21 +321,54 @@ rebuilt.
 
 ## Reporting errors
 
-The Go side reports unexpected errors and panics to Sentry when `SENTRY_DSN` is
-set in the environment the app is launched from. With no DSN the SDK is not
-initialised and nothing is sent. Only errors are reported: no tracing, profiling,
-session replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
+The Go side reports unexpected errors and panics to Sentry when a DSN is
+configured: `SENTRY_DSN` in the environment the app is launched from, or a DSN
+compiled into a packaged build. With no DSN the SDK is not initialised and
+nothing is sent. Only errors are reported: no tracing, profiling, session
+replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
 `sentry-go` and is shared with the web starter.
 
 ```sh
 SENTRY_DSN=https://<key>@<host>/<project> go run .
 ```
 
+Compile the DSN in with `MYGO_LDFLAGS`; the release workflow does this from a
+`SENTRY_DSN` repository secret. `SENTRY_DSN` still overrides it at run time.
+
+```sh
+MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=https://<key>@<host>/<project>" go tool mygo build
+```
+
+When a DSN is configured, the native starter shows **Send error reports** in the
+window, on by default and saved with the other preferences.
+`errorreport.SetEnabled` is the switch behind it; web applications call it from
+their own settings.
+
 Reported: errors returned from `run` (startup failures), failed and panicked
 background jobs (`jobs.Manager`), a failed preference save when closing, and a
 panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
 before the process exits, and the home directory is replaced with `~` in error
-text. Logging is unchanged.
+text.
+
+## Logs and support bundles
+
+The native starter writes its logs to `logs/app.log` in the data directory,
+rotating at 10 MB with three compressed backups kept for up to 28 days; the
+standard `log` package writes there too. **Help, Save support bundle...** writes
+a zip with the app version, operating system, migration status and those logs,
+with the home directory replaced by `~`, for the user to attach to a bug report.
+The web starter writes the same bundle with `appctl support-bundle FILE`.
+
+## Releases
+
+Each starter includes `.github/workflows/release.yml`. Pushing a `v*` tag builds
+the app for macOS, Windows and Linux and uploads it, with its signed update
+files, to a draft release. Publish the draft and installed apps offer the
+update. The workflow needs `updates.github` in the app's configuration and the
+update signing key in the `MYGO_UPDATER_PRIVATE_KEY` secret, as described in
+[Signed updates](#signed-updates). It builds unsigned installers; MyGo's
+[GitHub Actions guide](https://github.com/egoist/mygo/blob/main/docs/github-actions.md)
+adds macOS and Windows code signing.
 
 ## Reactive state
 

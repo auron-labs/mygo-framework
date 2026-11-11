@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
+	"mygo-framework/database/migrations"
 	"mygo-framework/locales"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/auron-labs/mygo-framework/diagnostics"
 	"github.com/auron-labs/mygo-framework/jobs"
 
 	"github.com/egoist/mygo"
@@ -35,6 +39,11 @@ func (s *screen) menu() *mygo.Menu {
 		}},
 		{Role: mygo.RoleEditMenu},
 		{Role: mygo.RoleWindowMenu},
+		{Label: locales.HelpMenu(), Submenu: []*mygo.MenuItem{
+			{ID: "support-bundle", Label: locales.SaveSupportBundle(), Click: func(*mygo.MenuItem, *mygo.Window) {
+				s.saveSupportBundle()
+			}},
+		}},
 	})
 }
 
@@ -92,4 +101,42 @@ func (s *screen) notifyImportDone(status jobs.Status) {
 			log.Printf("show import notification: %v", err)
 		}
 	}()
+}
+
+// saveSupportBundle asks where to save the support bundle and writes it. The
+// dialog blocks until it closes, so it runs off the UI thread.
+func (s *screen) saveSupportBundle() {
+	go func() {
+		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
+			Parent: s.win, Title: locales.SaveSupportBundleTitle(), DefaultPath: "support-bundle.zip",
+			Filters: []mygo.FileFilter{{Name: "Zip", Extensions: []string{"zip"}}},
+		})
+		if err != nil || path == "" {
+			if err != nil {
+				log.Printf("choose support bundle file: %v", err)
+			}
+			return
+		}
+		if err := writeSupportBundle(path, s.dataDir); err != nil {
+			log.Print(err)
+			mygo.Dialog.Error(appName, locales.SupportBundleFailed())
+		}
+	}()
+}
+
+func writeSupportBundle(path, dataDir string) (err error) {
+	file, err := os.Create(path) // #nosec G304 -- the user chose this file in the save dialog.
+	if err != nil {
+		return fmt.Errorf("create support bundle: %w", err)
+	}
+	defer func() { err = errors.Join(err, file.Close()) }()
+	if err := diagnostics.Write(context.Background(), file, diagnostics.Options{
+		Version:      mygo.App.Version(),
+		LogDirectory: filepath.Join(dataDir, logDirectory),
+		DatabasePath: filepath.Join(dataDir, "app.db"),
+		Migrations:   migrations.FS(),
+	}); err != nil {
+		return fmt.Errorf("write support bundle: %w", err)
+	}
+	return nil
 }

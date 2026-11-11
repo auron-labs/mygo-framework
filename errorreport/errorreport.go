@@ -1,5 +1,7 @@
 // Package errorreport sends unexpected errors and panics to Sentry. Nothing is
-// initialised or sent unless SENTRY_DSN is set in the process environment.
+// initialised or sent unless a DSN is configured: SENTRY_DSN in the process
+// environment, or a DSN compiled in with
+// -ldflags "-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=...".
 package errorreport
 
 import (
@@ -17,14 +19,24 @@ const (
 	flushTimeout   = 2 * time.Second
 )
 
+// buildDSN is set at build time for packaged applications, which have no
+// environment to read the DSN from. SENTRY_DSN overrides it.
+var buildDSN string
+
 // dsn is the DSN the client was initialised with; empty while reporting is off.
 var dsn atomic.Pointer[string]
 
-// Init starts error reporting for release when SENTRY_DSN is set. It does
-// nothing when the variable is empty, and leaves reporting off with an error
-// when the DSN is invalid.
+// disabled is the user's choice to stop sending reports; see SetEnabled.
+var disabled atomic.Bool
+
+// Init starts error reporting for release when a DSN is configured. It does
+// nothing without one, and leaves reporting off with an error when the DSN is
+// invalid.
 func Init(release string) error {
 	value := os.Getenv(dsnEnvironment)
+	if value == "" {
+		value = buildDSN
+	}
 	if value == "" {
 		return nil
 	}
@@ -56,10 +68,19 @@ func redactHomeDirectory(event *sentry.Event, _ *sentry.EventHint) *sentry.Event
 	return event
 }
 
+// SetEnabled lets the user turn reporting off and on. Reports are on by
+// default when a DSN is configured; a disabled client sends nothing, and DSN
+// returns "" so the frontend stops too.
+func SetEnabled(enabled bool) { disabled.Store(!enabled) }
+
+// Configured reports whether a DSN is set, whatever the user's choice, so an
+// application shows the switch only when it has something to switch.
+func Configured() bool { return dsn.Load() != nil }
+
 // DSN returns the DSN errors are reported to, or "" when reporting is off. The
 // frontend reads it through a bound service so its errors reach the same project.
 func DSN() string {
-	if value := dsn.Load(); value != nil {
+	if value := dsn.Load(); value != nil && !disabled.Load() {
 		return *value
 	}
 	return ""

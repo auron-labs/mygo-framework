@@ -28,5 +28,6 @@ func New(version string, migrations fs.FS) *cobra.Command {
 	root.SetVersionTemplate("appctl {{.Version}}\n")
 	root.PersistentFlags().StringVar(&dataDirectory, "data-directory", "", "override the application data directory")
 	root.AddCommand(newDatabaseCommand(&dataDirectory, migrations))
+	root.AddCommand(newSupportCommand(&dataDirectory, version, migrations))
 	return root
 }

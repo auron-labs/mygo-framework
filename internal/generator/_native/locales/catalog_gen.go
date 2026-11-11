@@ -234,6 +234,66 @@ func (msgs Messages) FileMenu() string {
 	return Catalog.Format(msgs.locale, "fileMenu", nil)
 }
 
+// HelpMenu says "Help"
+// in the language the app shows.
+func HelpMenu() string { return In(i18n.Locale()).HelpMenu() }
+
+// HelpMenu says "Help"
+// in the language of msgs.
+func (msgs Messages) HelpMenu() string {
+	return Catalog.Format(msgs.locale, "helpMenu", nil)
+}
+
+// SaveSupportBundle says "Save support bundle..."
+// in the language the app shows.
+func SaveSupportBundle() string { return In(i18n.Locale()).SaveSupportBundle() }
+
+// SaveSupportBundle says "Save support bundle..."
+// in the language of msgs.
+func (msgs Messages) SaveSupportBundle() string {
+	return Catalog.Format(msgs.locale, "saveSupportBundle", nil)
+}
+
+// SaveSupportBundleTitle says "Save support bundle"
+// in the language the app shows.
+func SaveSupportBundleTitle() string { return In(i18n.Locale()).SaveSupportBundleTitle() }
+
+// SaveSupportBundleTitle says "Save support bundle"
+// in the language of msgs.
+func (msgs Messages) SaveSupportBundleTitle() string {
+	return Catalog.Format(msgs.locale, "saveSupportBundleTitle", nil)
+}
+
+// SupportBundleFailed says "Could not save the support bundle."
+// in the language the app shows.
+func SupportBundleFailed() string { return In(i18n.Locale()).SupportBundleFailed() }
+
+// SupportBundleFailed says "Could not save the support bundle."
+// in the language of msgs.
+func (msgs Messages) SupportBundleFailed() string {
+	return Catalog.Format(msgs.locale, "supportBundleFailed", nil)
+}
+
+// ErrorReports says "Send error reports"
+// in the language the app shows.
+func ErrorReports() string { return In(i18n.Locale()).ErrorReports() }
+
+// ErrorReports says "Send error reports"
+// in the language of msgs.
+func (msgs Messages) ErrorReports() string {
+	return Catalog.Format(msgs.locale, "errorReports", nil)
+}
+
+// ErrorReportsLabel says "Toggle sending error reports"
+// in the language the app shows.
+func ErrorReportsLabel() string { return In(i18n.Locale()).ErrorReportsLabel() }
+
+// ErrorReportsLabel says "Toggle sending error reports"
+// in the language of msgs.
+func (msgs Messages) ErrorReportsLabel() string {
+	return Catalog.Format(msgs.locale, "errorReportsLabel", nil)
+}
+
 // ChooseFolder says "Choose folder..."
 // in the language the app shows.
 func ChooseFolder() string { return In(i18n.Locale()).ChooseFolder() }

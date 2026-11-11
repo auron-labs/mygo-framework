@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/auron-labs/mygo-framework/errorreport"
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/locales"
+	"github.com/auron-labs/mygo-framework/logging"
 	"github.com/auron-labs/mygo-framework/settings"
 	sqlitesettings "github.com/auron-labs/mygo-framework/settings/sqlite"
 	"github.com/auron-labs/mygo-framework/state"
@@ -36,6 +38,8 @@ const (
 	saveDelay = 300 * time.Millisecond
 	// saveTimeout bounds how long closing waits for unsaved preferences.
 	saveTimeout = 2 * time.Second
+	// logDirectory is where the rotating logs live, inside the data directory.
+	logDirectory = "logs"
 )
 
 const (
@@ -52,6 +56,8 @@ type screen struct {
 	// win is set once the window exists; the folder picker reports through it.
 	win           *mygo.Window
 	importMessage string
+	// dataDir holds the database and logs, which the support bundle reads.
+	dataDir string
 	// update is the newer version found at launch, if the build checks for updates.
 	update *mygo.Update
 }
@@ -85,6 +91,12 @@ func (s *screen) view(c *ui.Context) {
 				})
 			}
 		}).Label(locales.ThemeLabel())
+		if errorreport.Configured() {
+			reports := p.ErrorReports
+			components.Checkbox(c, &reports, locales.ErrorReports()).Label(locales.ErrorReportsLabel()).OnChange(func() {
+				s.prefs.Update(func(p *preferences) { p.ErrorReports = reports })
+			})
+		}
 		components.Text(c, locales.PreferencesSavedAutomatically()).Wrap()
 		if s.saver.Err().Get() != nil {
 			components.Text(c, locales.PreferencesSaveFailed()).Wrap()
@@ -146,7 +158,7 @@ func openPreferences(ctx context.Context, dir string) (*database.Database, *sett
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("open preferences: %w", err), db.Close())
 	}
-	values, err := settings.New(store, compactKey, timezoneKey, unitsKey, themeKey, profileKey, importFolderKey)
+	values, err := settings.New(store, compactKey, timezoneKey, unitsKey, themeKey, profileKey, importFolderKey, errorReportsKey)
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("register preferences: %w", err), db.Close())
 	}
@@ -198,6 +210,14 @@ func run(dataDir string) (err error) {
 	if useDefaultDir && !mygo.App.RequestSingleInstanceLock() {
 		return nil
 	}
+	logger, closeLogs, err := logging.New(logging.DefaultOptions(mygo.IsDev(), filepath.Join(dataDir, logDirectory)))
+	if err != nil {
+		return fmt.Errorf("open logs: %w", err)
+	}
+	defer func() { err = errors.Join(err, closeLogs.Close()) }()
+	// The standard log package writes through the default logger, so the
+	// existing log calls reach the rotating file.
+	slog.SetDefault(logger)
 	ctx := context.Background()
 	db, values, err := openPreferences(ctx, dataDir)
 	if err != nil {
@@ -221,7 +241,9 @@ func run(dataDir string) (err error) {
 		defer cancel()
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
-	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport}
+	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir}
+	errorreport.SetEnabled(prefs.ErrorReports)
+	defer state.Select(cell, func(p preferences) bool { return p.ErrorReports }).Subscribe(errorreport.SetEnabled)()
 	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })
 	mygo.App.SetName(appName)
 	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))

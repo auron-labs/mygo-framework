@@ -39,6 +39,8 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		"database/migrations/00001_create_notes.sql": {"-- +goose Up", "CREATE TABLE notes"},
 		"database/migrations/00002_create_mygo_framework_settings.sql": {"-- +goose Up", "CREATE TABLE mygo_framework_settings"},
 		"src/framework/form.ts":           {"export const createForm"},
+		".github/workflows/release.yml":   {"bun run build", "buildDSN"},
+		"internal/appctl/support.go":      {"support-bundle"},
 		"src/main.ts":                     {"events.notesChanged.on", "stopNoteChanges"},
 		"AGENTS.md":                       {"framework make feature NAME", "Never hand-edit"},
 		"framework_bindings_generated.go": {generatedHeader, `"acme-notes/app/bootstrap"`},
@@ -146,6 +148,8 @@ func TestCreateNativeProject(t *testing.T) {
 		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
 		"mcp_test.go":            {"TestNativeMCP"},
 		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
+		".github/workflows/release.yml":                                {"go tool mygo build", "buildDSN"},
+		"desktop.go":                                                   {"support-bundle", "diagnostics.Write"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
 	}
