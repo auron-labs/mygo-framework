@@ -206,6 +206,9 @@ func up(ctx context.Context, sqlDB *sql.DB, path string, migrations fs.FS) (int,
 	if err != nil {
 		return 0, fmt.Errorf("create migration provider for %q: %w", path, err)
 	}
+	if err := guardMigrations(ctx, sqlDB, provider, path); err != nil {
+		return 0, err
+	}
 	// Provider.Close would close the borrowed pool; its caller owns the pool.
 	results, err := provider.Up(ctx)
 	if err == nil {

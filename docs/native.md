@@ -28,8 +28,9 @@ Toggle **Compact spacing**, choose units and a theme, close the window, and
 reopen it. The preferences are stored in `my-native-app/app.db` under
 `os.UserConfigDir()`; pass `-data-dir DIR` to use another directory. Startup
 opens the database and applies pending migrations from `database/migrations`
-before the window is created. Add your own migrations there, numbered after
-`00001`. The database is closed after the event loop stops.
+before the window is created. When an existing database has pending
+migrations, the starter first copies it to `backups/` beside it and keeps the
+newest five copies. Add your own migrations there, numbered after `00001`. The database is closed after the event loop stops.
 
 The typed keys in `preferences.go` cover compact spacing, time zone, units,
 theme, profile name, and last import folder. The window edits compact spacing,

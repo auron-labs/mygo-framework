@@ -43,6 +43,30 @@ func TestDatabaseUpAppliesOnlyPendingMigrations(t *testing.T) {
 	}
 }
 
+func TestDatabaseBackupAndRestore(t *testing.T) {
+	t.Parallel()
+
+	directory := filepath.Join(t.TempDir(), "portable data")
+	backup := filepath.Join(t.TempDir(), "export.db")
+	execute(t, "--data-directory", directory, "db", "up")
+
+	output := execute(t, "--data-directory", directory, "db", "backup", backup)
+	if !strings.Contains(output, "backup: "+backup) {
+		t.Fatalf("backup output = %q", output)
+	}
+	if _, err := os.Stat(backup); err != nil {
+		t.Fatal(err)
+	}
+
+	output = execute(t, "--data-directory", directory, "db", "restore", backup)
+	if !strings.Contains(output, "restored: ") {
+		t.Fatalf("restore output = %q", output)
+	}
+	if got, _ := filepath.Glob(filepath.Join(directory, "backups", "*.db")); len(got) != 1 {
+		t.Fatalf("restore kept snapshots %v, want one", got)
+	}
+}
+
 func execute(t *testing.T, arguments ...string) string {
 	t.Helper()
 

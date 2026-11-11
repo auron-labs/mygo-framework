@@ -118,6 +118,8 @@ flow.
 | `framework make migration NAME` | Create the next numbered Goose migration |
 | `go run ./cmd/appctl db status` | Inspect migrations while the desktop app is closed |
 | `go run ./cmd/appctl db up` | Apply pending migrations while the desktop app is closed |
+| `go run ./cmd/appctl db backup FILE` | Write a consistent copy of the database; safe while the app runs |
+| `go run ./cmd/appctl db restore FILE` | Replace the database with a backup while the desktop app is closed |
 
 MyGo flags pass through `framework dev` and `framework build`. Use each
 command's `--help` output for the pinned MyGo options.

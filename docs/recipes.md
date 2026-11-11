@@ -339,6 +339,13 @@ shares the desktop service and database.
   connection, so queries and transactions run one at a time; keep transactions
   short. The connection waits up to 5 seconds for a lock, enforces foreign
   keys, and uses WAL journaling. Startup fails if SQLite cannot enable WAL.
+- **Migrations.** Before pending migrations run on a database that already has
+  data, a copy is written to `backups/` beside it, named with the time and the
+  schema version it holds; the newest five are kept. A database that a newer
+  version of the application has migrated is not opened: startup fails with
+  `database.ErrSchemaNewer` instead of running against tables it does not know.
+  `appctl db backup FILE` exports the data and `appctl db restore FILE` replaces
+  it, keeping a copy of what it replaced in `backups/`.
 - **Logs.** Development builds log to stderr. Packaged builds also write
   `app.log` to `~/Library/Logs/<app>` on macOS and to the `logs` folder of the
   data directory elsewhere. The file rotates at 10 MB and keeps three compressed

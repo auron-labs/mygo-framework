@@ -18,7 +18,7 @@ import (
 func newDatabaseCommand(dataDirectory *string, migrations fs.FS) *cobra.Command {
 	databaseCommand := &cobra.Command{
 		Use:   "db",
-		Short: "Inspect or apply database migrations offline",
+		Short: "Inspect, migrate, back up or restore the database offline",
 		Args:  cobra.NoArgs,
 	}
 	databaseCommand.AddCommand(
@@ -78,6 +78,41 @@ func newDatabaseCommand(dataDirectory *string, migrations fs.FS) *cobra.Command 
 					)
 					if _, err := fmt.Fprintf(command.OutOrStdout(), "database: %s\napplied: %d\n", paths.DatabasePath, applied); err != nil {
 						return fmt.Errorf("write migration result: %w", err)
+					}
+					return nil
+				})
+			},
+		},
+		&cobra.Command{
+			Use:   "backup FILE",
+			Short: "Write a consistent copy of the database to FILE",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(command *cobra.Command, args []string) error {
+				return withOffline(*dataDirectory, func(paths profile.Paths, _ *slog.Logger) error {
+					if err := appdb.Backup(command.Context(), paths.DatabasePath, args[0]); err != nil {
+						return fmt.Errorf("back up database: %w", err)
+					}
+					if _, err := fmt.Fprintf(command.OutOrStdout(), "backup: %s\n", args[0]); err != nil {
+						return fmt.Errorf("write backup result: %w", err)
+					}
+					return nil
+				})
+			},
+		},
+		&cobra.Command{
+			Use:   "restore FILE",
+			Short: "Replace the database with the backup in FILE",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(command *cobra.Command, args []string) error {
+				return withOffline(*dataDirectory, func(paths profile.Paths, _ *slog.Logger) error {
+					if err := os.MkdirAll(paths.DataDirectory, 0o700); err != nil {
+						return fmt.Errorf("create data directory: %w", err)
+					}
+					if err := appdb.Restore(command.Context(), args[0], paths.DatabasePath); err != nil {
+						return fmt.Errorf("restore database: %w", err)
+					}
+					if _, err := fmt.Fprintf(command.OutOrStdout(), "restored: %s\n", paths.DatabasePath); err != nil {
+						return fmt.Errorf("write restore result: %w", err)
 					}
 					return nil
 				})
