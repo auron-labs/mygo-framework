@@ -1,7 +1,7 @@
 # Foundation verification
 
-This page records the tested foundation behind [the implementation plan](../PLAN.md).
-It describes unreleased repository behavior, not a published compatibility promise.
+This page records the tested foundation of the framework. It describes
+repository behavior, not a published compatibility promise.
 
 ## Pinned baseline
 
@@ -112,7 +112,7 @@ the single unexpected-failure record.
 
 ## Desktop adapter
 
-[`app/desktop`](../app/desktop/notes.go) is the only note object bound to MyGo.
+[`app/desktop`](../app/desktop/framework_generated.go) is the only note object bound to MyGo.
 It exports `Create` and `List` and no lifecycle or provider methods. Each call
 waits on runtime readiness with MyGo's request context, resolves the shared
 service only after readiness, and returns a concrete nullable `Data`/`Problem`
@@ -233,7 +233,8 @@ The opt-in MyGo credential-store smoke reached the real Linux backend, which
 reported `errors.ErrUnsupported`: this runner has no session bus or Secret
 Service and cannot autolaunch D-Bus without an X11 display. The test therefore
 skipped without storing a fallback. No real OS keyring round trip is claimed on
-this host; milestone 7 repeats the probe on available platform runners.
+this host. Later probes are listed under
+[recorded platform limitations](capabilities.md#recorded-platform-limitations).
 
 ## Frontend request normalization
 
@@ -381,7 +382,7 @@ hand-written HTTP boundary rather than generated tools or business services.
 Generation refuses to replace a file without its generated header and
 preflights the complete set before writing. `framework generate --check`
 reports stale or missing output without writes. A repeated run is byte-identical;
-hand-written transport support belongs outside the three generated files.
+hand-written transport support belongs outside the four generated files.
 
 ## Focused scaffolds
 
@@ -613,8 +614,10 @@ rows share packaged artifact SHA-256
 
 The startup measurement proves that MyGo reached the readiness callback and
 created the 960×640 window. It does not prove interaction inside WebKitGTK;
-the milestone 2 UI flow and milestone 7 OS smoke checks cover that behavior.
+the [Milestone 2 acceptance](#milestone-2-acceptance) flow covers that behavior
+on Linux.
 
-These checks establish compilation and behavior on this Linux runner. They do
-not establish runtime behavior on macOS or Windows; those checks remain in
-[milestone 7](../PLAN.md#milestone-7-cross-platform-verification-and-performance).
+These checks establish compilation and behavior on this Linux runner. CI also
+runs the Go tests on macOS and Windows (see
+[platform support](native.md#platform-support)), but desktop runtime behavior
+on those platforms is not verified.

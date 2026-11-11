@@ -51,6 +51,21 @@ This creates a disposable project, installs its dependencies, generates a
 feature and both adapter layers, then tests and builds it. It requires access
 to the pinned Go and Bun dependencies.
 
+## Change native starter messages
+
+The native starter's messages are in
+`internal/generator/_native/locales/en.json`, and `locales/` holds the same
+catalog for `examples/native`. After editing the starter's catalog, copy it and
+regenerate the Go accessors with the MyGo version pinned in `go.mod`:
+
+```sh
+cp internal/generator/_native/locales/en.json locales/en.json
+mise exec -- go run github.com/egoist/mygo/cmd/mygo generate internal/generator/_native
+cp internal/generator/_native/locales/catalog_gen.go locales/catalog_gen.go
+```
+
+Generated native projects run the same generator as `go tool mygo generate`.
+
 ## Prepare a release
 
 [Release Please](https://github.com/googleapis/release-please-action) owns the

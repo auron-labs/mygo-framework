@@ -68,6 +68,5 @@ module tidiness, and a 100-run CGO-free MCP shutdown stress check all pass.
 - Linux/arm64 also has compile evidence only because no arm64 runtime was
   available.
 
-See the [`TODO.md` verification log](../TODO.md#verification-log) for the exact
-commands and results. See [foundation.md](foundation.md) for the contracts,
-security boundaries, cross-platform table, and measured performance comparison.
+See [foundation.md](foundation.md) for the contracts, security boundaries,
+cross-platform table, and measured performance comparison.
