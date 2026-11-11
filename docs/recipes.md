@@ -120,6 +120,19 @@ The embedded `00002_create_mygo_framework_settings.sql` migration owns the
 table. Do not create it with GORM `AutoMigrate`. Missing values return the key's
 declared default; invalid stored JSON returns an error.
 
+To let a command-line flag or environment variable override a stored value,
+read it yourself, wrap it with `settings.NewOverride(key, value)`, and pass the
+store through `settings.NewOverlay(store, flags, environment)` before calling
+`settings.New`. Reads then resolve flags, environment values, the stored value,
+and the key's default, in that order. Overrides are never saved: `Set` and
+`Delete` still change the stored value, but the override wins while it is in
+force.
+
+To keep settings in their own file rather than the application database, use
+`settingsbbolt.Open(path)` from `mygo-framework/settings/bbolt` as the store and
+close it on shutdown. It fails after one second if another process holds the
+file.
+
 ## Read an OS-protected secret
 
 Create the MyGo secret adapter after desktop startup. Use a stable application
@@ -155,9 +168,11 @@ import (
 ```
 
 Use `store.Set` to provision the value and `store.Delete` to remove it. The
-adapter never falls back to plaintext. Keep the in-memory adapter for tests and
-handle an unavailable or locked platform credential store as an operational
-error. Do not assume MyGo's OS secret API works from the GUI-independent
+adapter never falls back to plaintext. Where the platform has no credential
+store, such as Linux without a Secret Service on the session bus, calls fail
+with an error for which `errors.Is(err, errors.ErrUnsupported)` holds; keep the
+secret elsewhere or ask for it each time. Keep the in-memory adapter for tests
+and handle a locked credential store as an operational error. Do not assume MyGo's OS secret API works from the GUI-independent
 `appctl` process.
 
 ## Call an HTTP JSON API
@@ -201,6 +216,37 @@ The default timeout is 30 seconds and retries are off. Enable bounded retries
 only with `RetryOptions`. Reads may retry; writes remain single-attempt unless
 `Writes` is explicitly true. Do not log authorization headers or response
 bodies.
+
+## Submit a form from the frontend
+
+`src/framework/request.ts` and `src/framework/form.ts` wrap generated MyGo
+methods for the page. `runRequest` turns a call into `{ ok: true, data }` or
+`{ ok: false, problem }`, and `createForm` tracks values, submission, and
+errors:
+
+```ts
+import { createForm } from "./framework/form";
+import { runRequest } from "./framework/request";
+import { Notes, type CreateNoteInput, type CreateNoteOutput } from "./mygo";
+
+const noteForm = createForm<CreateNoteInput, CreateNoteOutput>({
+  initialValues: { body: "" },
+  submit: (values) => runRequest(() => Notes.create({ body: values.body })),
+});
+
+noteForm.subscribe((state) => {
+  // Render state.values, state.submitting, state.fieldErrors and state.formError.
+});
+input.addEventListener("input", () => noteForm.setField("body", input.value));
+```
+
+Backend problems keep their code, message, and field errors. Field errors for
+fields the form does not have, and a problem with no field errors, become
+`formError`. A failure to reach the backend becomes an `unavailable` problem
+with a generic message. While a submission is pending, `submit()` returns the
+same promise to every caller. After `reset()` or `dispose()`, a late result no
+longer changes the form state, but the Go request still runs. See `src/main.ts`
+for the complete Notes form.
 
 ## Define and apply a migration
 
@@ -286,6 +332,23 @@ normal launches so credentials do not enter routine output. The endpoint binds
 only to `127.0.0.1`, rejects invalid Host, origin, and bearer credentials, and
 shares the desktop service and database.
 
+## Runtime defaults
+
+- **Database.** GORM, Goose, and the settings store share one SQLite
+  connection, so queries and transactions run one at a time; keep transactions
+  short. The connection waits up to 5 seconds for a lock, enforces foreign
+  keys, and uses WAL journaling. Startup fails if SQLite cannot enable WAL.
+- **Logs.** Development builds log to stderr. Packaged builds also write
+  `app.log` to `~/Library/Logs/<app>` on macOS and to the `logs` folder of the
+  data directory elsewhere. The file rotates at 10 MB and keeps three compressed
+  backups for up to 28 days; change this with `logging.Options`. Attributes
+  named authorization, cookie, password, payload, request or response body,
+  secret, settings, or token are redacted, as is everything in a group with one
+  of those names.
+- **Quit.** Quitting cancels the application context, then gives runtime
+  shutdown up to 5 seconds before the process exits. Long-running work should
+  return when that context is canceled.
+
 ## Develop, build, and test
 
 Use the project-pinned MyGo CLI through the framework wrapper:
@@ -312,7 +375,3 @@ framework generate --check
 
 Race testing is a host-toolchain check and may use CGO. Shipping builds and the
 separate CGO-free suite must continue to pass with `CGO_ENABLED=0`.
-
-See [foundation.md](foundation.md) for lifecycle ownership, error mapping,
-generator behavior, security boundaries, platform evidence, and measured build
-and startup costs.

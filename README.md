@@ -124,12 +124,9 @@ command's `--help` output for the pinned MyGo options.
 
 ## Learn the framework
 
-- [Capability recipes](docs/recipes.md) show settings, secrets, HTTP,
-  migrations, MCP exposure, and the exact verification commands.
-- [Capability matrix](docs/capabilities.md) maps each requested feature to its
-  implementation, direct evidence, and platform limits.
-- [Foundation and architecture notes](docs/foundation.md) record ownership,
-  lifecycle, generator, security, platform, and performance behavior.
+- [Capability recipes](docs/recipes.md) show settings, secrets, HTTP, forms,
+  migrations, MCP exposure, runtime defaults, and the verification commands.
+- [Native applications](docs/native.md) cover the native Go UI starter.
 
 The framework intentionally has no Goravel dependency, mandatory UI server,
 global service facade, automatic database repair, plaintext secret fallback, or
