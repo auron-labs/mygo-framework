@@ -1,9 +1,10 @@
 package memory
 
 import (
-	"mygo-framework/internal/secretstest"
-	"mygo-framework/secrets"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/internal/secretstest"
+	"github.com/auron-labs/mygo-framework/secrets"
 )
 
 func TestStoreContract(t *testing.T) {

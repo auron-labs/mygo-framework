@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"mygo-framework/app/models"
-	"mygo-framework/app/requests"
-	"mygo-framework/app/services"
-	"mygo-framework/database/migrations"
-	"mygo-framework/internal/database"
-	"mygo-framework/problem"
-	"mygo-framework/validation"
 	"path/filepath"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/app/models"
+	"github.com/auron-labs/mygo-framework/app/requests"
+	"github.com/auron-labs/mygo-framework/app/services"
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/problem"
+	"github.com/auron-labs/mygo-framework/validation"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )

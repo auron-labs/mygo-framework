@@ -4,10 +4,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"mygo-framework/internal/cli"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/auron-labs/mygo-framework/internal/cli"
 )
 
 var version = "dev"

@@ -26,7 +26,7 @@ func TestGeneratedProjectAcceptance(t *testing.T) {
 		framework += ".exe"
 	}
 	runAcceptanceCommand(t, repository, "go", "build", "-o", framework, "./cmd/framework")
-	runAcceptanceCommand(t, directory, framework, "new", "AcceptanceApp")
+	runAcceptanceCommand(t, directory, framework, "new", "AcceptanceApp", "--framework", repository)
 
 	project := filepath.Join(directory, "acceptance-app")
 	runAcceptanceCommand(t, project, framework, "make", "feature", "Bookmark")
@@ -72,6 +72,7 @@ func TestGeneratedProjectAcceptance(t *testing.T) {
 		t.Fatalf("write framework-capabilities acceptance test: %v", err)
 	}
 	runAcceptanceCommand(t, project, "bun", "run", "test:web")
+	runAcceptanceCommand(t, project, "go", "mod", "tidy")
 	runAcceptanceCommand(t, project, "go", "test", "./...")
 	runAcceptanceCommand(t, project, "go", "build", "./...")
 	runAcceptanceCommand(t, project, "go", "mod", "tidy", "-diff")
@@ -227,12 +228,12 @@ import (
 	"testing"
 
 	"acceptance-app/database/migrations"
-	"acceptance-app/httpclient"
-	appdb "acceptance-app/internal/database"
-	secretmemory "acceptance-app/secrets/memory"
-	"acceptance-app/settings"
-	settingsbolt "acceptance-app/settings/bbolt"
-	settingssqlite "acceptance-app/settings/sqlite"
+	"github.com/auron-labs/mygo-framework/httpclient"
+	appdb "github.com/auron-labs/mygo-framework/database"
+	secretmemory "github.com/auron-labs/mygo-framework/secrets/memory"
+	"github.com/auron-labs/mygo-framework/settings"
+	settingsbolt "github.com/auron-labs/mygo-framework/settings/bbolt"
+	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
 )
 
 func TestGeneratedFrameworkCapabilities(t *testing.T) {

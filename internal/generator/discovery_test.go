@@ -33,10 +33,10 @@ func TestDiscoverReferenceServices(t *testing.T) {
 	}
 
 	create := notes[0]
-	if create.PackagePath != "mygo-framework/app/services" || create.Service != "Notes" || create.Name != "Create" ||
+	if create.PackagePath != "github.com/auron-labs/mygo-framework/app/services" || create.Service != "Notes" || create.Name != "Create" ||
 		create.Description != "Create validates and stores one note in a service-owned transaction." ||
-		create.Command != "notes.create" || create.Input != (NamedType{PackagePath: "mygo-framework/app/requests", Name: "CreateNoteInput"}) ||
-		create.Output != (NamedType{PackagePath: "mygo-framework/app/services", Name: "CreateNoteOutput"}) ||
+		create.Command != "notes.create" || create.Input != (NamedType{PackagePath: "github.com/auron-labs/mygo-framework/app/requests", Name: "CreateNoteInput"}) ||
+		create.Output != (NamedType{PackagePath: "github.com/auron-labs/mygo-framework/app/services", Name: "CreateNoteOutput"}) ||
 		create.MCP == nil || create.MCP.Name != "notes_create" || create.MCP.ReadOnly || create.MCP.Destructive {
 		t.Fatalf("create = %+v", create)
 	}

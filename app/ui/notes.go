@@ -4,9 +4,10 @@ package ui
 import (
 	"context"
 	"log/slog"
-	"mygo-framework/app/models"
-	"mygo-framework/app/services"
-	"mygo-framework/logging"
+
+	"github.com/auron-labs/mygo-framework/app/models"
+	"github.com/auron-labs/mygo-framework/app/services"
+	"github.com/auron-labs/mygo-framework/logging"
 
 	"github.com/egoist/mygo"
 )

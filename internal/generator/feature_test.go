@@ -171,14 +171,21 @@ func featureFixture(t *testing.T) string {
 
 go 1.27.3
 
-require gorm.io/gorm v0.0.0
+require (
+	github.com/auron-labs/mygo-framework v0.0.0
+	gorm.io/gorm v0.0.0
+)
 
-replace gorm.io/gorm => ./stubs/gorm
+replace (
+	github.com/auron-labs/mygo-framework => ./stubs/framework
+	gorm.io/gorm => ./stubs/gorm
+)
 `
 	if err := os.WriteFile(filepath.Join(directory, "go.mod"), []byte(module), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	validationDirectory := filepath.Join(directory, "validation")
+	frameworkDirectory := filepath.Join(directory, "stubs", "framework")
+	validationDirectory := filepath.Join(frameworkDirectory, "validation")
 	if err := os.MkdirAll(validationDirectory, 0o750); err != nil {
 		t.Fatal(err)
 	}
@@ -189,6 +196,9 @@ type Validator struct{}
 func (v *Validator) Struct(any) error { return nil }
 `
 	if err := os.WriteFile(filepath.Join(validationDirectory, "validation.go"), []byte(validation), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(frameworkDirectory, "go.mod"), []byte("module "+FrameworkModule+"\n\ngo 1.27.3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	stubDirectory := filepath.Join(directory, "stubs", "gorm")

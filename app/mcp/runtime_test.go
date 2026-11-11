@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
-	"mygo-framework/app/services"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/app/services"
 )
 
 func TestRuntimeIsDisabledWithoutOpeningAListener(t *testing.T) {

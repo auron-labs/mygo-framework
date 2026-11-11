@@ -1,9 +1,10 @@
 package main
 
 import (
-	"mygo-framework/timechart"
 	"testing"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/timechart"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"

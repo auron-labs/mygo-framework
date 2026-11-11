@@ -7,11 +7,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"mygo-framework/timechart"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/timechart"
 
 	mygomcp "github.com/auron-labs/mygo-mcp"
 	"github.com/egoist/mygo"

@@ -1,12 +1,13 @@
 package sqlite
 
 import (
-	"mygo-framework/database/migrations"
-	"mygo-framework/internal/database"
-	"mygo-framework/internal/settingstest"
-	"mygo-framework/settings"
 	"path/filepath"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/internal/settingstest"
+	"github.com/auron-labs/mygo-framework/settings"
 )
 
 func TestStoreContract(t *testing.T) {

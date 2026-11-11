@@ -3,11 +3,12 @@ package state_test
 import (
 	"context"
 	"errors"
-	"mygo-framework/state"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/state"
 )
 
 type recorder struct {

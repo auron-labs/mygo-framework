@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	requests "mygo-framework/app/requests"
-	services "mygo-framework/app/services"
+	requests "github.com/auron-labs/mygo-framework/app/requests"
+	services "github.com/auron-labs/mygo-framework/app/services"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )

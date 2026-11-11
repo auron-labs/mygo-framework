@@ -2,8 +2,8 @@
 package main
 
 import (
-	"mygo-framework/app/bootstrap"
-	"mygo-framework/app/desktop"
+	"github.com/auron-labs/mygo-framework/app/bootstrap"
+	"github.com/auron-labs/mygo-framework/app/desktop"
 
 	"github.com/egoist/mygo"
 )

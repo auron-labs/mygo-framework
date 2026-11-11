@@ -7,9 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"mygo-framework/pdfreport"
 	"os"
 	"strconv"
+
+	"github.com/auron-labs/mygo-framework/pdfreport"
 )
 
 type night struct {

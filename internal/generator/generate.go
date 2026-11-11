@@ -171,7 +171,7 @@ func renderGeneratedFiles(directory string, methods []Method) ([]generatedFile, 
 	if err != nil {
 		return nil, err
 	}
-	desktop, services, err := renderDesktop(modulePath, methods)
+	desktop, services, err := renderDesktop(methods)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func selectedServices(methods []Method, include func(Method) bool) []serviceData
 	return services
 }
 
-func renderDesktop(modulePath string, methods []Method) ([]byte, []serviceData, error) {
+func renderDesktop(methods []Method) ([]byte, []serviceData, error) {
 	selected := make([]Method, 0, len(methods))
 	paths := map[string]struct{}{}
 	for _, method := range methods {
@@ -283,8 +283,8 @@ func renderDesktop(modulePath string, methods []Method) ([]byte, []serviceData, 
 	content, err := renderGo(desktopTemplate, desktopData{
 		Header:      generatedHeader,
 		Imports:     imports,
-		ProblemPath: modulePath + "/problem",
-		RuntimePath: modulePath + "/runtime",
+		ProblemPath: FrameworkModule + "/problem",
+		RuntimePath: FrameworkModule + "/runtime",
 		Services:    services,
 	})
 	if err != nil {

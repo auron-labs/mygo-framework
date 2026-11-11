@@ -7,7 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"mygo-framework/settings"
+
+	"github.com/auron-labs/mygo-framework/settings"
 )
 
 const (

@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
-	appMCP "mygo-framework/app/mcp"
 	"strings"
 	"testing"
+
+	appMCP "github.com/auron-labs/mygo-framework/app/mcp"
 )
 
 func TestMCPOptionsFromEnvironment(t *testing.T) {

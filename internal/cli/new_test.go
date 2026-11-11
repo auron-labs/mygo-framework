@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,7 @@ func TestNewProjectCommandCreatesOneSupportedTemplate(t *testing.T) {
 	parent := t.TempDir()
 	t.Chdir(parent)
 
-	output, err := execute(context.Background(), New("test", NewProjectCommand()), "new", "AcmeNotes")
+	output, err := execute(context.Background(), New("test", newProjectCommand(noResolve)), "new", "AcmeNotes")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +24,7 @@ func TestNewProjectCommandCreatesOneSupportedTemplate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = execute(context.Background(), New("test", NewProjectCommand()), "new", "AcmeNotes")
+	_, err = execute(context.Background(), New("test", newProjectCommand(noResolve)), "new", "AcmeNotes")
 	if err == nil || !strings.Contains(err.Error(), "refuse to overwrite") {
 		t.Fatalf("duplicate error = %v", err)
 	}
@@ -32,7 +33,7 @@ func TestNewProjectCommandCreatesOneSupportedTemplate(t *testing.T) {
 func TestNewNativeProjectCommand(t *testing.T) {
 	parent := t.TempDir()
 	t.Chdir(parent)
-	if _, err := execute(t.Context(), New("test", NewProjectCommand()), "new", "NativeApp", "--native"); err != nil {
+	if _, err := execute(t.Context(), New("test", newProjectCommand(noResolve)), "new", "NativeApp", "--native"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(parent, "native-app", "mygo.json")); err != nil {
@@ -42,3 +43,5 @@ func TestNewNativeProjectCommand(t *testing.T) {
 		t.Fatalf("native starter has package.json: %v", err)
 	}
 }
+
+func noResolve(context.Context, string, string, io.Writer, io.Writer) error { return nil }

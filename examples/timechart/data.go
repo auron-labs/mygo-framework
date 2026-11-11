@@ -4,8 +4,9 @@ import (
 	"context"
 	"math"
 	"math/rand/v2"
-	"mygo-framework/timechart"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/timechart"
 )
 
 const (

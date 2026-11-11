@@ -3,11 +3,6 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"mygo-framework/app/requests"
-	"mygo-framework/app/services"
-	"mygo-framework/internal/database"
-	"mygo-framework/problem"
-	appRuntime "mygo-framework/runtime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +10,12 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/fstest"
+
+	"github.com/auron-labs/mygo-framework/app/requests"
+	"github.com/auron-labs/mygo-framework/app/services"
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/problem"
+	appRuntime "github.com/auron-labs/mygo-framework/runtime"
 
 	"github.com/samber/do/v2"
 )

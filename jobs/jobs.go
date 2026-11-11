@@ -6,8 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mygo-framework/errorreport"
 	"sync"
+
+	"github.com/auron-labs/mygo-framework/errorreport"
 )
 
 // State is where a job is in its lifecycle.

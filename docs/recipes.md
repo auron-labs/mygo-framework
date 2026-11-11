@@ -1,9 +1,10 @@
 # Capability recipes
 
 These task guides use the reference application in this repository. Run the Go
-commands from the repository root. Import paths therefore start with
-`mygo-framework`; replace that prefix with the `module` value from `go.mod` in
-another application.
+commands from the repository root. Framework packages are imported from
+`github.com/auron-labs/mygo-framework`; application packages start with the
+`module` value from `go.mod`. After importing a framework package for the first
+time, run `go mod tidy` to add its dependencies.
 
 The generated starter already demonstrates a complete Notes feature. Start with
 that code when a recipe needs bootstrap registration, validation, or a database
@@ -73,9 +74,9 @@ package bootstrap
 import (
 	"fmt"
 
-	"mygo-framework/internal/database"
-	"mygo-framework/settings"
-	settingssqlite "mygo-framework/settings/sqlite"
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/settings"
+	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
 
 	"github.com/samber/do/v2"
 )
@@ -129,7 +130,7 @@ and the key's default, in that order. Overrides are never saved: `Set` and
 force.
 
 To keep settings in their own file rather than the application database, use
-`settingsbbolt.Open(path)` from `mygo-framework/settings/bbolt` as the store and
+`settingsbbolt.Open(path)` from `github.com/auron-labs/mygo-framework/settings/bbolt` as the store and
 close it on shutdown. It fails after one second if another process holds the
 file.
 
@@ -161,9 +162,9 @@ import (
 	"errors"
 	"fmt"
 
-	"mygo-framework/app/profile"
-	"mygo-framework/secrets"
-	mygosecrets "mygo-framework/secrets/mygo"
+	"github.com/auron-labs/mygo-framework/app/profile"
+	"github.com/auron-labs/mygo-framework/secrets"
+	mygosecrets "github.com/auron-labs/mygo-framework/secrets/mygo"
 )
 ```
 
@@ -208,7 +209,7 @@ import (
 	"fmt"
 	"time"
 
-	"mygo-framework/httpclient"
+	"github.com/auron-labs/mygo-framework/httpclient"
 )
 ```
 

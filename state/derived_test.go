@@ -1,9 +1,10 @@
 package state_test
 
 import (
-	"mygo-framework/state"
 	"slices"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/state"
 )
 
 type settings struct {

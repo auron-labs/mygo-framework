@@ -16,6 +16,10 @@ import (
 //go:embed all:_template all:_native
 var projectTemplate embed.FS
 
+// FrameworkModule is the module path generated applications import for the
+// framework packages.
+const FrameworkModule = "github.com/auron-labs/mygo-framework"
+
 // ProjectConfig selects the parent directory and new project name.
 type ProjectConfig struct {
 	Dir    string
@@ -62,6 +66,7 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 
 	title := titleFromSnake(name.Snake)
 	replacer := strings.NewReplacer(
+		FrameworkModule, FrameworkModule,
 		"__PROJECT_TITLE__", title,
 		"__PROJECT_SLUG__", slug,
 		"__PROJECT_IDENTIFIER__", "com.example."+strings.ReplaceAll(name.Snake, "_", ""),
@@ -90,9 +95,7 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 			}
 			if config.Native && root == "_template" {
 				switch relative {
-				case ".gitignore", "settings", "settings/settings.go", "settings/overlay.go", "settings/sqlite", "settings/sqlite/sqlite.go",
-					"internal", "internal/database", "internal/database/database.go", "database", "database/migrations", "database/migrations/migrations.go",
-					"jobs", "jobs/jobs.go", "errorreport", "errorreport/errorreport.go", "state", "state/cell.go", "state/derived.go", "state/autosave.go":
+				case ".gitignore", "database", "database/migrations", "database/migrations/migrations.go":
 				default:
 					if entry.IsDir() {
 						return fs.SkipDir

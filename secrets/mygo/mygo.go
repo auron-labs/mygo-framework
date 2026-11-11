@@ -5,8 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mygo-framework/secrets"
 	"strings"
+
+	"github.com/auron-labs/mygo-framework/secrets"
 
 	mygoplatform "github.com/egoist/mygo"
 )

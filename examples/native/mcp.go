@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"mygo-framework/jobs"
-	"mygo-framework/state"
+
+	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/state"
 
 	mygomcp "github.com/auron-labs/mygo-mcp"
 	"github.com/egoist/mygo/ui"

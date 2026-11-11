@@ -11,11 +11,12 @@ import (
 	"mygo-framework/app/desktop"
 	appMCP "mygo-framework/app/mcp"
 	"mygo-framework/app/profile"
-	"mygo-framework/errorreport"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/errorreport"
 
 	"github.com/egoist/mygo"
 )

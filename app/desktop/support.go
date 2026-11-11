@@ -4,9 +4,10 @@ package desktop
 import (
 	"context"
 	"log/slog"
-	"mygo-framework/logging"
-	"mygo-framework/problem"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/logging"
+	"github.com/auron-labs/mygo-framework/problem"
 )
 
 func desktopProblem(

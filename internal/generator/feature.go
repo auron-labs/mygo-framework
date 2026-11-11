@@ -25,10 +25,11 @@ type FeatureResult struct {
 }
 
 type featureData struct {
-	Name       string
-	Snake      string
-	ModulePath string
-	Table      string
+	Name            string
+	Snake           string
+	ModulePath      string
+	FrameworkModule string
+	Table           string
 	// Var and Title are used by native features only.
 	Var   string
 	Title string
@@ -60,10 +61,11 @@ func ScaffoldFeature(ctx context.Context, config FeatureConfig) (_ FeatureResult
 		render = renderNativeFeatureFiles
 	}
 	files, err := render(directory, featureData{
-		Name:       name.Go,
-		Snake:      name.Snake,
-		ModulePath: modulePath,
-		Table:      name.Snake + "_records",
+		Name:            name.Go,
+		Snake:           name.Snake,
+		ModulePath:      modulePath,
+		FrameworkModule: FrameworkModule,
+		Table:           name.Snake + "_records",
 	})
 	if err != nil {
 		return FeatureResult{}, err
@@ -201,7 +203,7 @@ import (
 
 	"{{.ModulePath}}/app/models"
 	"{{.ModulePath}}/app/requests"
-	"{{.ModulePath}}/validation"
+	"{{.FrameworkModule}}/validation"
 
 	"gorm.io/gorm"
 )
@@ -250,8 +252,8 @@ import (
 	"fmt"
 
 	"{{.ModulePath}}/app/services"
-	"{{.ModulePath}}/internal/database"
-	"{{.ModulePath}}/validation"
+	"{{.FrameworkModule}}/database"
+	"{{.FrameworkModule}}/validation"
 
 	"github.com/samber/do/v2"
 )

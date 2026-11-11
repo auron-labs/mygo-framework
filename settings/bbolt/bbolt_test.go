@@ -2,14 +2,15 @@ package bbolt
 
 import (
 	"errors"
-	"mygo-framework/internal/settingstest"
-	"mygo-framework/settings"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/internal/settingstest"
+	"github.com/auron-labs/mygo-framework/settings"
 
 	bolt "go.etcd.io/bbolt"
 	berrors "go.etcd.io/bbolt/errors"

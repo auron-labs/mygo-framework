@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mygo-framework/errorreport"
-	"mygo-framework/jobs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/jobs"
 
 	"github.com/getsentry/sentry-go"
 )

@@ -4,8 +4,9 @@ package memory
 import (
 	"context"
 	"fmt"
-	"mygo-framework/secrets"
 	"sync"
+
+	"github.com/auron-labs/mygo-framework/secrets"
 )
 
 // Store keeps copied secret bytes in process memory.

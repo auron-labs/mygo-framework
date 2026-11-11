@@ -9,11 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"mygo-framework/internal/database"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/auron-labs/mygo-framework/database"
 )
 
 const (

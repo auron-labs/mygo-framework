@@ -2,11 +2,12 @@ package mygo
 
 import (
 	"errors"
-	"mygo-framework/internal/secretstest"
-	"mygo-framework/secrets"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/internal/secretstest"
+	"github.com/auron-labs/mygo-framework/secrets"
 
 	mygoplatform "github.com/egoist/mygo"
 )

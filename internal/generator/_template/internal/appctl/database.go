@@ -6,10 +6,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"mygo-framework/app/profile"
-	appdb "mygo-framework/internal/database"
-	"mygo-framework/logging"
 	"os"
 	"path/filepath"
+
+	appdb "github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/logging"
 
 	"github.com/spf13/cobra"
 )

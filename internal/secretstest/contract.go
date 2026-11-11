@@ -6,10 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mygo-framework/secrets"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/secrets"
 )
 
 // Factory returns an isolated secret store for one subtest.

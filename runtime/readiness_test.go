@@ -3,9 +3,10 @@ package runtime
 import (
 	"context"
 	"errors"
-	"mygo-framework/problem"
 	"sync"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/problem"
 )
 
 func TestReadinessReleasesConcurrentWaiters(t *testing.T) {

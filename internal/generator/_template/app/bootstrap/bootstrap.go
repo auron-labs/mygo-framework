@@ -13,13 +13,14 @@ import (
 	"mygo-framework/app/services"
 	appUI "mygo-framework/app/ui"
 	"mygo-framework/database/migrations"
-	"mygo-framework/internal/database"
-	"mygo-framework/logging"
-	appRuntime "mygo-framework/runtime"
-	"mygo-framework/validation"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/logging"
+	appRuntime "github.com/auron-labs/mygo-framework/runtime"
+	"github.com/auron-labs/mygo-framework/validation"
 
 	"github.com/samber/do/v2"
 )

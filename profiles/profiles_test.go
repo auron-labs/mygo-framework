@@ -1,12 +1,13 @@
 package profiles_test
 
 import (
-	"mygo-framework/database/migrations"
-	"mygo-framework/profiles"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/profiles"
 )
 
 func TestValidateRejectsNamesThatCouldEscapeTheDataDirectory(t *testing.T) {

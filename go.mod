@@ -1,4 +1,4 @@
-module mygo-framework
+module github.com/auron-labs/mygo-framework
 
 go 1.27.3
 

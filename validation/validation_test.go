@@ -2,8 +2,9 @@ package validation
 
 import (
 	"errors"
-	"mygo-framework/problem"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/problem"
 
 	"github.com/go-playground/validator/v10"
 )

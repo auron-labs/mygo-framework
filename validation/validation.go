@@ -4,9 +4,10 @@ package validation
 import (
 	"errors"
 	"fmt"
-	"mygo-framework/problem"
 	"reflect"
 	"strings"
+
+	"github.com/auron-labs/mygo-framework/problem"
 
 	"github.com/go-playground/validator/v10"
 )

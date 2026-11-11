@@ -3,13 +3,14 @@ package settings_test
 import (
 	"encoding/json"
 	"errors"
-	"mygo-framework/database/migrations"
-	"mygo-framework/internal/database"
-	"mygo-framework/settings"
-	settingsbbolt "mygo-framework/settings/bbolt"
-	settingssqlite "mygo-framework/settings/sqlite"
 	"path/filepath"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/settings"
+	settingsbbolt "github.com/auron-labs/mygo-framework/settings/bbolt"
+	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
 )
 
 type openBackend func(t *testing.T, path string) (settings.Store, func())

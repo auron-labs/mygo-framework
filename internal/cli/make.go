@@ -2,8 +2,9 @@ package cli
 
 import (
 	"fmt"
-	"mygo-framework/internal/generator"
 	"os"
+
+	"github.com/auron-labs/mygo-framework/internal/generator"
 
 	"github.com/spf13/cobra"
 )

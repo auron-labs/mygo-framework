@@ -2,11 +2,12 @@ package appctl
 
 import (
 	"bytes"
-	"mygo-framework/database/migrations"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/database/migrations"
 )
 
 func TestDatabaseStatusDoesNotCreateDatabase(t *testing.T) {

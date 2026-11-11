@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"mygo-framework/settings"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/settings"
 )
 
 // Open constructs a store at location and returns its sole cleanup function.

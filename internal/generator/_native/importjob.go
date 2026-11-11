@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"mygo-framework/jobs"
 	"mygo-framework/locales"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/jobs"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"

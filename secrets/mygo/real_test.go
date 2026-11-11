@@ -6,9 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"mygo-framework/secrets"
 	"os"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/secrets"
 )
 
 const realSecretTestEnvironment = "MYGO_REAL_SECRET_TEST"

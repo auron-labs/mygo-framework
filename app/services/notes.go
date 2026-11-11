@@ -4,10 +4,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"mygo-framework/app/models"
-	"mygo-framework/app/requests"
-	"mygo-framework/validation"
 	"strings"
+
+	"github.com/auron-labs/mygo-framework/app/models"
+	"github.com/auron-labs/mygo-framework/app/requests"
+	"github.com/auron-labs/mygo-framework/validation"
 
 	"gorm.io/gorm"
 )

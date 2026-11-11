@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mygo-framework/logging"
-	"mygo-framework/problem"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/logging"
+	"github.com/auron-labs/mygo-framework/problem"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"

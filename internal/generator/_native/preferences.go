@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mygo-framework/profiles"
-	"mygo-framework/settings"
 	"path/filepath"
 	"slices"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/profiles"
+	"github.com/auron-labs/mygo-framework/settings"
 
 	// Validating time zones must not depend on the host's zoneinfo database.
 	_ "time/tzdata"

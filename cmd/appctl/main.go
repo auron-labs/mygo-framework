@@ -4,11 +4,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"mygo-framework/database/migrations"
-	"mygo-framework/internal/appctl"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/internal/appctl"
 )
 
 var version = "dev"

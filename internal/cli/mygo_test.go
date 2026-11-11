@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mygo-framework/internal/generator"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/internal/generator"
 )
 
 func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {

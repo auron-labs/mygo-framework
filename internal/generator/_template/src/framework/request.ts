@@ -1,4 +1,4 @@
-import type { Problem } from "../mygo";
+import type { Code, Problem } from "../mygo";
 
 export interface WireResponse<T> {
   data: T | null;
@@ -9,7 +9,7 @@ export type RequestResult<T> =
   | { ok: true; data: T }
   | { ok: false; problem: Problem };
 
-const problem = (code: string, message: string): RequestResult<never> => ({
+const problem = (code: Code, message: string): RequestResult<never> => ({
   ok: false,
   problem: { code, message, fieldErrors: [] },
 });

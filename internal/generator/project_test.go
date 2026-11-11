@@ -18,14 +18,13 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Path != filepath.Join(parent, "acme-notes") || result.Files < 55 {
+	if result.Path != filepath.Join(parent, "acme-notes") || result.Files < 40 {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.8.3", "github.com/go-resty/resty/v2 v2.17.2", "go.etcd.io/bbolt v1.5.0", "gorm.io/gorm v1.31.2"},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.8.3", "gorm.io/gorm v1.31.2"},
 		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.8.3"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
-		"errorreport/errorreport.go":                 {"SENTRY_DSN", "func Capture"},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
 		"src/framework/errorReporting.ts":            {"startErrorReporting"},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
@@ -39,13 +38,6 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		"internal/appctl/root.go":                    {"data-directory"},
 		"database/migrations/00001_create_notes.sql": {"-- +goose Up", "CREATE TABLE notes"},
 		"database/migrations/00002_create_mygo_framework_settings.sql": {"-- +goose Up", "CREATE TABLE mygo_framework_settings"},
-		"settings/settings.go":            {`package settings`, "func Get[T any]", "func Set[T any]"},
-		"settings/sqlite/sqlite.go":       {`"acme-notes/settings"`, "type Store struct"},
-		"settings/bbolt/bbolt.go":         {`"acme-notes/settings"`, "openTimeout = time.Second"},
-		"secrets/secrets.go":              {"type SecretStore interface", "ErrNotFound"},
-		"secrets/mygo/mygo.go":            {`"acme-notes/secrets"`, "mygoplatform.Secrets.Service"},
-		"secrets/memory/memory.go":        {`"acme-notes/secrets"`, "type Store struct"},
-		"httpclient/httpclient.go":        {"github.com/go-resty/resty/v2", "DefaultTimeout", "RetryOptions"},
 		"src/framework/form.ts":           {"export const createForm"},
 		"src/main.ts":                     {"events.notesChanged.on", "stopNoteChanges"},
 		"AGENTS.md":                       {"framework make feature NAME", "Never hand-edit"},
@@ -72,7 +64,7 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		if readErr != nil {
 			return fmt.Errorf("read created project file: %w", readErr)
 		}
-		if strings.Contains(string(content), "mygo-framework") {
+		if strings.Contains(strings.ReplaceAll(string(content), FrameworkModule, ""), "mygo-framework") {
 			t.Errorf("%s retains the template module name", path)
 		}
 		return nil
@@ -143,26 +135,16 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                        {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "github.com/signintech/gopdf v0.38.4", "tool github.com/egoist/mygo/cmd/mygo"},
-		"mygo.json":                     {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
-		"main.go":                       {`"acme-native/internal/database"`, `"acme-native/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
-		"main_test.go":                  {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
-		"importjob.go":                  {`"acme-native/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
-		"pdfreport/report.go":           {"package pdfreport", "func New"},
-		"pdfreport/chart.go":            {"func (r *Report) LineChart"},
-		"jobs/jobs.go":                  {"package jobs", "ErrRunning"},
-		"state/cell.go":                 {"package state", "func NewCell"},
-		"errorreport/errorreport.go":    {"SENTRY_DSN", "func Capture"},
-		"updates.go":                    {"mygo.Updater.Enabled()", "checkForUpdates"},
-		"locales/en.json":               {"compactSpacing"},
-		"locales/catalog_gen.go":        {"func CompactSpacing()"},
-		"profiles/profiles.go":          {"package profiles", "func Validate"},
-		"timechart/chart.go":            {"package timechart", "func (ch *Chart) Build"},
-		"timechart/decimate.go":         {"func Decimate"},
-		"mcp.go":                        {"nativeFixture", "theme.Apply(c); s.view(c)"},
-		"mcp_test.go":                   {"TestNativeMCP"},
-		"settings/sqlite/sqlite.go":     {`"acme-native/settings"`},
-		"internal/database/database.go": {"package database"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
+		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`},
+		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
+		"importjob.go":           {`"github.com/auron-labs/mygo-framework/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
+		"updates.go":             {"mygo.Updater.Enabled()", "checkForUpdates"},
+		"locales/en.json":        {"compactSpacing"},
+		"locales/catalog_gen.go": {"func CompactSpacing()"},
+		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":            {"TestNativeMCP"},
 		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
@@ -173,6 +155,8 @@ func TestCreateNativeProject(t *testing.T) {
 		}
 	}
 	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
+		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
+		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")

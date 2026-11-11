@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"mygo-framework/app/models"
-	"mygo-framework/database/migrations"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/auron-labs/mygo-framework/app/models"
+	"github.com/auron-labs/mygo-framework/database/migrations"
 )
 
 func TestDataSourceNameKeepsPathsIntact(t *testing.T) {

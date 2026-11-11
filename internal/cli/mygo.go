@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mygo-framework/internal/generator"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/auron-labs/mygo-framework/internal/generator"
 
 	"github.com/spf13/cobra"
 )

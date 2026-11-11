@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
-	"mygo-framework/jobs"
-	"mygo-framework/locales"
+
+	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/locales"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"

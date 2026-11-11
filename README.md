@@ -1,6 +1,6 @@
 # MyGo application framework
 
-This repository is a source-first framework and reference application for
+This repository is a framework module and reference application for
 building local-first [MyGo](https://mygo.egoist.dev/) desktop apps in Go. It
 adds a predictable application layout, SQLite and GORM persistence, Goose
 migrations, validation, explicit dependency injection, structured logging,

@@ -63,9 +63,8 @@ Its preference directory is `mygo-framework-native` under `os.UserConfigDir()`.
 
 ## Background jobs
 
-`mygo-framework/jobs` runs named, cancellable jobs with progress. It is copied
-into native projects and has no UI dependency, so the web starter can import it
-too.
+`github.com/auron-labs/mygo-framework/jobs` runs named, cancellable jobs with
+progress. It has no UI dependency, so the web starter can import it too.
 
 ```go
 manager := jobs.New(ctx) // jobs stop when ctx is canceled
@@ -144,9 +143,9 @@ In tests, `ui.Tester.DropFiles` delivers the same events as a real drop.
 ## PDF reports
 
 A native `ui.View` cannot be exported to PDF: `Page.PrintToPDF` only prints web
-pages. `mygo-framework/pdfreport` lays out report PDFs directly instead. It is
+pages. `github.com/auron-labs/mygo-framework/pdfreport` lays out report PDFs directly instead. It is
 pure Go (builds with `CGO_ENABLED=0`), wraps
-[`signintech/gopdf`](https://github.com/signintech/gopdf), and is copied into
+[`signintech/gopdf`](https://github.com/signintech/gopdf), and is imported by
 native projects only. Its embedded Go fonts cover Latin scripts; embed another
 font with gopdf directly for other scripts.
 
@@ -183,13 +182,13 @@ on screen, so the cost of a frame does not grow with the number of rows. Run
 
 ## Time-series charts
 
-`mygo-framework/timechart` draws continuous time series: a clock-aligned time
+`github.com/auron-labs/mygo-framework/timechart` draws continuous time series: a clock-aligned time
 (or plain numeric) x-axis, line, step and min/max band series, point and
 interval event markers, and a hover crosshair with a readout. Wheel or pinch
 zooms around the cursor, dragging pans, and a double click resets; with the
 plot focused, the arrow keys pan, `=` and `-` zoom and Home resets. It builds
 on MyGo's `ui/chart` scales and `Draw` callbacks and depends on nothing else
-in this framework, and it is copied into native projects.
+in this framework.
 
 ```go
 rng := timechart.NewRange(start, end) // Unix seconds; bounds the zoom and pan
@@ -294,7 +293,7 @@ cannot write is left to MyGo, which reports it as a failed install.
 
 ## Profiles
 
-`mygo-framework/profiles` gives each named profile its own SQLite file,
+`github.com/auron-labs/mygo-framework/profiles` gives each named profile its own SQLite file,
 `<data dir>/profiles/<name>.db`, opened with the same `database.Open` and
 migrations as the preferences database. The helper is not wired into the
 starter's window.
@@ -324,7 +323,7 @@ rebuilt.
 The Go side reports unexpected errors and panics to Sentry when `SENTRY_DSN` is
 set in the environment the app is launched from. With no DSN the SDK is not
 initialised and nothing is sent. Only errors are reported: no tracing, profiling,
-session replay or breadcrumbs. `mygo-framework/errorreport` wraps
+session replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
 `sentry-go` and is shared with the web starter.
 
 ```sh
@@ -339,7 +338,7 @@ text. Logging is unchanged.
 
 ## Reactive state
 
-`mygo-framework/state` holds values that views, background goroutines and
+`github.com/auron-labs/mygo-framework/state` holds values that views, background goroutines and
 storage share, and tells subscribers when they change. Both starters include
 it, and the native starter keeps its preferences in a cell. It uses only the
 standard library.
@@ -476,22 +475,20 @@ web project (no `mygo.json`) still gets the web feature scaffold.
 
 ## Reusing the packages in a separate application
 
-This repository is source-first and currently declares `module mygo-framework`.
-It is not directly importable with `go get github.com/auron-labs/mygo-framework`.
-An external native consumer can use an authenticated sibling checkout:
+Generated applications import the framework packages from
+`github.com/auron-labs/mygo-framework`, so they are versioned with Go modules
+and update with `go get`:
 
 ```sh
-gh repo clone auron-labs/mygo-framework ../mygo-framework
-go mod edit -require=mygo-framework@v0.0.0
-go mod edit -replace=mygo-framework=../mygo-framework
+go get github.com/auron-labs/mygo-framework@latest
+go mod tidy
 ```
 
-The replacement path is relative to the consumer's `go.mod`; adjust it for
-nested `source/` layouts. Pin the framework checkout to a reviewed commit
-for reproducible builds. Import `mygo-framework/settings` and a store such as
-`mygo-framework/settings/sqlite` directly. Alternatively,
-copy the source-first packages into the application and change import paths
-as with a generated application.
+`framework new` pins the release the CLI was installed from; a CLI built from a
+checkout uses `main`. To develop an application against a local framework
+checkout, create it with `framework new NAME --framework ../mygo-framework`,
+which adds a `replace` directive. Import `.../settings` and a store such as
+`.../settings/sqlite` directly in any other application.
 
 Use MyGo's native `ui.View` for window content and native `mygo.json`
 configuration for packaging. Onevra supplies native components and shells;

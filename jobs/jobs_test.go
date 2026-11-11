@@ -3,8 +3,9 @@ package jobs_test
 import (
 	"context"
 	"errors"
-	"mygo-framework/jobs"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/jobs"
 )
 
 // collect subscribes before starting and returns every status of the job up to its terminal one.

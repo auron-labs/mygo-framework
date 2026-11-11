@@ -3,9 +3,9 @@ package bootstrap
 
 import (
 	"fmt"
+	appMCP "github.com/auron-labs/mygo-framework/app/mcp"
+	services "github.com/auron-labs/mygo-framework/app/services"
 	"log/slog"
-	appMCP "mygo-framework/app/mcp"
-	services "mygo-framework/app/services"
 
 	"github.com/samber/do/v2"
 )

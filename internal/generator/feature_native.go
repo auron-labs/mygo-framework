@@ -166,7 +166,7 @@ import (
 	"testing"
 
 	"{{.ModulePath}}/database/migrations"
-	"{{.ModulePath}}/internal/database"
+	"{{.FrameworkModule}}/database"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"

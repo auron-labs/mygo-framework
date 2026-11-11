@@ -1,10 +1,11 @@
 package state_test
 
 import (
-	"mygo-framework/state"
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"github.com/auron-labs/mygo-framework/state"
 )
 
 func TestConcurrentWritersDeliverMonotonicValues(t *testing.T) {
