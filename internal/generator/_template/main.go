@@ -39,6 +39,10 @@ func main() {
 func runApp() error {
 	defer errorreport.Flush()
 	defer errorreport.RecoverAndRepanic()
+	// A second launch would open the same database; the running instance takes over.
+	if !mygo.App.RequestSingleInstanceLock() {
+		return nil
+	}
 	mygo.App.SetName(profile.Name)
 	applicationRuntime := bootstrap.New()
 	applicationContext, cancelApplication := context.WithCancel(context.Background())
@@ -53,10 +57,17 @@ func runApp() error {
 	)
 	mygo.App.OnBeforeQuit(quitStage.BeforeQuit)
 
+	var window *mygo.Window
+	mygo.App.OnSecondInstance(func([]string, string) {
+		if window != nil {
+			window.Restore()
+			window.Focus()
+		}
+	})
 	mygo.App.WhenReady(func() {
 		go startRuntime(applicationContext, applicationRuntime)
 
-		mygo.NewWindow(mygo.WindowOptions{
+		window = mygo.NewWindow(mygo.WindowOptions{
 			Title:           "MyGo Framework Notes",
 			Width:           960,
 			Height:          640,

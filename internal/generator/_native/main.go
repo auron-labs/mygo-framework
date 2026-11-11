@@ -185,12 +185,18 @@ func start() error {
 }
 
 func run(dataDir string) (err error) {
-	if dataDir == "" {
+	useDefaultDir := dataDir == ""
+	if useDefaultDir {
 		configDir, err := os.UserConfigDir()
 		if err != nil {
 			return fmt.Errorf("locate data directory: %w", err)
 		}
 		dataDir = filepath.Join(configDir, profileName)
+	}
+	// A second launch with the same data directory would open the database
+	// twice; -data-dir runs a separate instance on purpose.
+	if useDefaultDir && !mygo.App.RequestSingleInstanceLock() {
+		return nil
 	}
 	ctx := context.Background()
 	db, values, err := openPreferences(ctx, dataDir)
@@ -216,6 +222,7 @@ func run(dataDir string) (err error) {
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
 	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport}
+	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })
 	mygo.App.SetName(appName)
 	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))
 	defer watchTheme(cell, setTheme)()
@@ -228,7 +235,11 @@ func run(dataDir string) (err error) {
 		win := shell.Window()
 		s.win = win
 		// Invalidate is safe from any goroutine; the view reads the job status and preferences itself.
-		jobManager.Subscribe(func(jobs.Status) { win.Invalidate() })
+		jobManager.Subscribe(func(status jobs.Status) {
+			win.Invalidate()
+			s.notifyImportDone(status)
+		})
+		mygo.App.SetMenu(s.menu())
 		win.OnClosed(cell.Subscribe(func(preferences) { win.Invalidate() }))
 		win.OnClosed(saver.Err().Subscribe(func(error) { win.Invalidate() }))
 		// MyGo also calls OnClose during application quit, before destroying the window.
@@ -237,6 +248,8 @@ func run(dataDir string) (err error) {
 		win.OnReadyToShow(win.Show)
 		s.checkForUpdates()
 	})
+	// Registered after the window so a link that launched the app finds it.
+	mygo.App.OnOpenURL(func(raw string) { mygo.App.WhenReady(func() { s.openURL(raw) }) })
 	if err := mygo.App.Run(); err != nil {
 		return fmt.Errorf("run native app: %w", err)
 	}

@@ -74,11 +74,17 @@ func (s *screen) importView(c *ui.Context) {
 		s.chooseFolder()
 	}
 	if components.Button(c, locales.StartImport(), components.ButtonPrimary).Clicked() {
-		if folder := s.prefs.Get().ImportFolder; folder == "" {
-			s.chooseFolder()
-		} else {
-			s.startImport(folder)
-		}
+		s.beginImport()
+	}
+}
+
+// beginImport imports the remembered folder, asking for one first when there
+// is none.
+func (s *screen) beginImport() {
+	if folder := s.prefs.Get().ImportFolder; folder == "" {
+		s.chooseFolder()
+	} else {
+		s.startImport(folder)
 	}
 }
 

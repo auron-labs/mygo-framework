@@ -43,6 +43,7 @@
     }
   },
   "importStartFailed": "The import could not be started.",
+  "fileMenu": "File",
   "chooseFolder": "Choose folder...",
   "startImport": "Start import",
   "chooseFolderTitle": "Choose a folder to import",

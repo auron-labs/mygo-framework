@@ -418,6 +418,33 @@ anything pending and stops the saver; if `ctx` ends first, it cancels the save.
 Call it after the event loop stops and before closing the storage that `save`
 writes to.
 
+## Desktop integration
+
+Both starters run one instance per user: starting the app again brings the
+running window to the front instead of opening the database a second time.
+The native starter skips the lock when you pass `-data-dir`, so separate data
+directories can run side by side.
+
+The native starter also shows:
+
+- **A menu bar.** `desktop.go` builds it from `mygo.NewMenu`: **File** has
+  **Choose folder...** (`Ctrl/Cmd+O`) and **Start import** (`Ctrl/Cmd+I`),
+  then the standard Edit and Window menus. Menu items call the same methods as
+  the buttons.
+- **A notification** when an import finishes or fails while the window is not
+  in front. Clicking it brings the window forward. Nothing is shown where the
+  system has no notification service or the user has declined them.
+- **A deep link**, `<app-slug>://import?folder=/path`. It selects the folder and
+  brings the window forward; the user still starts the import. The scheme is
+  listed under `urlSchemes` in `mygo.json`, which registers it when the app is
+  installed. A packaged build registered another way can call
+  `mygo.App.RegisterURLScheme`.
+
+For an app that opens files, list the types in `fileAssociations` in
+`mygo.json` and handle them with `mygo.App.OnOpenFile`, registered before
+`Run`. With the single instance lock, files opened while the app runs reach
+the first instance.
+
 ## Platform support
 
 The native starter builds with `CGO_ENABLED=0` for Linux, macOS and Windows on

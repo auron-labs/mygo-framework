@@ -224,6 +224,16 @@ func (msgs Messages) ImportStartFailed() string {
 	return Catalog.Format(msgs.locale, "importStartFailed", nil)
 }
 
+// FileMenu says "File"
+// in the language the app shows.
+func FileMenu() string { return In(i18n.Locale()).FileMenu() }
+
+// FileMenu says "File"
+// in the language of msgs.
+func (msgs Messages) FileMenu() string {
+	return Catalog.Format(msgs.locale, "fileMenu", nil)
+}
+
 // ChooseFolder says "Choose folder..."
 // in the language the app shows.
 func ChooseFolder() string { return In(i18n.Locale()).ChooseFolder() }
