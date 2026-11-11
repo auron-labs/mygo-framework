@@ -73,10 +73,10 @@ func (s *screen) importView(c *ui.Context) {
 		s.chooseFolder()
 	}
 	if components.Button(c, locales.StartImport(), components.ButtonPrimary).Clicked() {
-		if s.prefs.ImportFolder == "" {
+		if folder := s.prefs.Get().ImportFolder; folder == "" {
 			s.chooseFolder()
 		} else {
-			s.startImport(s.prefs.ImportFolder)
+			s.startImport(folder)
 		}
 	}
 }
@@ -87,8 +87,8 @@ func (s *screen) dropZone(c *ui.Context, enabled bool) {
 	t := c.Theme()
 	zone := ui.Column(c).FillWidth().Padding(16).Radius(t.Radius).Border(1, t.Border)
 	label := locales.DropFolder()
-	if s.prefs.ImportFolder != "" {
-		label = locales.DropFolderLast(s.prefs.ImportFolder)
+	if folder := s.prefs.Get().ImportFolder; folder != "" {
+		label = locales.DropFolderLast(folder)
 	}
 	if enabled && zone.FileDragOver() {
 		zone.Border(2, t.Accent)
@@ -118,7 +118,7 @@ func (s *screen) chooseFolder() {
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
 			Parent: s.win, Title: locales.ChooseFolderTitle(), ButtonLabel: locales.ChooseFolderButton(),
-			DefaultPath: s.prefs.ImportFolder, Directory: true,
+			DefaultPath: s.prefs.Get().ImportFolder, Directory: true,
 		})
 		s.win.Update(func() {
 			switch {
@@ -150,7 +150,7 @@ func (s *screen) startImport(folder string) {
 		return
 	}
 	s.importMessage = ""
-	s.prefs.ImportFolder = folder
+	s.prefs.Update(func(p *preferences) { p.ImportFolder = folder })
 	if s.win != nil {
 		s.win.Invalidate()
 	}

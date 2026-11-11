@@ -122,21 +122,21 @@ func (msgs Messages) ThemeDark() string {
 	return Catalog.Format(msgs.locale, "themeDark", nil)
 }
 
-// PreferencesSavedOnClose says "Your preferences are saved when you close the window."
+// PreferencesSavedAutomatically says "Your preferences are saved automatically."
 // in the language the app shows.
-func PreferencesSavedOnClose() string { return In(i18n.Locale()).PreferencesSavedOnClose() }
+func PreferencesSavedAutomatically() string { return In(i18n.Locale()).PreferencesSavedAutomatically() }
 
-// PreferencesSavedOnClose says "Your preferences are saved when you close the window."
+// PreferencesSavedAutomatically says "Your preferences are saved automatically."
 // in the language of msgs.
-func (msgs Messages) PreferencesSavedOnClose() string {
-	return Catalog.Format(msgs.locale, "preferencesSavedOnClose", nil)
+func (msgs Messages) PreferencesSavedAutomatically() string {
+	return Catalog.Format(msgs.locale, "preferencesSavedAutomatically", nil)
 }
 
-// PreferencesSaveFailed says "Could not save your preferences. Please try closing the window again."
+// PreferencesSaveFailed says "Could not save your preferences. Change a preference or close the window to try again."
 // in the language the app shows.
 func PreferencesSaveFailed() string { return In(i18n.Locale()).PreferencesSaveFailed() }
 
-// PreferencesSaveFailed says "Could not save your preferences. Please try closing the window again."
+// PreferencesSaveFailed says "Could not save your preferences. Change a preference or close the window to try again."
 // in the language of msgs.
 func (msgs Messages) PreferencesSaveFailed() string {
 	return Catalog.Format(msgs.locale, "preferencesSaveFailed", nil)

@@ -14,6 +14,7 @@ import (
 	"mygo-framework/locales"
 	"mygo-framework/settings"
 	sqlitesettings "mygo-framework/settings/sqlite"
+	"mygo-framework/state"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,8 +28,14 @@ import (
 	"github.com/oneo-me/onevra/source/theme"
 )
 
-// shutdownTimeout bounds how long quitting waits for background jobs to stop.
-const shutdownTimeout = 5 * time.Second
+const (
+	// shutdownTimeout bounds how long quitting waits for background jobs to stop.
+	shutdownTimeout = 5 * time.Second
+	// saveDelay is how long preferences must stay unchanged before they are saved.
+	saveDelay = 300 * time.Millisecond
+	// saveTimeout bounds how long closing waits for unsaved preferences.
+	saveTimeout = 2 * time.Second
+)
 
 const (
 	appName     = "Framework Native"
@@ -36,8 +43,8 @@ const (
 )
 
 type screen struct {
-	prefs     preferences
-	saveError string
+	prefs *state.Cell[preferences]
+	saver *state.Saver[preferences]
 	// jobs runs the sample import; work builds the job for a folder.
 	jobs *jobs.Manager
 	work func(folder string) jobs.Func
@@ -46,46 +53,82 @@ type screen struct {
 	importMessage string
 	// update is the newer version found at launch, if the build checks for updates.
 	update *mygo.Update
-	// themeChanged applies the selected appearance to the running application.
-	themeChanged func()
 }
 
 func (s *screen) view(c *ui.Context) {
+	p := s.prefs.Get()
 	gap := float32(24)
-	if s.prefs.Compact {
+	if p.Compact {
 		gap = 8
 	}
 	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
 		components.Text(c, appName).FontSize(22).Bold()
 		s.updateView(c)
-		components.Checkbox(c, &s.prefs.Compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel())
+		compact := p.Compact
+		components.Checkbox(c, &compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel()).OnChange(func() {
+			s.prefs.Update(func(p *preferences) { p.Compact = compact })
+		})
+		units := p.Units
 		ui.RadioGroup(c, func() {
-			components.Radio(c, &s.prefs.Units, unitsMetric, locales.UnitsMetric())
-			components.Radio(c, &s.prefs.Units, unitsImperial, locales.UnitsImperial())
+			for _, option := range []struct{ value, label string }{{unitsMetric, locales.UnitsMetric()}, {unitsImperial, locales.UnitsImperial()}} {
+				components.Radio(c, &units, option.value, option.label).OnChange(func() {
+					s.prefs.Update(func(p *preferences) { p.Units = units })
+				})
+			}
 		}).Label(locales.UnitsLabel())
+		appearance := p.Theme
 		ui.RadioGroup(c, func() {
 			for _, option := range []struct{ value, label string }{{themeSystem, locales.ThemeSystem()}, {themeLight, locales.ThemeLight()}, {themeDark, locales.ThemeDark()}} {
-				radio := components.Radio(c, &s.prefs.Theme, option.value, option.label)
-				if s.themeChanged != nil {
-					radio.OnChange(s.themeChanged)
-				}
+				components.Radio(c, &appearance, option.value, option.label).OnChange(func() {
+					s.prefs.Update(func(p *preferences) { p.Theme = appearance })
+				})
 			}
 		}).Label(locales.ThemeLabel())
-		components.Text(c, locales.PreferencesSavedOnClose()).Wrap()
-		if s.saveError != "" {
-			components.Text(c, s.saveError).Wrap()
+		components.Text(c, locales.PreferencesSavedAutomatically()).Wrap()
+		if s.saver.Err().Get() != nil {
+			components.Text(c, locales.PreferencesSaveFailed()).Wrap()
 		}
 		s.importView(c)
 	})
 }
 
-func (s *screen) save(values *settings.Values) error {
-	if err := s.prefs.save(context.Background(), values); err != nil {
-		s.saveError = locales.PreferencesSaveFailed()
-		return fmt.Errorf("save preferences: %w", err)
+// savePreferences returns the autosave function for values. It reports each
+// failure once; callers that receive the error from Flush must not report it
+// again.
+func savePreferences(values *settings.Values) func(context.Context, preferences) error {
+	return func(ctx context.Context, p preferences) error {
+		if err := p.save(ctx, values); err != nil {
+			err = fmt.Errorf("save preferences: %w", err)
+			log.Print(err)
+			errorreport.Capture(err, "preferences.save", "ui")
+			return err
+		}
+		return nil
 	}
-	s.saveError = ""
-	return nil
+}
+
+// beforeClose saves pending preferences and keeps the window open, showing the
+// error, when that fails.
+func (s *screen) beforeClose(event *mygo.CloseEvent) {
+	ctx, cancel := context.WithTimeout(context.Background(), saveTimeout)
+	defer cancel()
+	if err := s.saver.Flush(ctx); err != nil {
+		event.PreventDefault()
+		if s.win != nil {
+			s.win.Invalidate()
+		}
+	}
+}
+
+// watchTheme calls apply with the preferred appearance whenever it changes.
+func watchTheme(prefs *state.Cell[preferences], apply func(name string)) (stop func()) {
+	return state.Select(prefs, func(p preferences) string { return p.Theme }).Subscribe(apply)
+}
+
+// setTheme switches the running application's appearance. SetSource is not
+// documented as safe from other goroutines, so it runs on the main thread.
+func setTheme(name string) {
+	mygo.RunOnMain(func() { mygo.Theme.SetSource(mygo.ThemeSource(name)) })
 }
 
 // openPreferences opens the SQLite database in dir, applies pending
@@ -158,16 +201,23 @@ func run(dataDir string) (err error) {
 	if err != nil {
 		return fmt.Errorf("load preferences: %w", err)
 	}
+	cell := state.NewCell(prefs)
+	saver := state.Autosave(cell, saveDelay, savePreferences(values))
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.Background(), saveTimeout)
+		defer cancel()
+		err = errors.Join(err, saver.Close(closeCtx))
+	}()
 	jobManager := jobs.New(ctx)
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
-	s := &screen{prefs: prefs, jobs: jobManager, work: sampleImport}
-	s.themeChanged = func() { mygo.Theme.SetSource(mygo.ThemeSource(s.prefs.Theme)) }
+	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport}
 	mygo.App.SetName(appName)
-	s.themeChanged()
+	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))
+	defer watchTheme(cell, setTheme)()
 	mygo.App.WhenReady(func() {
 		shell := plain.NewShell(plain.ShellOptions{
 			Title: appName, Width: 640, Height: 640, MinWidth: 360, MinHeight: 560,
@@ -176,17 +226,12 @@ func run(dataDir string) (err error) {
 		})
 		win := shell.Window()
 		s.win = win
-		// Invalidate is safe from the job goroutine; the view reads the job status itself.
+		// Invalidate is safe from any goroutine; the view reads the job status and preferences itself.
 		jobManager.Subscribe(func(jobs.Status) { win.Invalidate() })
+		win.OnClosed(cell.Subscribe(func(preferences) { win.Invalidate() }))
+		win.OnClosed(saver.Err().Subscribe(func(error) { win.Invalidate() }))
 		// MyGo also calls OnClose during application quit, before destroying the window.
-		win.OnClose(func(event *mygo.CloseEvent) {
-			if err := s.save(values); err != nil {
-				event.PreventDefault()
-				log.Print(err)
-				errorreport.Capture(err, "preferences.save", "ui")
-				win.Invalidate()
-			}
-		})
+		win.OnClose(s.beforeClose)
 		win.OnClosed(func() { mygo.App.Quit() })
 		win.OnReadyToShow(win.Show)
 		s.checkForUpdates()

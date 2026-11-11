@@ -5,37 +5,45 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mygo-framework/internal/database"
 	"mygo-framework/jobs"
+	"mygo-framework/locales"
+	"mygo-framework/state"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"
 )
 
+// newScreen returns a screen whose preferences are never persisted.
+func newScreen(t *testing.T, initial preferences) *screen {
+	t.Helper()
+	cell := state.NewCell(initial)
+	saver := state.Autosave(cell, time.Hour, func(context.Context, preferences) error { return nil })
+	t.Cleanup(func() { _ = saver.Close(context.Background()) })
+	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context())}
+}
+
 func newTester(s *screen) *ui.Tester {
-	if s.jobs == nil {
-		s.jobs = jobs.New(context.Background())
-	}
 	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 640, 640)
 }
 
 func TestImportJobProgressAndCancel(t *testing.T) {
 	reported := make(chan struct{})
-	s := &screen{
-		jobs:  jobs.New(t.Context()),
-		prefs: preferences{ImportFolder: t.TempDir()},
-		work: func(string) jobs.Func {
-			return func(ctx context.Context, report jobs.Report) error {
-				report(1, 4, "Imported 1 of 4 items")
-				reported <- struct{}{}
-				<-ctx.Done()
-				return ctx.Err()
-			}
-		},
+	s := newScreen(t, preferences{ImportFolder: t.TempDir()})
+	s.work = func(string) jobs.Func {
+		return func(ctx context.Context, report jobs.Report) error {
+			report(1, 4, "Imported 1 of 4 items")
+			reported <- struct{}{}
+			<-ctx.Done()
+			return ctx.Err()
+		}
 	}
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
@@ -65,12 +73,9 @@ func TestImportJobProgressAndCancel(t *testing.T) {
 }
 
 func TestImportJobFailureIsShown(t *testing.T) {
-	s := &screen{
-		jobs:  jobs.New(t.Context()),
-		prefs: preferences{ImportFolder: t.TempDir()},
-		work: func(string) jobs.Func {
-			return func(context.Context, jobs.Report) error { panic("unexpected input") }
-		},
+	s := newScreen(t, preferences{ImportFolder: t.TempDir()})
+	s.work = func(string) jobs.Func {
+		return func(context.Context, jobs.Report) error { panic("unexpected input") }
 	}
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
@@ -96,7 +101,8 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	s := &screen{jobs: jobs.New(t.Context()), work: func(folder string) jobs.Func {
+	s := newScreen(t, preferences{})
+	s.work = func(folder string) jobs.Func {
 		return func(_ context.Context, report jobs.Report) error {
 			entries, err := os.ReadDir(folder)
 			if err != nil {
@@ -105,7 +111,7 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 			report(len(entries), len(entries), "Imported everything")
 			return nil
 		}
-	}}
+	}
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
 		if st.State != jobs.Running {
@@ -123,8 +129,8 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 		t.Fatal("the drop zone did not take the files")
 	}
 	tt.Frame()
-	if !tt.HasText("Drop a folder, not a file.") || s.prefs.ImportFolder != "" {
-		t.Fatalf("file drop view = %q, folder = %q", tt.Texts(), s.prefs.ImportFolder)
+	if !tt.HasText("Drop a folder, not a file.") || s.prefs.Get().ImportFolder != "" {
+		t.Fatalf("file drop view = %q, folder = %q", tt.Texts(), s.prefs.Get().ImportFolder)
 	}
 	if !tt.DropFiles(dropX, dropY, filepath.Join(folder, "a.txt"), folder) {
 		t.Fatal("the drop zone did not take the files")
@@ -133,8 +139,8 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 		t.Fatalf("final = %+v", st)
 	}
 	tt.Frame()
-	if s.prefs.ImportFolder != folder || !tt.HasText("Import finished.") {
-		t.Fatalf("folder = %q, view = %q", s.prefs.ImportFolder, tt.Texts())
+	if s.prefs.Get().ImportFolder != folder || !tt.HasText("Import finished.") {
+		t.Fatalf("folder = %q, view = %q", s.prefs.Get().ImportFolder, tt.Texts())
 	}
 }
 
@@ -162,27 +168,77 @@ func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
 	}
 }
 
-func TestPreferenceControls(t *testing.T) {
-	themeChanges := 0
-	s := &screen{prefs: preferences{Units: unitsMetric, Theme: themeSystem}, themeChanged: func() { themeChanges++ }}
+func TestPreferenceControlsUpdateTheCell(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
 	tt := newTester(s)
 	if err := tt.Click("Compact spacing"); err != nil {
 		t.Fatal(err)
 	}
-	if !s.prefs.Compact {
-		t.Fatal("checkbox did not update the retained preference")
-	}
 	if err := tt.Click("Imperial"); err != nil {
 		t.Fatal(err)
-	}
-	if s.prefs.Units != unitsImperial {
-		t.Fatalf("units = %q", s.prefs.Units)
 	}
 	if err := tt.Click("Dark"); err != nil {
 		t.Fatal(err)
 	}
-	if s.prefs.Theme != themeDark || themeChanges != 1 {
-		t.Fatalf("theme = %q after %d change notifications", s.prefs.Theme, themeChanges)
+	if got := s.prefs.Get(); !got.Compact || got.Units != unitsImperial || got.Theme != themeDark {
+		t.Fatalf("preferences = %+v", got)
+	}
+}
+
+// persistentScreen returns a screen backed by the database in dir, as run builds it.
+func persistentScreen(t *testing.T, dir string) (*screen, *database.Database) {
+	t.Helper()
+	db, values, err := openPreferences(t.Context(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial, err := loadPreferences(t.Context(), values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cell := state.NewCell(initial)
+	saver := state.Autosave(cell, time.Hour, savePreferences(values))
+	t.Cleanup(func() { _ = saver.Close(context.Background()) })
+	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context())}, db
+}
+
+func TestPreferencesPersistWithoutClosingTheWindow(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	tt := newTester(s)
+	if err := tt.Click("Compact spacing"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Imperial"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.saver.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted, db := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = db.Close() })
+	if got := restarted.prefs.Get(); !got.Compact || got.Units != unitsImperial {
+		t.Fatalf("restarted preferences = %+v", got)
+	}
+}
+
+func TestChoosingAThemeAppliesIt(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	var applied []string
+	defer watchTheme(s.prefs, func(name string) { applied = append(applied, name) })()
+	tt := newTester(s)
+	if err := tt.Click("Compact spacing"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Dark"); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(applied, []string{themeDark}) {
+		t.Fatalf("applied themes = %q, want only dark", applied)
 	}
 }
 
@@ -253,24 +309,27 @@ func TestPreferencesRejectInvalidValues(t *testing.T) {
 	}
 }
 
-func TestPreferenceSaveFailure(t *testing.T) {
-	ctx := context.Background()
-	db, values, err := openPreferences(ctx, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	s := &screen{prefs: preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default", Compact: true}}
-	if err := s.save(values); err != nil || s.saveError != "" {
-		t.Fatalf("save = %v, error text %q", err, s.saveError)
+func TestSaveFailureIsVisibleAndBlocksClose(t *testing.T) {
+	s, db := persistentScreen(t, t.TempDir())
+	tt := newTester(s)
+	tt.Frame()
+	if tt.HasText(locales.PreferencesSaveFailed()) {
+		t.Fatal("save error shown before any failure")
 	}
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.save(values); err == nil || s.saveError == "" {
-		t.Fatal("save failure must keep the window open with a visible error")
+	if err := tt.Click("Compact spacing"); err != nil {
+		t.Fatal(err)
 	}
-	if !newTester(s).HasText(s.saveError) {
-		t.Fatal("save error is not visible")
+	var event mygo.CloseEvent
+	s.beforeClose(&event)
+	if !event.DefaultPrevented() {
+		t.Fatal("a failed save must keep the window open")
+	}
+	tt.Frame()
+	if !tt.HasText(locales.PreferencesSaveFailed()) {
+		t.Fatalf("save error is not visible: %q", tt.Texts())
 	}
 }
 
@@ -310,7 +369,7 @@ func TestUpdatesAreOffUnlessTheBuildConfiguresThem(t *testing.T) {
 	server := &requestCounter{}
 	mygo.Updater.SetSource(server)
 	t.Cleanup(func() { mygo.Updater.SetSource(nil) })
-	s := &screen{jobs: jobs.New(t.Context())}
+	s := newScreen(t, preferences{})
 
 	s.checkForUpdates()
 
@@ -331,7 +390,8 @@ func TestUpdatesAreOffUnlessTheBuildConfiguresThem(t *testing.T) {
 }
 
 func TestFoundUpdateOffersInstallAndReportsFailure(t *testing.T) {
-	s := &screen{jobs: jobs.New(t.Context()), update: &mygo.Update{Version: "2.0.0"}}
+	s := newScreen(t, preferences{})
+	s.update = &mygo.Update{Version: "2.0.0"}
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
 		if st.State != jobs.Running {
