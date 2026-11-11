@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/auron-labs/mygo-framework/compare/v0.3.0...v1.0.0) (2026-11-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* the module path changed from mygo-framework, and generated projects no longer contain the framework packages.
+
+### Features
+
+* add single instance, menu bar, notifications and deep links to the starters ([54e1c72](https://github.com/auron-labs/mygo-framework/commit/54e1c72b20191f7002dd31343217222e7a611325))
+* add support bundles, an error-report switch and release workflows ([a5564a4](https://github.com/auron-labs/mygo-framework/commit/a5564a461a5fa4678f3a76f112223db103aa7de8))
+* **database:** snapshot before migrating and guard against newer schemas ([35a6c95](https://github.com/auron-labs/mygo-framework/commit/35a6c9515b4cc50cc178c5fdf8c3e557ba98c504))
+* **native:** keep preferences in a cell with autosave ([7aa3399](https://github.com/auron-labs/mygo-framework/commit/7aa339973115c06c66bb868af4f88ed42ae846c8))
+* publish the framework as an importable Go module ([a8bcdf5](https://github.com/auron-labs/mygo-framework/commit/a8bcdf5ed473c1d22beaa0c1562d3c695c7b3353))
+* **state:** add reactive cells, derived values and autosave ([e5137cb](https://github.com/auron-labs/mygo-framework/commit/e5137cb2b8c699d6b1e7a0870c4417fc7c854506))
+
 ## [0.3.0](https://github.com/auron-labs/mygo-framework/compare/v0.2.0...v0.3.0) (2026-11-10)
 
 
