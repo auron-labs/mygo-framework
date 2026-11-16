@@ -199,7 +199,7 @@ test("invokes the scaffolded feature through the MyGo-generated client", async (
   };
   Object.assign(globalThis, {
     mygo: {
-      call: async (method: string, ...args: unknown[]) => {
+      callWith: async (method: string, args: unknown[]) => {
         calls.push({ method, args });
         return response;
       },
