@@ -22,8 +22,8 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.8.3", "gorm.io/gorm v1.31.2"},
-		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.8.3"`},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.9.2", "gorm.io/gorm v1.31.2"},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.9.2"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
 		"src/framework/errorReporting.ts":            {"startErrorReporting"},
@@ -137,7 +137,7 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.8.3", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.9.2", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
 		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`},
 		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
