@@ -162,10 +162,10 @@ func (v *{{.Var}}View) view(c *ui.Context) {
 const nativeFeatureTestTemplate = `package main
 
 import (
+	"{{.ModulePath}}/database/migrations"
 	"path/filepath"
 	"testing"
 
-	"{{.ModulePath}}/database/migrations"
 	"{{.FrameworkModule}}/database"
 
 	"github.com/egoist/mygo/ui"
@@ -185,8 +185,9 @@ func open{{.Name}}TestStore(t *testing.T) *{{.Name}}Store {
 func Test{{.Name}}StoreCreatesAndListsInOrder(t *testing.T) {
 	store := open{{.Name}}TestStore(t)
 	for _, name := range []string{"  first ", "second"} {
-		if _, err := store.Create(t.Context(), name); err != nil {
-			t.Fatal(err)
+		created, err := store.Create(t.Context(), name)
+		if err != nil || created.ID == 0 {
+			t.Fatalf("Create(%q) = %+v, %v", name, created, err)
 		}
 	}
 	records, err := store.List(t.Context())
