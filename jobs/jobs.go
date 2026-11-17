@@ -43,15 +43,15 @@ var (
 
 // Status is a snapshot of a job, delivered to subscribers on every change.
 type Status struct {
-	Name string
-	// Lane is the lane the job runs in, or empty for a job started with Start.
-	Lane    string
+	Name    string
 	State   State
 	Done    int
 	Total   int
 	Message string
 	// Err is the failure text when State is Failed.
 	Err string
+	// Lane is the lane the job runs in, or empty for a job started with Start.
+	Lane string
 }
 
 // Fraction returns progress from 0 to 1, or -1 while the total is unknown,
@@ -86,6 +86,9 @@ type Manager struct {
 	nextSeq   int
 	pending   []pendingEvent
 	draining  bool
+	emitted   int64
+	delivered int64
+	flushed   *sync.Cond
 }
 
 type pendingEvent struct {
@@ -107,12 +110,48 @@ type job struct {
 	fn     Func
 	lane   *lane
 	seq    int
+	// startEvent is the number of the event that announced the job as Running.
+	startEvent int64
 }
 
 // New returns a manager whose jobs stop when parent is canceled or Shutdown is called.
 func New(parent context.Context) *Manager {
 	ctx, cancel := context.WithCancel(parent)
-	return &Manager{ctx: ctx, cancel: cancel, jobs: map[string]*job{}, listeners: map[int]func(Status){}, lanes: map[string]*lane{}}
+	m := &Manager{ctx: ctx, cancel: cancel, jobs: map[string]*job{}, listeners: map[int]func(Status){}, lanes: map[string]*lane{}}
+	m.flushed = sync.NewCond(&m.mu)
+	// Queued jobs must not outlive a canceled parent, even if no job is running to free a slot.
+	context.AfterFunc(ctx, m.cancelQueued)
+	return m
+}
+
+// cancelQueued ends every queued job as Canceled without running it.
+func (m *Manager) cancelQueued() {
+	m.mu.Lock()
+	for _, l := range m.lanes {
+		for _, j := range l.queue {
+			m.cancelQueuedLocked(j)
+		}
+		l.queue = nil
+	}
+	m.mu.Unlock()
+	m.drain()
+}
+
+// waitDelivered blocks until event number n has been published to listeners.
+func (m *Manager) waitDelivered(n int64) {
+	m.mu.Lock()
+	for m.delivered < n {
+		m.flushed.Wait()
+	}
+	m.mu.Unlock()
+}
+
+// flush blocks until every event emitted so far has been published.
+func (m *Manager) flush() {
+	m.mu.Lock()
+	n := m.emitted
+	m.mu.Unlock()
+	m.waitDelivered(n)
 }
 
 // SetLane defines the lane name, or changes its limit, so at most limit of its
@@ -189,8 +228,11 @@ func (m *Manager) start(laneName, name string, fn Func) error {
 		l.running++
 	}
 	// Queued under the lock, so no other goroutine can publish a later event first.
-	m.emitLocked(j.status)
+	ev := m.emitLocked(j.status)
 	state := j.status.State
+	if state == Running {
+		j.startEvent = ev
+	}
 	m.mu.Unlock()
 
 	m.drain()
@@ -217,7 +259,7 @@ func (m *Manager) promoteLocked(l *lane) (started []*job) {
 		j.status.State = Running
 		l.running++
 		started = append(started, j)
-		m.emitLocked(j.status)
+		j.startEvent = m.emitLocked(j.status)
 	}
 	return started
 }
@@ -232,6 +274,10 @@ func (m *Manager) launch(started []*job) {
 
 func (m *Manager) run(j *job) {
 	defer m.wg.Done()
+	// Runs before wg.Done, so Shutdown returns only after every event is published.
+	defer m.flush()
+	// The job's own Running event reaches listeners before its work begins.
+	m.waitDelivered(j.startEvent)
 	defer j.cancel()
 	name := j.status.Name
 	err := call(j.ctx, name, j.fn, func(done, total int, message string) {
@@ -344,9 +390,12 @@ func (m *Manager) Status(name string) (Status, bool) {
 	return j.status, true
 }
 
-// Subscribe calls fn for every status change, from the goroutine that caused
-// it, so fn must not block; native views hand the status to Window.Update.
-// The returned function stops delivery.
+// Subscribe calls fn for every status change, so fn must not block; native
+// views hand the status to Window.Update. Events are delivered one at a time,
+// in the order the changes happened, by whichever goroutine is publishing,
+// which may not be the one that caused the change. A job's work starts only
+// after its Running event is delivered, and Shutdown returns only after every
+// event has been delivered. The returned function stops delivery.
 func (m *Manager) Subscribe(fn func(Status)) (unsubscribe func()) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -370,8 +419,10 @@ func (m *Manager) listenersLocked() []func(Status) {
 
 // emitLocked queues a status event. Events are queued under m.mu, at the
 // moment the state changes, so every job's events are published in order.
-func (m *Manager) emitLocked(status Status) {
+func (m *Manager) emitLocked(status Status) int64 {
 	m.pending = append(m.pending, pendingEvent{listeners: m.listenersLocked(), status: status})
+	m.emitted++
+	return m.emitted
 }
 
 // drain publishes queued events in order. Only one goroutine publishes at a
@@ -391,6 +442,8 @@ func (m *Manager) drain() {
 			fn(e.status)
 		}
 		m.mu.Lock()
+		m.delivered++
+		m.flushed.Broadcast()
 	}
 	m.draining = false
 	m.mu.Unlock()
@@ -401,18 +454,13 @@ func (m *Manager) drain() {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.mu.Lock()
 	m.stopped = true
-	for _, l := range m.lanes {
-		for _, j := range l.queue {
-			m.cancelQueuedLocked(j)
-		}
-		l.queue = nil
-	}
 	m.mu.Unlock()
-	m.drain()
+	m.cancelQueued()
 	m.cancel()
 	finished := make(chan struct{})
 	go func() {
 		m.wg.Wait()
+		m.flush()
 		close(finished)
 	}()
 	select {

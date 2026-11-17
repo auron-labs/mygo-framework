@@ -116,8 +116,11 @@ err = manager.Shutdown(shutdownCtx)
   `context.Canceled`), or `Failed` (any other error, or a panic, which is
   recovered and reported in `Status.Err`). A job that returns nil after being
   canceled is `Done`.
-- `Subscribe` callbacks run on the goroutine that changed the status and must
-  not block. The first event for a job is `Queued` if its lane is full and
+- `Subscribe` callbacks must not block. They run one at a time on whichever
+  goroutine is publishing, which may not be the one that changed the status. A
+  job's function starts only after its `Running` event is delivered, and
+  `Shutdown` returns only after all events are delivered. If the parent context
+  is canceled, queued jobs end as `Canceled` just as on `Shutdown`. The first event for a job is `Queued` if its lane is full and
   `Running` otherwise, and the last is its terminal state. Events for one job
   arrive in order, and all events are delivered one at a time; callbacks for
   different jobs never overlap. MyGo's `Event` and `Channel` deliver to web

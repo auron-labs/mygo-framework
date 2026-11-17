@@ -399,3 +399,58 @@ func TestQueuedEventOrderIsPerJob(t *testing.T) {
 		}
 	}
 }
+
+func TestParentCancelCancelsQueuedWithoutSlotFree(t *testing.T) {
+	parent, cancel := context.WithCancel(context.Background())
+	m := jobs.New(parent)
+	if err := m.SetLane("l", 1); err != nil {
+		t.Fatal(err)
+	}
+	release := make(chan struct{})
+	if err := m.StartIn("l", "a", func(context.Context, jobs.Report) error { <-release; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.StartIn("l", "b", func(context.Context, jobs.Report) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	cancel()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if s, _ := m.Status("b"); s.State == jobs.Canceled {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("queued job not canceled by parent cancellation")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	close(release)
+	if err := m.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestShutdownReturnsAfterEventsDelivered(t *testing.T) {
+	m := jobs.New(context.Background())
+	var mu sync.Mutex
+	var last jobs.State
+	m.Subscribe(func(s jobs.Status) {
+		time.Sleep(5 * time.Millisecond)
+		if s.Name == "x" {
+			mu.Lock()
+			last = s.State
+			mu.Unlock()
+		}
+	})
+	if err := m.Start("x", func(context.Context, jobs.Report) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if last != jobs.Done {
+		t.Fatalf("last delivered state = %q before Shutdown returned", last)
+	}
+}
