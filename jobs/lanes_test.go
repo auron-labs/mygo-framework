@@ -203,6 +203,9 @@ func TestLaneErrors(t *testing.T) {
 	if err := m.StartIn("", "a", nil); !errors.Is(err, jobs.ErrUnknownLane) {
 		t.Fatalf("empty lane = %v", err)
 	}
+	if err := m.SetLane("", 1); !errors.Is(err, jobs.ErrEmptyLane) {
+		t.Fatalf("empty lane name = %v", err)
+	}
 	if err := m.SetLane("x", 0); !errors.Is(err, jobs.ErrInvalidLimit) {
 		t.Fatalf("limit 0 = %v", err)
 	}
@@ -352,5 +355,47 @@ func TestParentCancelDoesNotRunQueuedJobs(t *testing.T) {
 	}
 	if err := m.Shutdown(t.Context()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A slow subscriber must not let a promoted job's later events overtake its Queued event.
+func TestQueuedEventOrderIsPerJob(t *testing.T) {
+	for range 200 {
+		m := newLanes(t, map[string]int{"l": 1})
+		var mu sync.Mutex
+		seen := map[string][]jobs.State{}
+		g := newGate()
+		var once sync.Once
+		m.Subscribe(func(s jobs.Status) {
+			if s.Name == "b" && s.State == jobs.Queued {
+				once.Do(func() { close(g.release) })
+				time.Sleep(time.Millisecond)
+			}
+		})
+		m.Subscribe(func(s jobs.Status) {
+			mu.Lock()
+			seen[s.Name] = append(seen[s.Name], s.State)
+			mu.Unlock()
+		})
+		if err := m.StartIn("l", "a", g.job("a")); err != nil {
+			t.Fatal(err)
+		}
+		waitStarted(t, g, "a")
+		if err := m.StartIn("l", "b", func(context.Context, jobs.Report) error { return nil }); err != nil {
+			t.Fatal(err)
+		}
+		if err := m.Shutdown(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		mu.Lock()
+		got := seen["b"]
+		mu.Unlock()
+		if len(got) == 0 || got[0] != jobs.Queued {
+			t.Fatalf("job b events = %v, want Queued first", got)
+		}
+		last := got[len(got)-1]
+		if last != jobs.Done && last != jobs.Canceled {
+			t.Fatalf("job b events = %v, want terminal last", got)
+		}
 	}
 }

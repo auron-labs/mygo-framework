@@ -107,7 +107,8 @@ err = manager.Shutdown(shutdownCtx)
   in a view as "Waiting in queue", and starts in first-in-first-out order as
   running jobs finish. `Queued` and `Running` are both non-terminal, and
   `ErrRunning` applies to either. `Start` jobs belong to no lane and run at
-  once. `StartIn` with an undefined lane returns `jobs.ErrUnknownLane`.
+  once. `StartIn` with an undefined lane returns `jobs.ErrUnknownLane`; `SetLane`
+  rejects an empty name (`jobs.ErrEmptyLane`) or a limit below one.
 - `manager.List()` returns every job's latest status, including finished
   ones, in start order, for a queue or activity view. Finished jobs stay listed
   until their name is started again. `Cancel` works on queued jobs too.
@@ -118,15 +119,17 @@ err = manager.Shutdown(shutdownCtx)
 - `Subscribe` callbacks run on the goroutine that changed the status and must
   not block. The first event for a job is `Queued` if its lane is full and
   `Running` otherwise, and the last is its terminal state. Events for one job
-  arrive in order; events for different jobs may interleave. MyGo's `Event` and `Channel` deliver to web pages only, so a
-  native view subscribes with a callback: the starter calls `Window.Invalidate`
-  (safe from any goroutine) and reads `Status` while building the view. A web
-  page can forward the same callback to a `mygo.Event` or a bound method's
-  `*mygo.Channel`.
+  arrive in order, and all events are delivered one at a time; callbacks for
+  different jobs never overlap. MyGo's `Event` and `Channel` deliver to web
+  pages only, so a native view subscribes with a callback: the starter calls
+  `Window.Invalidate` (safe from any goroutine) and reads `Status` while
+  building the view. A web page can forward the same callback to a
+  `mygo.Event` or a bound method's `*mygo.Channel`.
 - `Shutdown` rejects new jobs, cancels queued jobs (they end as `Canceled`
-  without running) and running ones, and waits for them within its context. The native starter calls it with a five-second deadline after
-  the event loop stops and before the database closes. Jobs must return
-  promptly when their context is canceled.
+  without running) and running ones, and waits for them within its context.
+  The native starter calls it with a five-second deadline after the event
+  loop stops and before the database closes. Jobs must return promptly when
+  their context is canceled.
 
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
 renders `components.Progress` from `Status.Fraction()` and offers **Cancel

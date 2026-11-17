@@ -31,6 +31,8 @@ var (
 	ErrRunning = errors.New("job is already running")
 	// ErrUnknownLane is returned by StartIn for a lane that SetLane never defined.
 	ErrUnknownLane = errors.New("unknown job lane")
+	// ErrEmptyLane is returned by SetLane for an empty lane name.
+	ErrEmptyLane = errors.New("lane name must not be empty")
 	// ErrInvalidLimit is returned by SetLane for a limit below one.
 	ErrInvalidLimit = errors.New("lane limit must be at least 1")
 	// ErrStopped is returned by Start after Shutdown.
@@ -82,6 +84,13 @@ type Manager struct {
 	nextID    int
 	lanes     map[string]*lane
 	nextSeq   int
+	pending   []pendingEvent
+	draining  bool
+}
+
+type pendingEvent struct {
+	listeners []func(Status)
+	status    Status
 }
 
 // lane limits how many of its jobs run at once; the rest wait in queue, oldest first.
@@ -111,7 +120,7 @@ func New(parent context.Context) *Manager {
 // interrupts running ones.
 func (m *Manager) SetLane(name string, limit int) error {
 	if name == "" {
-		return fmt.Errorf("set lane: %w", ErrUnknownLane)
+		return fmt.Errorf("set lane: %w", ErrEmptyLane)
 	}
 	if limit < 1 {
 		return fmt.Errorf("set lane %q: %w", name, ErrInvalidLimit)
@@ -123,9 +132,9 @@ func (m *Manager) SetLane(name string, limit int) error {
 		m.lanes[name] = l
 	}
 	l.limit = limit
-	started, events := m.promoteLocked(l)
+	started := m.promoteLocked(l)
 	m.mu.Unlock()
-	m.launch(started, events)
+	m.launch(started)
 	return nil
 }
 
@@ -179,21 +188,22 @@ func (m *Manager) start(laneName, name string, fn Func) error {
 	} else if l != nil {
 		l.running++
 	}
-	status, listeners := j.status, m.listenersLocked()
+	// Queued under the lock, so no other goroutine can publish a later event first.
+	m.emitLocked(j.status)
+	state := j.status.State
 	m.mu.Unlock()
 
-	// Announced before the goroutine starts so the first event is always Queued or Running.
-	notify(listeners, status)
-	if status.State == Running {
+	m.drain()
+	if state == Running {
 		go m.run(j)
 	}
 	return nil
 }
 
 // promoteLocked moves queued jobs into free slots of l. It returns the jobs to
-// start and the status events to publish, in order. Jobs whose context is
+// start; their status events are queued for publication. Jobs whose context is
 // already canceled finish as Canceled without running.
-func (m *Manager) promoteLocked(l *lane) (started []*job, events []Status) {
+func (m *Manager) promoteLocked(l *lane) (started []*job) {
 	for !m.stopped && l.running < l.limit && len(l.queue) > 0 {
 		j := l.queue[0]
 		l.queue = l.queue[1:]
@@ -201,28 +211,20 @@ func (m *Manager) promoteLocked(l *lane) (started []*job, events []Status) {
 			j.status.State = Canceled
 			j.cancel()
 			m.wg.Done()
-			events = append(events, j.status)
+			m.emitLocked(j.status)
 			continue
 		}
 		j.status.State = Running
 		l.running++
 		started = append(started, j)
-		events = append(events, j.status)
+		m.emitLocked(j.status)
 	}
-	return started, events
+	return started
 }
 
-// launch publishes events and starts the promoted jobs.
-func (m *Manager) launch(started []*job, events []Status) {
-	if len(events) == 0 {
-		return
-	}
-	m.mu.Lock()
-	listeners := m.listenersLocked()
-	m.mu.Unlock()
-	for _, s := range events {
-		notify(listeners, s)
-	}
+// launch publishes pending events and starts the promoted jobs.
+func (m *Manager) launch(started []*job) {
+	m.drain()
 	for _, j := range started {
 		go m.run(j)
 	}
@@ -255,9 +257,9 @@ func (m *Manager) run(j *job) {
 	// Free the slot only after the terminal event, then hand it to the next queued job.
 	m.mu.Lock()
 	j.lane.running--
-	started, events := m.promoteLocked(j.lane)
+	started := m.promoteLocked(j.lane)
 	m.mu.Unlock()
-	m.launch(started, events)
+	m.launch(started)
 }
 
 func call(ctx context.Context, name string, fn Func, report Report) (err error) {
@@ -279,9 +281,9 @@ func (m *Manager) update(j *job, change func(*Status)) {
 		return
 	}
 	change(&j.status)
-	status, listeners := j.status, m.listenersLocked()
+	m.emitLocked(j.status)
 	m.mu.Unlock()
-	notify(listeners, status)
+	m.drain()
 }
 
 // Cancel asks the named job to stop. A queued job is removed from its lane and
@@ -300,19 +302,18 @@ func (m *Manager) Cancel(name string) bool {
 		return true
 	}
 	j.lane.queue = slices.DeleteFunc(j.lane.queue, func(q *job) bool { return q == j })
-	status := m.cancelQueuedLocked(j)
-	listeners := m.listenersLocked()
+	m.cancelQueuedLocked(j)
 	m.mu.Unlock()
-	notify(listeners, status)
+	m.drain()
 	return true
 }
 
 // cancelQueuedLocked ends a job that was removed from its queue without running.
-func (m *Manager) cancelQueuedLocked(j *job) Status {
+func (m *Manager) cancelQueuedLocked(j *job) {
 	j.status.State = Canceled
 	j.cancel()
 	m.wg.Done()
-	return j.status
+	m.emitLocked(j.status)
 }
 
 // List returns the latest status of every job, including finished ones, in the
@@ -367,10 +368,32 @@ func (m *Manager) listenersLocked() []func(Status) {
 	return out
 }
 
-func notify(listeners []func(Status), status Status) {
-	for _, fn := range listeners {
-		fn(status)
+// emitLocked queues a status event. Events are queued under m.mu, at the
+// moment the state changes, so every job's events are published in order.
+func (m *Manager) emitLocked(status Status) {
+	m.pending = append(m.pending, pendingEvent{listeners: m.listenersLocked(), status: status})
+}
+
+// drain publishes queued events in order. Only one goroutine publishes at a
+// time; one that finds another publishing leaves its events to it.
+func (m *Manager) drain() {
+	m.mu.Lock()
+	if m.draining {
+		m.mu.Unlock()
+		return
 	}
+	m.draining = true
+	for len(m.pending) > 0 {
+		e := m.pending[0]
+		m.pending = m.pending[1:]
+		m.mu.Unlock()
+		for _, fn := range e.listeners {
+			fn(e.status)
+		}
+		m.mu.Lock()
+	}
+	m.draining = false
+	m.mu.Unlock()
 }
 
 // Shutdown rejects new jobs, cancels queued jobs without running them, cancels
@@ -378,18 +401,14 @@ func notify(listeners []func(Status), status Status) {
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.mu.Lock()
 	m.stopped = true
-	var events []Status
 	for _, l := range m.lanes {
 		for _, j := range l.queue {
-			events = append(events, m.cancelQueuedLocked(j))
+			m.cancelQueuedLocked(j)
 		}
 		l.queue = nil
 	}
-	listeners := m.listenersLocked()
 	m.mu.Unlock()
-	for _, s := range events {
-		notify(listeners, s)
-	}
+	m.drain()
 	m.cancel()
 	finished := make(chan struct{})
 	go func() {
