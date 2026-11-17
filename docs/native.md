@@ -117,6 +117,35 @@ err = manager.Shutdown(shutdownCtx)
   the event loop stops and before the database closes. Jobs must return
   promptly when their context is canceled.
 
+### Scheduled tasks
+
+`jobs.Scheduler` runs a task every interval through a `Manager`, so `Status`,
+`Subscribe` and `Cancel` work as for any job (the job name is the task name).
+It remembers the last successful run, so an interval survives restarts.
+
+```go
+runs := jobsettings.New(settingsStore, "") // jobs/jobsettings; keys "schedule.<name>.last_run"
+sched := jobs.NewScheduler(manager, runs)  // a nil store keeps times in memory only
+err := sched.Schedule("update-check", 24*time.Hour, checkForUpdates)
+sched.Start(ctx)
+sched.Nudge()                    // after a network reconnect, resume or focus
+err = sched.RunNow("update-check") // runs now; on success the interval restarts
+next, ok := sched.NextRun("update-check")
+err = sched.Shutdown(shutdownCtx)  // stops the loop; Manager.Shutdown stops tasks
+```
+
+- A task with no stored last run is due as soon as the scheduler starts.
+- Due means the wall-clock time since the last success is at least the
+  interval. The scheduler checks every minute (`WithPollInterval`) and on
+  `Nudge`, so after sleep a task that came due runs once, not once per missed
+  interval. A last run in the future (clock moved back) restarts the interval.
+- Only successful runs are saved. A failed, canceled or panicked run is retried
+  after `WithRetryDelay` (default one minute), not a full interval later.
+- A task never overlaps itself: a due check while it runs is skipped, and
+  `RunNow` returns `jobs.ErrRunning`. `RunNow` on an unknown name returns
+  `jobs.ErrUnknownTask`.
+- A failing store is reported and the scheduler falls back to in-memory times.
+
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
 renders `components.Progress` from `Status.Fraction()` and offers **Cancel
 import**; replace the function with real work. See
