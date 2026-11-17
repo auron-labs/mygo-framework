@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/auron-labs/mygo-framework/compare/v1.0.0...v1.0.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** regenerate MyGo 0.9.2 client and keep CLI go.sum entries ([1d58a77](https://github.com/auron-labs/mygo-framework/commit/1d58a777c47f44ac9fe7be614f2e82d62f4d043d))
+
 ## [1.0.0](https://github.com/auron-labs/mygo-framework/compare/v0.3.0...v1.0.0) (2026-11-11)
 
 
