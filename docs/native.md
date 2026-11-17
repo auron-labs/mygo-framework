@@ -384,6 +384,17 @@ update signing key in the `MYGO_UPDATER_PRIVATE_KEY` secret, as described in
 [GitHub Actions guide](https://github.com/egoist/mygo/blob/main/docs/github-actions.md)
 adds macOS and Windows code signing.
 
+## Continuous integration
+
+The native starter includes `.github/workflows/ci.yml`. On every push to `main`
+and every pull request it builds, vets (`go vet` and `go tool mygo vet .`) and
+tests (`CGO_ENABLED=0 go test ./...`) the app on `ubuntu-latest` and
+`windows-latest`, runs `golangci-lint` with the starter's `.golangci.yml`, and
+fails if `go tool mygo generate` changes the locale catalog or any other
+generated file. Hosted runners are headless, so the tests never open a window.
+`mise.toml` pins the tools; keep its Go version equal to `go.mod`. Run the same
+checks locally with `golangci-lint run` and `go tool mygo generate`.
+
 ## Reactive state
 
 `github.com/auron-labs/mygo-framework/state` holds values that views, background goroutines and
