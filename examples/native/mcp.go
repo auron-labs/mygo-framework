@@ -6,7 +6,7 @@ import (
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/state"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/theme"
 )

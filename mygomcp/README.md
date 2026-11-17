@@ -19,13 +19,14 @@ module replacement, reflection, or unsafe access is used.
 From your application's Go module:
 
 ```sh
-go get github.com/auron-labs/mygo-mcp@latest
+go get github.com/auron-labs/mygo-framework@latest
 ```
 
-This installs the latest released module version. See [releases](https://github.com/auron-labs/mygo-mcp/releases)
+MyGo MCP is the `mygomcp` package of the `github.com/auron-labs/mygo-framework`
+module and is versioned with it. See [releases](https://github.com/auron-labs/mygo-framework/releases)
 for version history; pin a specific tag in `go get` when you need reproducible setup.
 If accessing a private copy, configure Git authentication and include
-`github.com/auron-labs/mygo-mcp` in your existing `GOPRIVATE` setting first.
+`github.com/auron-labs/mygo-framework` in your existing `GOPRIVATE` setting first.
 
 ## Start a harness
 
@@ -41,7 +42,7 @@ import (
     "os"
     "os/signal"
 
-    mygomcp "github.com/auron-labs/mygo-mcp"
+    mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
     "github.com/egoist/mygo/ui"
 )
 

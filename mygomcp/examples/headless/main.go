@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
-	"github.com/auron-labs/mygo-mcp/internal/demo"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+	"github.com/auron-labs/mygo-framework/mygomcp/internal/demo"
 	"github.com/egoist/mygo/ui"
 )
 

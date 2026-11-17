@@ -59,7 +59,7 @@ Stop it with Ctrl+C; restart it to reset the fixture.
 The listener requires an explicit loopback IP and port. It has no authentication;
 keep it local and use test state and services when extending `nativeFixture` in
 `mcp.go`. Headless fixtures cannot control a running desktop window, OS dialogs,
-or webviews. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-mcp/blob/9f095775017aafe64c22e934d2178fa7b6657209/docs/AGENT_GUIDE.md)
+or webviews. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-framework/blob/main/mygomcp/docs/AGENT_GUIDE.md)
 for tool inputs and observation rules.
 
 User-visible strings live in `locales/en.json`; views call the generated

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-mcp/internal/demo"
+	"github.com/auron-labs/mygo-framework/mygomcp/internal/demo"
 	"github.com/egoist/mygo/ui"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

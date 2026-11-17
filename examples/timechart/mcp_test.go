@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
