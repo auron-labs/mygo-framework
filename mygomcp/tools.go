@@ -1,0 +1,323 @@
+package mygomcp
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"github.com/egoist/mygo/ui"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+type sessionInput struct {
+	SessionID string `json:"session_id" jsonschema:"Registered headless session ID"`
+}
+type clickInput struct {
+	SessionID    string  `json:"session_id"`
+	ScreenshotID string  `json:"screenshot_id,omitempty"`
+	X            float64 `json:"x" jsonschema:"Horizontal screenshot pixel coordinate"`
+	Y            float64 `json:"y" jsonschema:"Vertical screenshot pixel coordinate"`
+}
+type clickRequest struct {
+	clickInput
+	ObservationID string `json:"observation_id,omitempty" jsonschema:"Latest inspection or screenshot observation ID; alternatively supply screenshot_id"`
+	Inspect       bool   `json:"inspect,omitempty" jsonschema:"Return resulting labels, targets and a fresh observation without a PNG; screenshot also includes this metadata"`
+	Screenshot    bool   `json:"screenshot,omitempty" jsonschema:"Return the resulting PNG and a fresh observation after delivery"`
+}
+
+func (in clickRequest) validate() error {
+	id, err := observationID(in.ScreenshotID, in.ObservationID)
+	if err != nil {
+		return err
+	}
+	base := in.clickInput
+	base.ScreenshotID = id
+	if err := base.validate(); err != nil {
+		return &targetError{Code: "out_of_bounds", Message: err.Error()}
+	}
+	return nil
+}
+
+type typeInput struct {
+	SessionID string `json:"session_id"`
+	Text      string `json:"text" jsonschema:"Committed UTF-8 text; at most 65536 bytes"`
+}
+type typeRequest struct {
+	typeInput
+	Inspect    bool `json:"inspect,omitempty" jsonschema:"Return resulting labels, targets and a fresh observation without a PNG; screenshot also includes this metadata"`
+	Screenshot bool `json:"screenshot,omitempty" jsonschema:"Return the resulting PNG and a fresh observation after delivery"`
+}
+type clickLabelInput struct {
+	SessionID    string `json:"session_id"`
+	ScreenshotID string `json:"screenshot_id,omitempty"`
+	Label        string `json:"label" jsonschema:"Exact visible text or explicit MyGo Label; must match uniquely"`
+}
+type clickLabelRequest struct {
+	clickLabelInput
+	ObservationID string `json:"observation_id,omitempty" jsonschema:"Latest inspection or screenshot observation ID; alternatively supply screenshot_id"`
+	Inspect       bool   `json:"inspect,omitempty" jsonschema:"Return resulting labels, targets and a fresh observation without a PNG; screenshot also includes this metadata"`
+	Screenshot    bool   `json:"screenshot,omitempty" jsonschema:"Return the resulting PNG and a fresh observation after delivery"`
+}
+
+func (in clickLabelRequest) validate() error {
+	id, err := observationID(in.ScreenshotID, in.ObservationID)
+	if err != nil {
+		return err
+	}
+	base := in.clickLabelInput
+	base.ScreenshotID = id
+	return base.validate()
+}
+
+func (in clickLabelInput) validate() error {
+	if in.ScreenshotID == "" || in.Label == "" || !utf8.ValidString(in.Label) || len(in.Label) > maxTextBytes {
+		return errors.New("screenshot_id and nonempty UTF-8 label of at most 65536 bytes required")
+	}
+	return nil
+}
+
+type keyInput struct {
+	SessionID string   `json:"session_id"`
+	Key       string   `json:"key"`
+	Modifiers []string `json:"modifiers,omitempty"`
+}
+type keyRequest struct {
+	keyInput
+	Inspect    bool `json:"inspect,omitempty" jsonschema:"Return resulting labels, targets and a fresh observation without a PNG; screenshot also includes this metadata"`
+	Screenshot bool `json:"screenshot,omitempty" jsonschema:"Return the resulting PNG and a fresh observation after delivery"`
+}
+type advanceInput struct {
+	SessionID    string  `json:"session_id"`
+	Milliseconds float64 `json:"milliseconds" jsonschema:"Integer simulated duration from 0 through 1000"`
+}
+
+func (in clickInput) validate() error {
+	if in.ScreenshotID == "" || !finite(in.X) || !finite(in.Y) || in.X < 0 || in.Y < 0 {
+		return errors.New("screenshot_id and finite nonnegative pixel coordinates required")
+	}
+	return nil
+}
+
+func (in typeInput) validate() error {
+	if !utf8.ValidString(in.Text) || len(in.Text) > maxTextBytes {
+		return errors.New("text must be valid UTF-8 and at most 65536 bytes")
+	}
+	return nil
+}
+
+func (in advanceInput) validate() error {
+	if !finite(in.Milliseconds) || in.Milliseconds < 0 || in.Milliseconds > maxAdvanceMS || math.Trunc(in.Milliseconds) != in.Milliseconds {
+		return errors.New("milliseconds must be an integer from 0 through 1000")
+	}
+	return nil
+}
+
+type sessionInfo struct {
+	ID         string   `json:"session_id"`
+	Name       string   `json:"name"`
+	Width      int      `json:"content_width"`
+	Height     int      `json:"content_height"`
+	Scale      float32  `json:"scale"`
+	Operations []string `json:"operations"`
+	Failed     string   `json:"failed,omitempty"`
+}
+
+type status struct {
+	SessionID    string    `json:"session_id"`
+	Time         time.Time `json:"simulated_time"`
+	FramePending bool      `json:"frame_pending"`
+	Delivered    bool      `json:"delivered,omitempty"`
+}
+type screenshotInfo struct {
+	status
+	ObservationID string       `json:"observation_id"`
+	ScreenshotID  string       `json:"screenshot_id,omitempty"`
+	ImageWidth    int          `json:"image_width"`
+	ImageHeight   int          `json:"image_height"`
+	ContentWidth  int          `json:"content_width"`
+	ContentHeight int          `json:"content_height"`
+	Scale         float32      `json:"scale"`
+	Labels        []string     `json:"labels"`
+	Targets       []targetInfo `json:"targets"`
+}
+type payload struct {
+	metadata any
+	png      []byte
+}
+
+func addTool[In any](server *mcp.Server, name, description string, fn func(context.Context, In) (payload, error)) {
+	mcp.AddTool(server, &mcp.Tool{Name: name, Description: description}, func(ctx context.Context, _ *mcp.CallToolRequest, in In) (*mcp.CallToolResult, any, error) {
+		p, err := fn(ctx, in)
+		if err != nil {
+			var target *targetError
+			if !errors.As(err, &target) {
+				return nil, nil, err
+			}
+			b, marshalErr := json.Marshal(target)
+			if marshalErr != nil {
+				return nil, nil, fmt.Errorf("encode targeting error: %w", marshalErr)
+			}
+			return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: string(b)}}, StructuredContent: target}, nil, nil
+		}
+		text, err := json.Marshal(p.metadata)
+		if err != nil {
+			return nil, nil, fmt.Errorf("encode result: %w", err)
+		}
+		content := []mcp.Content{&mcp.TextContent{Text: string(text)}}
+		if p.png != nil {
+			content = append(content, &mcp.ImageContent{Data: p.png, MIMEType: "image/png"})
+		}
+		return &mcp.CallToolResult{Content: content, StructuredContent: p.metadata}, nil, nil
+	})
+}
+
+func currentStatus(x *session, delivered bool) status {
+	return status{SessionID: x.id, Time: x.tester.Now(), FramePending: x.tester.FramePending(), Delivered: delivered}
+}
+
+func (s *service) operation(ctx context.Context, id string, validate func() error, mutate bool, fn func(*session) (payload, error)) (payload, error) {
+	if id == "" {
+		return payload{}, errors.New("session_id required")
+	}
+	if err := validate(); err != nil {
+		return payload{}, err
+	}
+	v, err := s.call(ctx, id, func(x *session) (any, error) {
+		if err := validate(); err != nil {
+			return nil, err
+		}
+		if mutate {
+			x.shot = nil
+		}
+		return fn(x)
+	})
+	if err != nil {
+		return payload{}, err
+	}
+	return v.(payload), nil
+}
+
+func validSessionInput() error { return nil }
+
+func (s *service) registerTools(server *mcp.Server) {
+	addTool(server, "mygo_sessions", "List registered isolated headless fixtures, not desktop windows.", func(ctx context.Context, _ struct{}) (payload, error) {
+		v, err := s.call(ctx, "", func(*session) (any, error) {
+			list := make([]sessionInfo, 0, len(s.sessions))
+			for _, x := range s.sessions {
+				info := sessionInfo{ID: x.id, Name: x.fixture.Name, Width: x.fixture.Width, Height: x.fixture.Height, Scale: x.fixture.Scale, Operations: []string{"mygo_screenshot", "mygo_inspect", "mygo_click", "mygo_click_label", "mygo_scroll", "mygo_type", "mygo_key", "mygo_advance", "mygo_wait_text", "mygo_access"}}
+				if x.failed != nil {
+					info.Failed = x.failed.Error()
+					info.Operations = []string{}
+				}
+				list = append(list, info)
+			}
+			return payload{metadata: struct {
+				Sessions []sessionInfo `json:"sessions"`
+			}{list}}, nil
+		})
+		if err != nil {
+			return payload{}, err
+		}
+		return v.(payload), nil
+	})
+	s.registerObservationTools(server)
+	s.registerScrollAndWaitTools(server)
+	s.registerAccessTools(server)
+	addTool(server, "mygo_click", "Deliver one left click in image pixels of the latest observation. Set inspect=true for resulting targets without a PNG, or screenshot=true to include a PNG. Requires a fresh observation after any mutation.", func(ctx context.Context, in clickRequest) (payload, error) {
+		return s.operation(ctx, in.SessionID, in.validate, false, func(x *session) (payload, error) {
+			cx, cy, err := pointTarget(x, in)
+			if err != nil {
+				return payload{}, err
+			}
+			x.shot = nil
+			x.tester.ClickAt(cx, cy)
+			return finishAction(x, in.Inspect, in.Screenshot)
+		})
+	})
+	addTool(server, "mygo_click_label", "Click a uniquely matching exact text or MyGo Label from the latest observation. Set inspect=true for resulting targets without a PNG, or screenshot=true to include a PNG. Delivery does not imply acceptance.", func(ctx context.Context, in clickLabelRequest) (payload, error) {
+		return s.operation(ctx, in.SessionID, in.validate, false, func(x *session) (payload, error) {
+			cx, cy, err := labelTarget(x, in)
+			if err != nil {
+				return payload{}, err
+			}
+			x.shot = nil
+			x.tester.ClickAt(cx, cy)
+			return finishAction(x, in.Inspect, in.Screenshot)
+		})
+	})
+	addTool(server, "mygo_type", "Deliver committed Unicode to the focused control. Delivery does not imply acceptance. Set inspect=true for resulting targets without a PNG, or screenshot=true to include a PNG.", func(ctx context.Context, in typeRequest) (payload, error) {
+		return s.operation(ctx, in.SessionID, in.validate, true, func(x *session) (payload, error) {
+			x.tester.Type(in.Text)
+			return finishAction(x, in.Inspect, in.Screenshot)
+		})
+	})
+	addTool(server, "mygo_key", "Deliver a complete key chord; printable keys do not insert text. Modifiers: shift, control, alt, meta, primary. Set inspect=true for resulting targets without a PNG, or screenshot=true to include a PNG.", func(ctx context.Context, in keyRequest) (payload, error) {
+		return s.operation(ctx, in.SessionID, func() error { _, _, err := parseKey(in.keyInput); return err }, true, func(x *session) (payload, error) {
+			key, mods, err := parseKey(in.keyInput)
+			if err != nil {
+				return payload{}, err
+			}
+			x.tester.Key(mods, key)
+			return finishAction(x, in.Inspect, in.Screenshot)
+		})
+	})
+	addTool(server, "mygo_advance", "Advance frozen tester time by 0..1000 integer milliseconds; does not wait for external services or imply idleness.", func(ctx context.Context, in advanceInput) (payload, error) {
+		return s.operation(ctx, in.SessionID, in.validate, true, func(x *session) (payload, error) {
+			x.tester.Advance(time.Duration(in.Milliseconds) * time.Millisecond)
+			return payload{metadata: currentStatus(x, true)}, nil
+		})
+	})
+}
+
+var keys = map[string]ui.Key{
+	"enter": ui.KeyEnter, "escape": ui.KeyEscape, "backspace": ui.KeyBackspace,
+	"tab": ui.KeyTab, "space": ui.KeySpace, "delete": ui.KeyDelete, "insert": ui.KeyInsert,
+	"home": ui.KeyHome, "end": ui.KeyEnd, "pageup": ui.KeyPageUp, "pagedown": ui.KeyPageDown,
+	"left": ui.KeyLeft, "right": ui.KeyRight, "up": ui.KeyUp, "down": ui.KeyDown,
+	"back": ui.KeyBack, "forward": ui.KeyForward,
+	"f1": ui.KeyF1, "f2": ui.KeyF2, "f3": ui.KeyF3, "f4": ui.KeyF4, "f5": ui.KeyF5, "f6": ui.KeyF6,
+	"f7": ui.KeyF7, "f8": ui.KeyF8, "f9": ui.KeyF9, "f10": ui.KeyF10, "f11": ui.KeyF11, "f12": ui.KeyF12,
+	"a": ui.KeyA, "b": ui.KeyB, "c": ui.KeyC, "d": ui.KeyD, "e": ui.KeyE, "f": ui.KeyF,
+	"g": ui.KeyG, "h": ui.KeyH, "i": ui.KeyI, "j": ui.KeyJ, "k": ui.KeyK, "l": ui.KeyL,
+	"m": ui.KeyM, "n": ui.KeyN, "o": ui.KeyO, "p": ui.KeyP, "q": ui.KeyQ, "r": ui.KeyR,
+	"s": ui.KeyS, "t": ui.KeyT, "u": ui.KeyU, "v": ui.KeyV, "w": ui.KeyW, "x": ui.KeyX, "y": ui.KeyY, "z": ui.KeyZ,
+	"0": ui.Key0, "1": ui.Key1, "2": ui.Key2, "3": ui.Key3, "4": ui.Key4,
+	"5": ui.Key5, "6": ui.Key6, "7": ui.Key7, "8": ui.Key8, "9": ui.Key9,
+	"minus": ui.KeyMinus, "equal": ui.KeyEqual, "comma": ui.KeyComma, "period": ui.KeyPeriod,
+	"slash": ui.KeySlash, "semicolon": ui.KeySemicolon, "quote": ui.KeyQuote,
+	"bracketleft": ui.KeyBracketLeft, "bracketright": ui.KeyBracketRight, "backslash": ui.KeyBackslash,
+	"backquote": ui.KeyBackquote, "contextmenu": ui.KeyContextMenu,
+}
+
+func parseKey(in keyInput) (ui.Key, ui.Modifiers, error) {
+	key, ok := keys[strings.ToLower(in.Key)]
+	if !ok {
+		return 0, 0, errors.New("unsupported key")
+	}
+	if len(in.Modifiers) > 5 {
+		return 0, 0, errors.New("too many modifiers")
+	}
+	var mods ui.Modifiers
+	for _, name := range in.Modifiers {
+		switch strings.ToLower(name) {
+		case "shift":
+			mods |= ui.Shift
+		case "control":
+			mods |= ui.Ctrl
+		case "alt":
+			mods |= ui.Alt
+		case "meta":
+			mods |= ui.Super
+		case "primary":
+			mods |= ui.Cmd
+		default:
+			return 0, 0, errors.New("unsupported modifier")
+		}
+	}
+	return key, mods, nil
+}
