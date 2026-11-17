@@ -1,11 +1,13 @@
 // Package jobs runs named background jobs with progress, cancellation, and
-// completion events.
+// completion events. Jobs can share a named lane with a concurrency limit;
+// jobs over the limit wait as Queued.
 package jobs
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/auron-labs/mygo-framework/errorreport"
@@ -14,8 +16,10 @@ import (
 // State is where a job is in its lifecycle.
 type State string
 
-// Job states. Running is the only non-terminal state.
+// Job states. Queued and Running are the non-terminal states; a job only
+// becomes Queued when its lane is full.
 const (
+	Queued   State = "queued"
 	Running  State = "running"
 	Done     State = "done"
 	Canceled State = "canceled"
@@ -25,6 +29,10 @@ const (
 var (
 	// ErrRunning is returned by Start when a job with the same name is still running.
 	ErrRunning = errors.New("job is already running")
+	// ErrUnknownLane is returned by StartIn for a lane that SetLane never defined.
+	ErrUnknownLane = errors.New("unknown job lane")
+	// ErrInvalidLimit is returned by SetLane for a limit below one.
+	ErrInvalidLimit = errors.New("lane limit must be at least 1")
 	// ErrStopped is returned by Start after Shutdown.
 	ErrStopped = errors.New("job manager is stopped")
 
@@ -33,7 +41,9 @@ var (
 
 // Status is a snapshot of a job, delivered to subscribers on every change.
 type Status struct {
-	Name    string
+	Name string
+	// Lane is the lane the job runs in, or empty for a job started with Start.
+	Lane    string
 	State   State
 	Done    int
 	Total   int
@@ -58,7 +68,8 @@ type Report func(done, total int, message string)
 // Returning an error that wraps context.Canceled ends the job as Canceled.
 type Func func(ctx context.Context, report Report) error
 
-// Manager runs at most one job per name.
+// Manager runs at most one job per name. Jobs started with StartIn also
+// respect their lane's concurrency limit.
 type Manager struct {
 	ctx    context.Context //nolint:containedctx // The manager's lifetime context parents every job.
 	cancel context.CancelFunc
@@ -69,54 +80,164 @@ type Manager struct {
 	jobs      map[string]*job
 	listeners map[int]func(Status)
 	nextID    int
+	lanes     map[string]*lane
+	nextSeq   int
+}
+
+// lane limits how many of its jobs run at once; the rest wait in queue, oldest first.
+type lane struct {
+	limit   int
+	running int
+	queue   []*job
 }
 
 type job struct {
 	status Status
+	ctx    context.Context //nolint:containedctx // Created when the job is enqueued so cancellation reaches queued jobs.
 	cancel context.CancelFunc
+	fn     Func
+	lane   *lane
+	seq    int
 }
 
 // New returns a manager whose jobs stop when parent is canceled or Shutdown is called.
 func New(parent context.Context) *Manager {
 	ctx, cancel := context.WithCancel(parent)
-	return &Manager{ctx: ctx, cancel: cancel, jobs: map[string]*job{}, listeners: map[int]func(Status){}}
+	return &Manager{ctx: ctx, cancel: cancel, jobs: map[string]*job{}, listeners: map[int]func(Status){}, lanes: map[string]*lane{}}
 }
 
-// Start runs fn in a new goroutine. It returns ErrRunning if a job named name
-// has not finished yet, so callers decide whether to cancel or wait; a finished
-// job's name can be reused. A panic in fn ends the job as Failed.
+// SetLane defines the lane name, or changes its limit, so at most limit of its
+// jobs run at once. Raising the limit starts queued jobs; lowering it never
+// interrupts running ones.
+func (m *Manager) SetLane(name string, limit int) error {
+	if name == "" {
+		return fmt.Errorf("set lane: %w", ErrUnknownLane)
+	}
+	if limit < 1 {
+		return fmt.Errorf("set lane %q: %w", name, ErrInvalidLimit)
+	}
+	m.mu.Lock()
+	l := m.lanes[name]
+	if l == nil {
+		l = &lane{}
+		m.lanes[name] = l
+	}
+	l.limit = limit
+	started, events := m.promoteLocked(l)
+	m.mu.Unlock()
+	m.launch(started, events)
+	return nil
+}
+
+// Start runs fn in a new goroutine, outside any lane. It returns ErrRunning if
+// a job named name has not finished yet, so callers decide whether to cancel
+// or wait; a finished job's name can be reused. A panic in fn ends the job as
+// Failed.
 func (m *Manager) Start(name string, fn Func) error {
+	return m.start("", name, fn)
+}
+
+// StartIn is like Start but runs the job in the named lane. When the lane
+// already has its limit of running jobs the job is Queued and starts, in the
+// order queued, as running ones finish. The name must not belong to a queued or
+// running job. It returns ErrUnknownLane if SetLane never defined the lane.
+func (m *Manager) StartIn(laneName, name string, fn Func) error {
+	if laneName == "" {
+		return fmt.Errorf("start job %q: %w", name, ErrUnknownLane)
+	}
+	return m.start(laneName, name, fn)
+}
+
+func (m *Manager) start(laneName, name string, fn Func) error {
 	m.mu.Lock()
 	if m.stopped {
 		m.mu.Unlock()
 		return ErrStopped
 	}
-	if existing := m.jobs[name]; existing != nil && existing.status.State == Running {
+	var l *lane
+	if laneName != "" {
+		if l = m.lanes[laneName]; l == nil {
+			m.mu.Unlock()
+			return fmt.Errorf("start job %q in lane %q: %w", name, laneName, ErrUnknownLane)
+		}
+	}
+	if existing := m.jobs[name]; existing != nil && (existing.status.State == Running || existing.status.State == Queued) {
 		m.mu.Unlock()
 		return fmt.Errorf("start job %q: %w", name, ErrRunning)
 	}
 	ctx, cancel := context.WithCancel(m.ctx)
-	j := &job{status: Status{Name: name, State: Running}, cancel: cancel}
+	j := &job{
+		status: Status{Name: name, Lane: laneName, State: Running},
+		ctx:    ctx, cancel: cancel, fn: fn, lane: l, seq: m.nextSeq,
+	}
+	m.nextSeq++
 	m.jobs[name] = j
 	m.wg.Add(1)
-	listeners := m.listenersLocked()
+	if l != nil && l.running >= l.limit {
+		j.status.State = Queued
+		l.queue = append(l.queue, j)
+	} else if l != nil {
+		l.running++
+	}
+	status, listeners := j.status, m.listenersLocked()
 	m.mu.Unlock()
 
-	// Announced before the goroutine starts so Running is always the first event.
-	notify(listeners, j.status)
-	go m.run(ctx, j, fn)
+	// Announced before the goroutine starts so the first event is always Queued or Running.
+	notify(listeners, status)
+	if status.State == Running {
+		go m.run(j)
+	}
 	return nil
 }
 
-func (m *Manager) run(ctx context.Context, j *job, fn Func) {
+// promoteLocked moves queued jobs into free slots of l. It returns the jobs to
+// start and the status events to publish, in order. Jobs whose context is
+// already canceled finish as Canceled without running.
+func (m *Manager) promoteLocked(l *lane) (started []*job, events []Status) {
+	for !m.stopped && l.running < l.limit && len(l.queue) > 0 {
+		j := l.queue[0]
+		l.queue = l.queue[1:]
+		if j.ctx.Err() != nil {
+			j.status.State = Canceled
+			j.cancel()
+			m.wg.Done()
+			events = append(events, j.status)
+			continue
+		}
+		j.status.State = Running
+		l.running++
+		started = append(started, j)
+		events = append(events, j.status)
+	}
+	return started, events
+}
+
+// launch publishes events and starts the promoted jobs.
+func (m *Manager) launch(started []*job, events []Status) {
+	if len(events) == 0 {
+		return
+	}
+	m.mu.Lock()
+	listeners := m.listenersLocked()
+	m.mu.Unlock()
+	for _, s := range events {
+		notify(listeners, s)
+	}
+	for _, j := range started {
+		go m.run(j)
+	}
+}
+
+func (m *Manager) run(j *job) {
 	defer m.wg.Done()
 	defer j.cancel()
-	err := call(ctx, j.status.Name, fn, func(done, total int, message string) {
+	name := j.status.Name
+	err := call(j.ctx, name, j.fn, func(done, total int, message string) {
 		m.update(j, func(s *Status) { s.Done, s.Total, s.Message = done, total, message })
 	})
 	// call has already reported a panic with its stack.
 	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, errPanicked) {
-		errorreport.Capture(err, "job."+j.status.Name, "jobs")
+		errorreport.Capture(err, "job."+name, "jobs")
 	}
 	m.update(j, func(s *Status) {
 		switch {
@@ -128,6 +249,15 @@ func (m *Manager) run(ctx context.Context, j *job, fn Func) {
 			s.State, s.Err = Failed, err.Error()
 		}
 	})
+	if j.lane == nil {
+		return
+	}
+	// Free the slot only after the terminal event, then hand it to the next queued job.
+	m.mu.Lock()
+	j.lane.running--
+	started, events := m.promoteLocked(j.lane)
+	m.mu.Unlock()
+	m.launch(started, events)
 }
 
 func call(ctx context.Context, name string, fn Func, report Report) (err error) {
@@ -154,16 +284,52 @@ func (m *Manager) update(j *job, change func(*Status)) {
 	notify(listeners, status)
 }
 
-// Cancel asks the named job to stop. It reports whether a running job was found.
+// Cancel asks the named job to stop. A queued job is removed from its lane and
+// ends as Canceled without running. It reports whether a queued or running job
+// was found.
 func (m *Manager) Cancel(name string) bool {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	j := m.jobs[name]
-	if j == nil || j.status.State != Running {
+	if j == nil || (j.status.State != Running && j.status.State != Queued) {
+		m.mu.Unlock()
 		return false
 	}
-	j.cancel()
+	if j.status.State == Running {
+		j.cancel()
+		m.mu.Unlock()
+		return true
+	}
+	j.lane.queue = slices.DeleteFunc(j.lane.queue, func(q *job) bool { return q == j })
+	status := m.cancelQueuedLocked(j)
+	listeners := m.listenersLocked()
+	m.mu.Unlock()
+	notify(listeners, status)
 	return true
+}
+
+// cancelQueuedLocked ends a job that was removed from its queue without running.
+func (m *Manager) cancelQueuedLocked(j *job) Status {
+	j.status.State = Canceled
+	j.cancel()
+	m.wg.Done()
+	return j.status
+}
+
+// List returns the latest status of every job, including finished ones, in the
+// order they were started.
+func (m *Manager) List() []Status {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	all := make([]*job, 0, len(m.jobs))
+	for _, j := range m.jobs {
+		all = append(all, j)
+	}
+	slices.SortFunc(all, func(a, b *job) int { return a.seq - b.seq })
+	out := make([]Status, len(all))
+	for i, j := range all {
+		out[i] = j.status
+	}
+	return out
 }
 
 // Status returns the latest status of the named job, including after it finished.
@@ -207,11 +373,23 @@ func notify(listeners []func(Status), status Status) {
 	}
 }
 
-// Shutdown rejects new jobs, cancels running ones, and waits for them within ctx.
+// Shutdown rejects new jobs, cancels queued jobs without running them, cancels
+// running ones, and waits for them within ctx.
 func (m *Manager) Shutdown(ctx context.Context) error {
 	m.mu.Lock()
 	m.stopped = true
+	var events []Status
+	for _, l := range m.lanes {
+		for _, j := range l.queue {
+			events = append(events, m.cancelQueuedLocked(j))
+		}
+		l.queue = nil
+	}
+	listeners := m.listenersLocked()
 	m.mu.Unlock()
+	for _, s := range events {
+		notify(listeners, s)
+	}
 	m.cancel()
 	finished := make(chan struct{})
 	go func() {

@@ -101,19 +101,30 @@ err = manager.Shutdown(shutdownCtx)
 - Only one job per name runs at a time. Starting a name that is still running
   returns `jobs.ErrRunning` and leaves the running job untouched; cancel it or
   wait for it first. A finished job's name can be started again.
+- Lanes limit concurrency. `manager.SetLane("installs", 1)` and
+  `manager.SetLane("checks", 4)` define lanes; `manager.StartIn("installs",
+  name, fn)` runs a job in one. When the lane is full the job is `Queued`, shown
+  in a view as "Waiting in queue", and starts in first-in-first-out order as
+  running jobs finish. `Queued` and `Running` are both non-terminal, and
+  `ErrRunning` applies to either. `Start` jobs belong to no lane and run at
+  once. `StartIn` with an undefined lane returns `jobs.ErrUnknownLane`.
+- `manager.List()` returns every job's latest status, including finished
+  ones, in start order, for a queue or activity view. Finished jobs stay listed
+  until their name is started again. `Cancel` works on queued jobs too.
 - A job ends as `Done` (returned nil), `Canceled` (returned an error wrapping
   `context.Canceled`), or `Failed` (any other error, or a panic, which is
   recovered and reported in `Status.Err`). A job that returns nil after being
   canceled is `Done`.
 - `Subscribe` callbacks run on the goroutine that changed the status and must
-  not block. The first event for a job is always `Running`, and the last is its
-  terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
+  not block. The first event for a job is `Queued` if its lane is full and
+  `Running` otherwise, and the last is its terminal state. Events for one job
+  arrive in order; events for different jobs may interleave. MyGo's `Event` and `Channel` deliver to web pages only, so a
   native view subscribes with a callback: the starter calls `Window.Invalidate`
   (safe from any goroutine) and reads `Status` while building the view. A web
   page can forward the same callback to a `mygo.Event` or a bound method's
   `*mygo.Channel`.
-- `Shutdown` rejects new jobs, cancels running ones, and waits for them within
-  its context. The native starter calls it with a five-second deadline after
+- `Shutdown` rejects new jobs, cancels queued jobs (they end as `Canceled`
+  without running) and running ones, and waits for them within its context. The native starter calls it with a five-second deadline after
   the event loop stops and before the database closes. Jobs must return
   promptly when their context is canceled.
 
