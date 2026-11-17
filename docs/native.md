@@ -13,9 +13,12 @@ Create a native project with Go 1.27.3 or newer and the framework CLI installed:
 framework new my-native-app --native
 cd my-native-app
 go mod download
-framework doctor
-framework dev
+go tool framework doctor
+go tool framework dev
 ```
+
+Inside a generated project the CLI is the pinned `go tool framework`; the
+global install is only needed for `framework new`.
 
 Add `--shell sidebar` for a starter on Onevra's `sidebar` shell instead of the
 `plain` one: `framework new my-native-app --native --shell sidebar`. It has a

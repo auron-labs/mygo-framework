@@ -73,6 +73,7 @@ func TestGeneratedProjectAcceptance(t *testing.T) {
 	}
 	runAcceptanceCommand(t, project, "bun", "run", "test:web")
 	runAcceptanceCommand(t, project, "go", "mod", "tidy")
+	runAcceptanceCommand(t, project, "go", "tool", "framework", "--version")
 	runAcceptanceCommand(t, project, "go", "test", "./...")
 	runAcceptanceCommand(t, project, "go", "build", "./...")
 	runAcceptanceCommand(t, project, "go", "mod", "tidy", "-diff")

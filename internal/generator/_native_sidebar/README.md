@@ -8,12 +8,14 @@ MyGo MCP is included as a pinned dependency.
 
 ```sh
 go mod download
-framework dev
-framework doctor
-framework build
+go tool framework dev
+go tool framework doctor
+go tool framework build
 ```
 
-The framework delegates to the pinned `go tool mygo`. You can also use
+`go tool framework` runs the framework CLI pinned in `go.mod` (a globally
+installed `framework` works too, but may differ in version). It delegates to
+the pinned `go tool mygo`. You can also use
 `go run .`, `go tool mygo dev`, and `go tool mygo build` directly.
 No JavaScript runtime or frontend is required.
 
@@ -66,8 +68,8 @@ or webviews. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-m
 for tool inputs and observation rules.
 
 User-visible strings live in `locales/en.json`; views call the generated
-`locales` functions, and `go tool mygo generate` (run by `framework dev` and
-`framework build`) refreshes `locales/catalog_gen.go`. To add a language, copy
+`locales` functions, and `go tool mygo generate` (run by `go tool framework dev` and
+`go tool framework build`) refreshes `locales/catalog_gen.go`. To add a language, copy
 `en.json` to `<tag>.json` and translate it.
 
 Signed updates are off until `mygo.json` has an `updates` section (public key and
@@ -75,7 +77,7 @@ release location); then the app checks once at launch and offers **Install
 update** when a newer version exists. Keep the private signing key out of the
 repository. `profiles/` keeps one SQLite file per named profile.
 
-`framework make feature NAME` adds a native view, store, migration and test.
+`go tool framework make feature NAME` adds a native view, store, migration and test.
 
 Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
 nothing is initialised or sent. The home directory is replaced with `~` in error text.
