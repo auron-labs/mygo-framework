@@ -59,6 +59,9 @@ go mod download
 framework dev
 ```
 
+Add `--shell sidebar` for a variant on Onevra's sidebar shell, with page
+routing, a footer and an icon rail in narrow windows.
+
 Native projects use the pinned Go MyGo tool for development, diagnostics, and
 packaging. They also include [MyGo MCP](https://github.com/auron-labs/mygo-mcp)
 for headless UI inspection, interaction, and screenshots. Start the harness with

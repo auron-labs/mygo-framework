@@ -130,6 +130,72 @@ func assertFileContainsAll(t *testing.T, directory, path string, expected ...str
 	}
 }
 
+func TestCreateSidebarNativeProject(t *testing.T) {
+	t.Parallel()
+	result, err := CreateProject(t.Context(), ProjectConfig{Dir: t.TempDir(), Name: "AcmeSide", Native: true, Shell: ShellSidebar})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, expected := range map[string][]string{
+		"main.go":                {"sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault"},
+		"sidebar.go":             {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
+		"layout.go":              {"railBreakpoint", "SetLeftWidth", "c.Size()"},
+		"pages.go":               {"homePage", "importPage", "settingsPage"},
+		"page_home.go":           {"func homePage(c *ui.Context, s *screen)"},
+		"page_import.go":         {"func importPage"},
+		"page_settings.go":       {"func settingsPage"},
+		"sidebar_test.go":        {"TestNavigationSelectsPages", "TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth"},
+		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":            {"Go to Settings"},
+		"locales/en.json":        {"compactSpacing", "navHome"},
+		"locales/catalog_gen.go": {"func CompactSpacing()", "func NavHome()"},
+		// Files the variant does not replace come from the plain starter.
+		"desktop.go":     {"support-bundle"},
+		"updates.go":     {"checkForUpdates"},
+		"importjob.go":   {"sampleImport"},
+		"preferences.go": {"native.compact"},
+	} {
+		assertFileContainsAll(t, result.Path, path, expected...)
+	}
+	// An overlaid file replaces the starter's file instead of being merged with it.
+	main, err := os.ReadFile(filepath.Join(result.Path, "main.go")) // #nosec G304 -- path is under the test's temporary project.
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(main), "plain.NewShell") {
+		t.Error("sidebar starter still uses the plain shell")
+	}
+	if _, err := os.Stat(filepath.Join(result.Path, "package.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("sidebar starter includes package.json: %v", err)
+	}
+	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
+		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
+		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
+		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
+		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
+		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy", "-diff")
+	}
+}
+
+func TestCreateProjectRejectsInvalidShells(t *testing.T) {
+	t.Parallel()
+	parent := t.TempDir()
+	for _, config := range []ProjectConfig{
+		{Dir: parent, Name: "WebSide", Shell: ShellSidebar},
+		{Dir: parent, Name: "OddShell", Native: true, Shell: "tabs"},
+	} {
+		if _, err := CreateProject(t.Context(), config); err == nil {
+			t.Errorf("CreateProject(%+v) succeeded", config)
+		}
+	}
+	for _, name := range []string{"web-side", "odd-shell"} {
+		if _, err := os.Stat(filepath.Join(parent, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("rejected project %s exists: %v", name, err)
+		}
+	}
+}
+
 func TestCreateNativeProject(t *testing.T) {
 	t.Parallel()
 	result, err := CreateProject(t.Context(), ProjectConfig{Dir: t.TempDir(), Name: "AcmeNative", Native: true})

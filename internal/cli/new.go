@@ -27,7 +27,7 @@ func NewProjectCommand() *cobra.Command {
 
 func newProjectCommand(resolve frameworkResolver) *cobra.Command {
 	var native bool
-	var checkout string
+	var checkout, shell string
 	command := &cobra.Command{
 		Use:               "new NAME",
 		Short:             "Create a MyGo framework application",
@@ -38,7 +38,7 @@ func newProjectCommand(resolve frameworkResolver) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("resolve parent directory: %w", err)
 			}
-			result, err := generator.CreateProject(command.Context(), generator.ProjectConfig{Dir: directory, Name: args[0], Native: native})
+			result, err := generator.CreateProject(command.Context(), generator.ProjectConfig{Dir: directory, Name: args[0], Native: native, Shell: shell})
 			if err != nil {
 				return fmt.Errorf("create project: %w", err)
 			}
@@ -52,6 +52,7 @@ func newProjectCommand(resolve frameworkResolver) *cobra.Command {
 		},
 	}
 	command.Flags().BoolVar(&native, "native", false, "Create a native Onevra app without a web frontend")
+	command.Flags().StringVar(&shell, "shell", "", "Native shell: plain (default) or sidebar, with page routing and an icon rail; requires --native")
 	command.Flags().StringVar(&checkout, "framework", "", "Use the framework checkout in `DIR` instead of the published module")
 	return command
 }

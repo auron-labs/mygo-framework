@@ -66,6 +66,14 @@ cp internal/generator/_native/locales/catalog_gen.go locales/catalog_gen.go
 
 Generated native projects run the same generator as `go tool mygo generate`.
 
+The sidebar variant (`framework new NAME --native --shell sidebar`) is an overlay,
+`internal/generator/_native_sidebar/`: its files replace the files with the same
+path in `_native/` and add the rest. It has its own `locales/en.json`, which must
+contain every key of the plain catalog because the shared files still use them.
+Regenerate `catalog_gen.go` the same way, with the sidebar catalog in a scratch
+directory that has the starter's `mygo.json`. `examples/native` mirrors only the
+plain starter. Changes to the plain `main.go` need mirroring in the overlay's.
+
 ## Prepare a release
 
 [Release Please](https://github.com/googleapis/release-please-action) owns the

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-//go:embed all:_template all:_native
+//go:embed all:_template all:_native all:_native_sidebar
 var projectTemplate embed.FS
 
 // FrameworkModule is the module path generated applications import for the
@@ -25,7 +25,16 @@ type ProjectConfig struct {
 	Dir    string
 	Name   string
 	Native bool
+	// Shell selects the native starter's Onevra shell: "plain" (the default)
+	// or "sidebar". It is only valid with Native.
+	Shell string
 }
+
+// Native shells a project can be created with.
+const (
+	ShellPlain   = "plain"
+	ShellSidebar = "sidebar"
+)
 
 // ProjectResult reports the created project directory and file count.
 type ProjectResult struct {
@@ -40,6 +49,12 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 	}
 	if err := ctx.Err(); err != nil {
 		return ProjectResult{}, fmt.Errorf("create project: %w", err)
+	}
+	if config.Shell != "" && !config.Native {
+		return ProjectResult{}, errors.New("create project: a shell requires a native project")
+	}
+	if config.Shell != "" && config.Shell != ShellPlain && config.Shell != ShellSidebar {
+		return ProjectResult{}, fmt.Errorf("create project: unknown shell %q (use %s or %s)", config.Shell, ShellPlain, ShellSidebar)
 	}
 	name, err := parseScaffoldName(config.Name)
 	if err != nil {
@@ -82,6 +97,21 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 	if config.Native {
 		roots = append(roots, "_native")
 	}
+	// The sidebar variant is an overlay: its files replace the starter's files
+	// at the same path and add the rest.
+	overridden := map[string]bool{}
+	if config.Shell == ShellSidebar {
+		err = fs.WalkDir(projectTemplate, "_native_sidebar", func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr == nil && !entry.IsDir() {
+				overridden[strings.TrimPrefix(path, "_native_sidebar/")] = true
+			}
+			return walkErr
+		})
+		if err != nil {
+			return ProjectResult{}, fmt.Errorf("walk sidebar template: %w", err)
+		}
+		roots = append(roots, "_native_sidebar")
+	}
 	for _, root := range roots {
 		err = fs.WalkDir(projectTemplate, root, func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -92,6 +122,9 @@ func CreateProject(ctx context.Context, config ProjectConfig) (_ ProjectResult, 
 			}
 			relative := strings.TrimPrefix(path, root+"/")
 			if path == root {
+				return nil
+			}
+			if root == "_native" && overridden[relative] {
 				return nil
 			}
 			if config.Native && root == "_template" {

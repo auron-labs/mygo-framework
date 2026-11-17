@@ -44,4 +44,23 @@ func TestNewNativeProjectCommand(t *testing.T) {
 	}
 }
 
+func TestNewSidebarShellCommand(t *testing.T) {
+	parent := t.TempDir()
+	t.Chdir(parent)
+	if _, err := execute(t.Context(), New("test", newProjectCommand(noResolve)), "new", "SideApp", "--native", "--shell", "sidebar"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(parent, "side-app", "pages.go")); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"new", "WebApp", "--shell", "sidebar"},
+		{"new", "OddApp", "--native", "--shell", "tabs"},
+	} {
+		if _, err := execute(t.Context(), New("test", newProjectCommand(noResolve)), args...); err == nil {
+			t.Errorf("%v succeeded", args)
+		}
+	}
+}
+
 func noResolve(context.Context, string, string, io.Writer, io.Writer) error { return nil }
