@@ -1,0 +1,82 @@
+# Builds, vets and tests the app on Linux and Windows, lints it, and checks that
+# the generated files are up to date. Hosted runners have no usable display, so
+# the tests run headless and never open a native window. Tools come from
+# mise.toml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v5
+        with:
+          cache: true
+          install_args: go
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go tool mygo vet .
+      - run: go test ./...
+        env:
+          CGO_ENABLED: "0"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v5
+        with:
+          cache: true
+          install_args: golangci-lint
+      - run: golangci-lint run
+
+  generated:
+    name: generated files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: jdx/mise-action@v5
+        with:
+          cache: true
+          install_args: go
+      - name: Regenerate the locale catalog and bindings
+        run: go tool mygo generate
+      - name: Fail if regeneration changed anything
+        run: |
+          git add --intent-to-add --all
+          if ! git diff --exit-code; then
+            echo "::error::Generated files are stale; run 'go tool mygo generate' and commit the result."
+            exit 1
+          fi
