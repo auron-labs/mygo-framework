@@ -40,8 +40,9 @@ type RetryOptions struct {
 
 // Client adds framework defaults while preserving access to Resty.
 type Client struct {
-	resty  *resty.Client
-	logger *slog.Logger
+	resty    *resty.Client
+	download *resty.Client
+	logger   *slog.Logger
 }
 
 // ResponseError reports an unsuccessful HTTP status without exposing its body.
@@ -85,6 +86,20 @@ func New(options Options) (*Client, error) {
 		logger = slog.Default()
 	}
 
+	restyClient := newResty(options, timeout, true)
+	// Downloads stream for as long as the body takes, so the overall request
+	// timeout and retries do not apply; the caller's context bounds them.
+	downloadClient := newResty(options, 0, false)
+
+	client := &Client{resty: restyClient, download: downloadClient, logger: logger}
+	for _, c := range []*resty.Client{restyClient, downloadClient} {
+		c.OnAfterResponse(client.afterResponse)
+		c.OnError(client.afterError)
+	}
+	return client, nil
+}
+
+func newResty(options Options, timeout time.Duration, retry bool) *resty.Client {
 	restyClient := resty.New().
 		SetLogger(discardLogger{}).
 		SetTimeout(timeout).
@@ -102,7 +117,7 @@ func New(options Options) (*Client, error) {
 	if options.Transport != nil {
 		restyClient.SetTransport(options.Transport)
 	}
-	if options.Retry != nil {
+	if retry && options.Retry != nil {
 		restyClient.
 			SetRetryCount(options.Retry.Count).
 			AddRetryCondition(retryCondition(options.Retry.Writes))
@@ -113,11 +128,7 @@ func New(options Options) (*Client, error) {
 			restyClient.SetRetryMaxWaitTime(options.Retry.MaxWaitTime)
 		}
 	}
-
-	client := &Client{resty: restyClient, logger: logger}
-	restyClient.OnAfterResponse(client.afterResponse)
-	restyClient.OnError(client.afterError)
-	return client, nil
+	return restyClient
 }
 
 // Request creates a Resty request carrying its context and metric operation.
