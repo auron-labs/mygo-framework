@@ -17,6 +17,20 @@ framework doctor
 framework dev
 ```
 
+Add `--shell sidebar` for a starter on Onevra's `sidebar` shell instead of the
+`plain` one: `framework new my-native-app --native --shell sidebar`. It has a
+navigation list with optional count badges, a footer (account card, Settings,
+version and the update prompt), a top bar title, and a page router. The router
+selects a page view by navigation id; each page is its own file that takes the
+shared app state and does not reference the others (`pages.go` is the route
+table). The window size and position are restored from the `main` state key,
+opening at 960x640 with a minimum of 520x480. Below 720 DIPs wide the sidebar
+becomes an icon-only rail, implemented with `c.Size()` and `SetLeftWidth` because
+Onevra's shell has no breakpoint; the width the user dragged to returns when the
+window widens. It needs the Onevra version pinned below, and its headless tests
+and MCP fixture cover navigation and the rail. The rest of the starter (preferences,
+jobs, updates, menu) is the plain starter's.
+
 The starter pins MyGo v0.9.2 and Onevra v0.2026.18. It includes a Onevra plain
 shell, retained Go view state, and typed settings in SQLite.
 The shell stays hidden until its first frame is drawn, so it opens with its
