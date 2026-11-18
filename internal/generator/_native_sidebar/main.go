@@ -24,8 +24,8 @@ import (
 	"github.com/auron-labs/mygo-framework/state"
 
 	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
 	"github.com/egoist/mygo"
-	"github.com/oneo-me/onevra/source/shells/sidebar"
 )
 
 const (

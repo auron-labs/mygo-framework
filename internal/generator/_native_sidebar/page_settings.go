@@ -5,8 +5,8 @@ import (
 
 	"github.com/auron-labs/mygo-framework/errorreport"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
 )
 
 // settingsPage edits the typed preferences. Controls bind to local copies and

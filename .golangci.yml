@@ -44,6 +44,27 @@ linters:
     - whitespace
     - wrapcheck
 
+  exclusions:
+    rules:
+      # Keep the imported library's style without changing its public API.
+      - path: ^onevra/
+        linters:
+          - exhaustive
+          - gocritic
+          - intrange
+          - perfsprint
+          - prealloc
+          - predeclared
+          - revive
+          - unparam
+          - wrapcheck
+      - path: ^onevra/
+        linters: [staticcheck]
+        text: '^QF'
+      - path: ^onevra/components/flow/layout.go$
+        linters: [makezero]
+        text: 'append to slice `vertices`'
+
 formatters:
   enable:
     - gofumpt

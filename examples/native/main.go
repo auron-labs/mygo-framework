@@ -24,11 +24,11 @@ import (
 	"github.com/auron-labs/mygo-framework/state"
 
 	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/onevra/shells/plain"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
-	"github.com/oneo-me/onevra/source/shells/plain"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 const (

@@ -2,8 +2,8 @@ package main
 
 import (
 	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 func fixture() mygomcp.Fixture {

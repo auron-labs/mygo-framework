@@ -17,9 +17,9 @@ import (
 	"github.com/auron-labs/mygo-framework/locales"
 	"github.com/auron-labs/mygo-framework/state"
 
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 // newScreen returns a screen whose preferences are never persisted.

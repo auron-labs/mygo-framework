@@ -137,7 +137,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                {"sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault"},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault"},
 		"sidebar.go":             {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
 		"layout.go":              {"railBreakpoint", "SetLeftWidth", "c.Size()"},
 		"pages.go":               {"homePage", "importPage", "settingsPage"},
@@ -203,9 +203,9 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.9.2", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.9.2", "tool github.com/egoist/mygo/cmd/mygo"},
 		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`},
-		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/onevra/components"`, `"github.com/auron-labs/mygo-framework/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
 		"importjob.go":           {`"github.com/auron-labs/mygo-framework/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
 		"updates.go":             {"mygo.Updater.Enabled()", "checkForUpdates"},

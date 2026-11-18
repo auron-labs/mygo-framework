@@ -6,11 +6,11 @@ import (
 
 	"github.com/auron-labs/mygo-framework/jobs"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
+	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
-	"github.com/oneo-me/onevra/source/icons/lucide"
-	"github.com/oneo-me/onevra/source/shells/sidebar"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 // shellOptions describes the window. The window restores its size and position

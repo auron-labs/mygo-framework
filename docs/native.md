@@ -27,12 +27,14 @@ table). The window size and position are restored from the `main` state key,
 opening at 960x640 with a minimum of 520x480. Below 720 DIPs wide the sidebar
 becomes an icon-only rail, implemented with `c.Size()` and `SetLeftWidth` because
 Onevra's shell has no breakpoint; the width the user dragged to returns when the
-window widens. It needs the Onevra version pinned below, and its headless tests
-and MCP fixture cover navigation and the rail. The rest of the starter (preferences,
-jobs, updates, menu) is the plain starter's.
+window widens. Its headless tests and MCP fixture cover navigation and the rail.
+The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
 
-The starter pins MyGo v0.9.2 and Onevra v0.2026.18. It includes a Onevra plain
-shell, retained Go view state, and typed settings in SQLite.
+The starter pins MyGo v0.9.2 and imports the maintained Onevra packages from
+`github.com/auron-labs/mygo-framework/onevra`, versioned with the framework.
+See [Onevra installation and migration](../onevra/README.md) for use in existing
+applications. The plain starter includes a Onevra plain shell, retained Go view
+state, and typed settings in SQLite.
 The shell stays hidden until its first frame is drawn, so it opens with its
 content ready while the preference-saving close handler is already installed.
 `framework build` packages it through the pinned `go tool mygo`; no Bun or
@@ -566,10 +568,11 @@ which adds a `replace` directive. Import `.../settings` and a store such as
 `.../settings/sqlite` directly in any other application.
 
 Use MyGo's native `ui.View` for window content and native `mygo.json`
-configuration for packaging. Onevra supplies native components and shells;
-keep the application's MyGo version compatible with the selected Onevra
-version. Go selects the higher MyGo requirement, so verify framework packages
-against that version when upgrading.
+configuration for packaging. The framework's `onevra/components` and
+`onevra/shells` packages supply native controls and window shells. Onevra and
+`mygomcp` share the framework's release tags and MyGo requirement. Go selects
+the higher MyGo requirement if the application requests another version, so
+verify the UI and framework packages together when upgrading.
 
 ## Current CLI boundary
 

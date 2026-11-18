@@ -4,8 +4,9 @@ This repository is a framework module and reference application for
 building local-first [MyGo](https://mygo.egoist.dev/) desktop apps in Go. It
 adds a predictable application layout, SQLite and GORM persistence, Goose
 migrations, validation, explicit dependency injection, structured logging,
-typed settings, OS secrets, outbound HTTP helpers, form state, generators, and
-optional MCP tools without replacing MyGo's runtime or IPC.
+typed settings, OS secrets, outbound HTTP helpers, form state, generators,
+[Onevra native UI packages](onevra/README.md), and optional MCP tools without
+replacing MyGo's runtime or IPC.
 
 The included Notes app is the working reference. It persists notes in one
 SQLite database, uses the same service from the desktop UI and MCP, and shuts
@@ -49,6 +50,10 @@ workflow. Add a note, quit the app, and start it again to see the persisted
 note.
 
 ## Native Go UI
+
+Onevra is maintained in this module under `onevra/`, alongside `mygomcp`.
+Import its components, themes, shells, and icons directly in any MyGo app; see
+[installation and migration](onevra/README.md).
 
 Create a native starter with Onevra components and persisted preferences:
 

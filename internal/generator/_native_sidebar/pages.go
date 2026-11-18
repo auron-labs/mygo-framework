@@ -3,8 +3,8 @@ package main
 import (
 	"mygo-framework/locales"
 
+	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/icons/lucide"
 )
 
 // Navigation ids. Add a page by adding an id, a view file and a route below.

@@ -3,6 +3,7 @@ module github.com/auron-labs/mygo-framework
 go 1.27.3
 
 require (
+	github.com/ebitengine/purego v0.11.2
 	github.com/egoist/mygo v0.9.2
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-playground/validator/v10 v10.30.5
@@ -12,7 +13,6 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ncruces/go-sqlite3 v0.35.6
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
-	github.com/oneo-me/onevra/source v0.2026.18
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/samber/do/v2 v2.1.0
 	github.com/signintech/gopdf v0.38.4
@@ -27,7 +27,6 @@ require (
 require (
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/cloudflare/circl v1.6.2 // indirect
-	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
