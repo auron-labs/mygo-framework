@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/auron-labs/mygo-framework/datadir"
 )
 
 const (
@@ -26,11 +28,11 @@ type Paths struct {
 func Resolve(dataDirectory string) (Paths, error) {
 	logDirectory := ""
 	if dataDirectory == "" {
-		configDirectory, err := os.UserConfigDir()
+		resolved, err := datadir.Default(Name)
 		if err != nil {
-			return Paths{}, fmt.Errorf("resolve user configuration directory: %w", err)
+			return Paths{}, fmt.Errorf("resolve default data directory: %w", err)
 		}
-		dataDirectory = filepath.Join(configDirectory, Name)
+		dataDirectory = resolved
 
 		if runtime.GOOS == "darwin" {
 			homeDirectory, err := os.UserHomeDir()

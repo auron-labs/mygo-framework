@@ -282,7 +282,11 @@ go run ./cmd/appctl db up
 go run ./cmd/appctl db status
 ```
 
-Use `--data-directory PATH` before `db` for a portable test profile. `db status`
+The data directory is per app: `~/Library/Application Support/<app>` on macOS,
+`%AppData%\<app>` on Windows and `$XDG_CONFIG_HOME/<app>` (usually
+`~/.config/<app>`) on Linux; iOS and Android use MyGo's directory for the app
+inside the sandbox. Use `--data-directory PATH` before `db` for a portable test
+profile; phones have no command line and always use the default. `db status`
 does not create a missing database or apply a migration. Never rewrite an
 applied migration; add the next migration instead.
 
@@ -354,11 +358,11 @@ shares the desktop service and database.
   it, keeping a copy of what it replaced in `backups/`.
 - **Logs.** Development builds log to stderr. Packaged builds also write
   `app.log` to `~/Library/Logs/<app>` on macOS and to the `logs` folder of the
-  data directory elsewhere. The file rotates at 10 MB and keeps three compressed
-  backups for up to 28 days; change this with `logging.Options`. Attributes
-  named authorization, cookie, password, payload, request or response body,
-  secret, settings, or token are redacted, as is everything in a group with one
-  of those names.
+  data directory on Windows, Linux, iOS and Android. The file rotates at 10 MB
+  and keeps three compressed backups for up to 28 days; change this with
+  `logging.Options`. Attributes named authorization, cookie, password, payload,
+  request or response body, secret, settings, or token are redacted, as is
+  everything in a group with one of those names.
 - **Quit.** Quitting cancels the application context, then gives runtime
   shutdown up to 5 seconds before the process exits. Long-running work should
   return when that context is canceled.

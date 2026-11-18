@@ -15,6 +15,7 @@ import (
 
 	"github.com/auron-labs/mygo-framework/database"
 	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/datadir"
 	"github.com/auron-labs/mygo-framework/errorreport"
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/locales"
@@ -178,7 +179,7 @@ func start() error {
 	defer errorreport.Flush()
 	defer errorreport.RecoverAndRepanic()
 	mcpAddress := flag.String("mcp", "", "Serve an isolated headless UI over MCP at a loopback IP:port instead of opening a window")
-	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to a profile under the user configuration directory")
+	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to the platform application data directory")
 	flag.Parse()
 	if *mcpAddress != "" {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -199,11 +200,11 @@ func start() error {
 func run(dataDir string) (err error) {
 	useDefaultDir := dataDir == ""
 	if useDefaultDir {
-		configDir, err := os.UserConfigDir()
+		defaultDir, err := datadir.Default(profileName)
 		if err != nil {
 			return fmt.Errorf("locate data directory: %w", err)
 		}
-		dataDir = filepath.Join(configDir, profileName)
+		dataDir = defaultDir
 	}
 	// A second launch with the same data directory would open the database
 	// twice; -data-dir runs a separate instance on purpose.

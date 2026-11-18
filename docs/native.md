@@ -43,8 +43,11 @@ content ready while the preference-saving close handler is already installed.
 TypeScript frontend is required. `go run .` also runs the application.
 
 Toggle **Compact spacing**, choose units and a theme, close the window, and
-reopen it. The preferences are stored in `my-native-app/app.db` under
-`os.UserConfigDir()`; pass `-data-dir DIR` to use another directory. Startup
+reopen it. The preferences are stored in `my-native-app/app.db`, under
+`~/Library/Application Support` on macOS, `%AppData%` on Windows and
+`$XDG_CONFIG_HOME` (usually `~/.config`) on Linux. On iOS and Android it is in
+MyGo's directory for the app inside the sandbox. Pass
+`-data-dir DIR` on desktop to use another directory. Startup
 opens the database and applies pending migrations from `database/migrations`
 before the window is created. When an existing database has pending
 migrations, the starter first copies it to `backups/` beside it and keeps the
@@ -78,7 +81,8 @@ go run ./examples/native
 go test ./examples/native
 ```
 
-Its preference directory is `mygo-framework-native` under `os.UserConfigDir()`.
+On desktop its preference directory is `mygo-framework-native`; iOS and Android
+use MyGo's directory for the app inside the sandbox.
 
 ## Background jobs
 
@@ -366,7 +370,7 @@ Reported: errors returned from `run` (startup failures), failed and panicked
 background jobs (`jobs.Manager`), a failed preference save when closing, and a
 panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
 before the process exits, and the home directory is replaced with `~` in error
-text.
+text; on iOS and Android the app data directory becomes `<app data>`.
 
 ## Logs and support bundles
 
@@ -374,7 +378,8 @@ The native starter writes its logs to `logs/app.log` in the data directory,
 rotating at 10 MB with three compressed backups kept for up to 28 days; the
 standard `log` package writes there too. **Help, Save support bundle...** writes
 a zip with the app version, operating system, migration status and those logs,
-with the home directory replaced by `~`, for the user to attach to a bug report.
+with the home directory replaced by `~` and, on iOS and Android, the app data
+directory by `<app data>`, for the user to attach to a bug report.
 The web starter writes the same bundle with `appctl support-bundle FILE`.
 
 ## Releases

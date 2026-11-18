@@ -28,8 +28,11 @@ go tool mygo vet .
 ```
 
 Toggle **Compact spacing**, choose units and a theme, close the window, and
-reopen it. Preferences live in `__PROJECT_SLUG__/app.db` under
-`os.UserConfigDir()`; run with `-data-dir DIR` to use another directory.
+reopen it. Preferences live in `__PROJECT_SLUG__/app.db`, under
+`~/Library/Application Support` on macOS, `%AppData%` on Windows and
+`$XDG_CONFIG_HOME` (usually `~/.config`) on Linux. On iOS and Android it is in
+MyGo's directory for the app inside the sandbox. Run with `-data-dir DIR` on
+desktop to use another directory.
 Startup applies the migrations in `database/migrations` (add yours after
 `00001`). `preferences.go` defines the typed settings: compact spacing, time
 zone, units, theme, profile name, and last import folder. A save failure
@@ -80,7 +83,8 @@ repository. `profiles/` keeps one SQLite file per named profile.
 `framework make feature NAME` adds a native view, store, migration and test.
 
 Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
-nothing is initialised or sent. The home directory is replaced with `~` in error text.
+nothing is initialised or sent. The home directory is replaced with `~` in
+error text; on iOS and Android the app data directory becomes `<app data>`.
 
 Extend the retained screen state and compose Onevra components in its view.
 Keep disk and network work outside builders. Web/MCP adapter generation is
