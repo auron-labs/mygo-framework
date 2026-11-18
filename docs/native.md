@@ -30,7 +30,7 @@ Onevra's shell has no breakpoint; the width the user dragged to returns when the
 window widens. Its headless tests and MCP fixture cover navigation and the rail.
 The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
 
-The starter pins MyGo v0.9.2 and imports the maintained Onevra packages from
+The starter pins MyGo v0.10.0 and imports the maintained Onevra packages from
 `github.com/auron-labs/mygo-framework/onevra`, versioned with the framework.
 See [Onevra installation and migration](../onevra/README.md) for use in existing
 applications. The plain starter includes a Onevra plain shell, retained Go view

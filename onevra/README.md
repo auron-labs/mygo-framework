@@ -13,7 +13,7 @@ Requires Go 1.27.3 or newer. From your application's module:
 go get github.com/auron-labs/mygo-framework@latest
 ```
 
-Onevra shares the framework's release tags and currently uses MyGo v0.9.2.
+Onevra shares the framework's release tags and currently uses MyGo v0.10.0.
 Pin a framework tag for reproducible builds. There is no separate Onevra module
 or `replace` directive to configure.
 

@@ -12,8 +12,8 @@ discover or control running desktop applications.
 Requires **Go 1.27.3 or later** and a client that supports MCP Streamable HTTP.
 Linux headless operation requires neither a desktop session nor CGO.
 
-MyGo is pinned to unmodified upstream v0.9.2 (commit
-`25ce62f4d357cd6d29da04300e3fbc352d79daa4`); no fork, patch, internal imports,
+MyGo is pinned to unmodified upstream v0.10.0 (commit
+`ebde9399baf2734b3361856a53f4036859973d1d`); no fork, patch, internal imports,
 module replacement, reflection, or unsafe access is used.
 
 From your application's Go module:

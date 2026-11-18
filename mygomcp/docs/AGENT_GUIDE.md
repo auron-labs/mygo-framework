@@ -25,8 +25,8 @@ Use independent seeded state and test services; ordinary application handlers ru
 
 An opt-in Go package for exercising **isolated, headless MyGo views** using MCP.
 It does not discover or control desktop windows. Importing it starts nothing.
-MyGo is pinned to unmodified upstream v0.9.2 (commit
-`25ce62f4d357cd6d29da04300e3fbc352d79daa4`); no fork, patch, internal imports,
+MyGo is pinned to unmodified upstream v0.10.0 (commit
+`ebde9399baf2734b3361856a53f4036859973d1d`); no fork, patch, internal imports,
 module replacement, reflection, or unsafe access is used.
 
 ## Run the example
