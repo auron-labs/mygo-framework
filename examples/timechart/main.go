@@ -14,7 +14,7 @@ import (
 
 	"github.com/auron-labs/mygo-framework/timechart"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/oneo-me/onevra/source/components"

@@ -23,7 +23,7 @@ import (
 	sqlitesettings "github.com/auron-labs/mygo-framework/settings/sqlite"
 	"github.com/auron-labs/mygo-framework/state"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	"github.com/egoist/mygo"
 	"github.com/oneo-me/onevra/source/shells/sidebar"
 )

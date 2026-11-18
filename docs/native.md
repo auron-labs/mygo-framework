@@ -5,7 +5,7 @@ from a webview. The native example stores typed settings in the same SQLite data
 package the web starter uses (WAL, foreign keys, embedded Goose migrations),
 without the reference app's service MCP server or TypeScript frontend.
 
-The native starter includes a pinned `auron-labs/mygo-mcp` dependency.
+The native starter includes the framework's `mygomcp` harness.
 
 Create a native project with Go 1.27.3 or newer and the framework CLI installed:
 
@@ -524,7 +524,7 @@ authentication, so keep it local.
 
 MyGo MCP operates on isolated native fixtures. It cannot control running windows,
 OS dialogs, or webviews. The web starter's authenticated service MCP server is
-separate. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-mcp/blob/9f095775017aafe64c22e934d2178fa7b6657209/docs/AGENT_GUIDE.md)
+separate. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-framework/blob/main/mygomcp/docs/AGENT_GUIDE.md)
 for tools and observation rules. The included MCP integration test covers
 discovery, inspection, checkbox interaction, screenshots, fixture isolation,
 and shutdown over a real loopback connection.

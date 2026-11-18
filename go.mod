@@ -3,7 +3,6 @@ module github.com/auron-labs/mygo-framework
 go 1.27.3
 
 require (
-	github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a
 	github.com/egoist/mygo v0.9.2
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-playground/validator/v10 v10.30.5

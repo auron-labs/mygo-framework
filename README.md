@@ -63,7 +63,7 @@ Add `--shell sidebar` for a variant on Onevra's sidebar shell, with page
 routing, a footer and an icon rail in narrow windows.
 
 Native projects use the pinned Go MyGo tool for development, diagnostics, and
-packaging. They also include [MyGo MCP](https://github.com/auron-labs/mygo-mcp)
+packaging. They also include [MyGo MCP](mygomcp/README.md)
 for headless UI inspection, interaction, and screenshots. Start the harness with
 `go run . -mcp 127.0.0.1:8080` and connect an MCP client to
 `http://127.0.0.1:8080/mcp` using Streamable HTTP.

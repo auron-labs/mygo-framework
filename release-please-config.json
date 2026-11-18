@@ -5,7 +5,8 @@
   "include-component-in-tag": false,
   "packages": {
     ".": {
-      "release-type": "go"
+      "release-type": "go",
+      "extra-files": ["mygomcp/server.go"]
     }
   }
 }
