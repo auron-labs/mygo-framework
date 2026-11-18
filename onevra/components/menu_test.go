@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -190,5 +191,37 @@ func TestContextMenuLeavesClicksToParents(t *testing.T) {
 	}
 	if !chosen || clicks != 1 {
 		t.Fatalf("chosen %v, clicks %d", chosen, clicks)
+	}
+}
+
+func TestLongMenuScrollsWithinWindow(t *testing.T) {
+	const height = 300
+	tt := ui.NewTester(func(c *ui.Context) {
+		ui.Column(c).Fill().Padding(20).Children(func() {
+			more := ui.ButtonBase(c).Key("more").Label("More").Size(100, 30)
+			MenuButton(c, more, func(m *Menu) {
+				for i := range 40 {
+					m.Item(fmt.Sprintf("Item %02d", i)).Chosen()
+				}
+			})
+		})
+	}, 400, height)
+	if err := tt.Click("More"); err != nil {
+		t.Fatal(err)
+	}
+	first, _ := tt.Find("Item 00")
+	if r, _ := tt.Find("Item 39"); r.H > 0 {
+		t.Fatalf("last item shows before scrolling: %+v", r)
+	}
+	tt.Scroll(first.X+first.W/2, first.Y+first.H/2, 0, 2000)
+	r, _ := tt.Find("Item 39")
+	if r.H == 0 || r.Y+r.H > height {
+		t.Fatalf("scrolling did not bring the last item into the window: %+v", r)
+	}
+	tt.Scroll(first.X+first.W/2, first.Y+first.H/2, 0, -2000)
+	tt.Key(0, ui.KeyEnd)
+	r, _ = tt.Find("Item 39")
+	if !tt.Focused("Item 39") || r.H == 0 || r.Y+r.H > height {
+		t.Fatalf("End did not reveal the last item: %+v", r)
 	}
 }

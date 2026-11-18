@@ -101,7 +101,7 @@ func showMenu(c *ui.Context, target ui.Element, st *menuState, build func(m *Men
 		return
 	}
 	Popover(c, target, &st.open, func(panel ui.Element) {
-		panel.Role(ui.RoleMenu).Focusable().MinWidth(180).MaxWidth(360).Padding(4).Gap(1)
+		panel.Role(ui.RoleMenu).Focusable().MinWidth(180).MaxWidth(360).Padding(4)
 		if !st.below {
 			panel.AttachTo(target, ui.AnchorTopLeft, ui.AnchorTopLeft).Margin(st.dy, 0, 0, st.dx)
 		}
@@ -110,8 +110,12 @@ func showMenu(c *ui.Context, target ui.Element, st *menuState, build func(m *Men
 		st.pointer = [2]float32{x, y}
 		m := &Menu{c: c, st: st, moved: moved}
 		panel.Children(func() {
-			build(m)
-			m.flush()
+			// MyGo keeps an attached panel within the window; the shrinking
+			// scroll lets a menu longer than that scroll inside it.
+			ui.Scroll(c).FillWidth().Shrink(1).Gap(1).Children(func() {
+				build(m)
+				m.flush()
+			})
 		})
 		switch {
 		case !st.open:

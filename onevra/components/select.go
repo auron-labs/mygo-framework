@@ -25,7 +25,9 @@ type selectOption[T comparable] struct {
 
 // Popup shows a themed, shadowed panel while the select is open. The callback
 // can override its appearance and build a SearchField followed by filtered Items.
-// It returns an absent Element when closed.
+// The panel is never taller than the window: build a long list of Items in a
+// ScrollView with Shrink(1) so it scrolls inside the panel. It returns an
+// absent Element when closed.
 func (s *SelectParts[T]) Popup(build func(panel ui.Element)) ui.Element {
 	t := s.c.Theme()
 	s.options = s.options[:0]

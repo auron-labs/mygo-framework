@@ -13,7 +13,8 @@ import (
 // dismiss the panel automatically.
 //
 // build styles the panel and creates its children. It may override placement
-// with AttachTo or supply scrolling for long content. Keep anchor and panel
+// with AttachTo. The panel is never taller than the window; put long content
+// in a ScrollView with Shrink(1) so it scrolls inside the panel. Keep anchor and panel
 // handles within the current build pass and use keyed parents for independent
 // popovers. Label the panel in build when an accessible name is needed.
 func Popover(c *ui.Context, anchor ui.Element, open *bool, build func(panel ui.Element)) ui.Element {
