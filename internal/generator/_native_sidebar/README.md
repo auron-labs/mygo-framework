@@ -20,7 +20,8 @@ framework build
 
 The framework delegates to the pinned `go tool mygo`. You can also use
 `go run .`, `go tool mygo dev`, and `go tool mygo build` directly.
-No JavaScript runtime or frontend is required.
+No JavaScript runtime or frontend is required. When `framework dev` restarts
+the app after a code change, it returns to the page that was showing.
 
 ```sh
 go test ./...

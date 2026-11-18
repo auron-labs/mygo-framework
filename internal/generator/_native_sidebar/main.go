@@ -203,6 +203,9 @@ func run(dataDir string) (err error) {
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
 	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version()}
+	// Restarts under framework dev return to the page that was showing.
+	// Release builds on desktops keep nothing.
+	mygo.KeepState(&s.page)
 	errorreport.SetEnabled(prefs.ErrorReports)
 	defer state.Select(cell, func(p preferences) bool { return p.ErrorReports }).Subscribe(errorreport.SetEnabled)()
 	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })

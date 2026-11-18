@@ -27,8 +27,10 @@ table). The window size and position are restored from the `main` state key,
 opening at 960x640 with a minimum of 520x480. Below 720 DIPs wide the sidebar
 becomes an icon-only rail, implemented with `c.Size()` and `SetLeftWidth` because
 Onevra's shell has no breakpoint; the width the user dragged to returns when the
-window widens. Its headless tests and MCP fixture cover navigation and the rail.
-The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
+window widens. When `framework dev` restarts the app after a code change, it
+returns to the page that was showing (`mygo.KeepState` in `main.go`); MyGo
+restores scroll offsets on its own. Its headless tests and MCP fixture cover
+navigation and the rail. The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
 
 The starter pins MyGo v0.10.0 and imports the maintained Onevra packages from
 `github.com/auron-labs/mygo-framework/onevra`, versioned with the framework.
