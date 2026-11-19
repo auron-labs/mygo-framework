@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -137,18 +138,19 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
-		"sidebar.go":             {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
-		"layout.go":              {"railBreakpoint", "SetLeftWidth", "c.Size()"},
-		"pages.go":               {"homePage", "importPage", "settingsPage"},
-		"page_home.go":           {"func homePage(c *ui.Context, s *screen)"},
-		"page_import.go":         {"func importPage"},
-		"page_settings.go":       {"func settingsPage"},
-		"sidebar_test.go":        {"TestNavigationSelectsPages", "TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth"},
-		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
-		"mcp_test.go":            {"Go to Settings"},
-		"locales/en.json":        {"compactSpacing", "navHome"},
-		"locales/catalog_gen.go": {"func CompactSpacing()", "func NavHome()"},
+		"main.go":                  {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
+		"sidebar.go":               {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
+		"layout.go":                {"railBreakpoint", "SetLeftWidth", "c.Size()"},
+		"pages.go":                 {"homePage", "importPage", "settingsPage"},
+		"page_home.go":             {"func homePage(c *ui.Context, s *screen)"},
+		"page_import.go":           {"func importPage"},
+		"page_settings.go":         {"func settingsPage"},
+		"sidebar_test.go":          {"TestNavigationSelectsPages", "TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth"},
+		"mcp.go":                   {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":              {"Go to Settings"},
+		".github/workflows/ci.yml": {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
+		"locales/en.json":          {"compactSpacing", "navHome"},
+		"locales/catalog_gen.go":   {"func CompactSpacing()", "func NavHome()"},
 		// Files the variant does not replace come from the plain starter.
 		"mygo.json":      {`"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"desktop.go":     {"support-bundle"},
@@ -217,6 +219,9 @@ func TestCreateNativeProject(t *testing.T) {
 		"mcp_test.go":            {"TestNativeMCP"},
 		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
 		".github/workflows/release.yml":                                {"go tool mygo build", "buildDSN"},
+		".github/workflows/ci.yml":                                     {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
+		"mise.toml":                                                    {`go = "1.27.3"`, "golangci-lint"},
+		".golangci.yml":                                                {"version: \"2\"", "gosec"},
 		"desktop.go":                                                   {"support-bundle", "diagnostics.Write"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
@@ -242,6 +247,35 @@ func TestCreateNativeProject(t *testing.T) {
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "vet", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
+	}
+}
+
+func TestNativeToolVersionsMatchGoMod(t *testing.T) {
+	t.Parallel()
+	goMod, err := os.ReadFile("_native/go.mod.tmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	miseConfig, err := os.ReadFile("_native/mise.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := regexp.MustCompile(`(?m)^go (\S+)$`).FindSubmatch(goMod)
+	if version == nil || !strings.Contains(string(miseConfig), `go = "`+string(version[1])+`"`) {
+		t.Fatalf("_native/mise.toml does not pin the Go version of go.mod.tmpl (%q)", version)
+	}
+}
+
+func TestWebProjectHasNoNativeCI(t *testing.T) {
+	t.Parallel()
+	result, err := CreateProject(t.Context(), ProjectConfig{Dir: t.TempDir(), Name: "AcmeWeb"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{".github/workflows/ci.yml", "mise.toml", ".golangci.yml"} {
+		if _, err := os.Stat(filepath.Join(result.Path, path)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("web starter includes %s: %v", path, err)
+		}
 	}
 }
 

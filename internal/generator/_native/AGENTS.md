@@ -1,14 +1,14 @@
 # Native project guidance
 
 - Run `go tool framework dev`, `go tool framework build`, and `go tool framework doctor`; these use the pinned Go MyGo tool. Bun is not required.
-- Run `go test ./...`, `CGO_ENABLED=0 go test ./...`, and `go tool mygo vet .` before committing.
+- Run `go test ./...`, `CGO_ENABLED=0 go test ./...`, `go tool mygo vet .` and `golangci-lint run` before committing; `.github/workflows/ci.yml` runs them on Linux and Windows and checks that `go tool mygo generate` leaves no diff.
 - Create windows and Onevra shells inside `mygo.App.WhenReady` and handle `App.Run` errors.
 - Keep application state outside view callbacks. State shared with other goroutines or persisted lives in a `state.Cell` (`main.go` shows the pattern): the view reads `Get()` once per build, controls bind to local copies and commit with `OnChange` and `Update`, and `Subscribe` plus `win.Invalidate` redraws. Subscribers run on the writer's goroutine and must not block; wrap main-thread-only APIs in `mygo.RunOnMain`. Plain fields are for UI-only values. Use stable data keys for dynamic widgets and `ui.Handle` for retained widget identity.
 - Use Onevra components and the root shell theme. Do not perform disk or network work inside view builders.
 - Preferences save automatically through `state.Autosave`. Preserve the cancelable close handler: it flushes the saver, and a failed save must leave the window open. Close the saver, then the database, after the event loop stops. `suspend` saves pending preferences and checkpoints the database within a bounded time, then flushes error reports with their own bound before the system sleeps or, on a phone, ends the app; nothing is released, so the app keeps working on resume.
 - Preferences are typed settings in SQLite (`preferences.go`). Add schema changes as new Goose migrations in `database/migrations`, numbered after the existing ones.
 - Run long work with `jobs.Manager` (`importjob.go` shows the pattern): `Start` returns `jobs.ErrRunning` while a job of that name runs, jobs must honor their context, and views read `Status`; the `Subscribe` callback records whether the import is running and redraws via `Window.Update`. `run` shuts the manager down before the database closes. On phones `suspend` cancels a running import, which shows as canceled on return; MyGo keeps whether an import was running, so the next launch says why it stopped if the system ended the app. Desktop sleep leaves jobs running.
-- This starter uses native views and direct Go calls. Framework web adapter generation targets the web starter; `go tool framework make feature NAME` writes a native view, store, migration and test here.
+- This starter uses native views and direct Go calls. Framework web adapter generation targets the web starter; `framework make feature NAME` writes a native view, store, migration and test here.
 - Put user-visible strings in `locales/en.json` and call the generated `locales` functions; run `go tool mygo generate` after editing a catalog. Product names stay untranslated.
 - Updates are opt-in through an `updates` section in `mygo.json`; never commit `mygo-update.key`. Without it `mygo.Updater.Enabled()` is false and nothing is contacted.
 - `profiles` opens one SQLite file per validated profile name; never join a user-supplied name into a path yourself.

@@ -28,6 +28,12 @@ type Options struct {
 	Transport http.RoundTripper
 	Logger    *slog.Logger
 	Retry     *RetryOptions
+
+	// OnResponse, when set, is called synchronously for every HTTP response
+	// (success or failure, including 304), before any error is returned. It is
+	// not called when no response was received. With retries enabled it runs
+	// once per attempt. It must be cheap; panics are recovered and logged.
+	OnResponse func(ctx context.Context, info ResponseInfo)
 }
 
 // RetryOptions explicitly enables bounded retries for transient failures.
@@ -40,8 +46,9 @@ type RetryOptions struct {
 
 // Client adds framework defaults while preserving access to Resty.
 type Client struct {
-	resty  *resty.Client
-	logger *slog.Logger
+	resty      *resty.Client
+	logger     *slog.Logger
+	onResponse func(ctx context.Context, info ResponseInfo)
 }
 
 // ResponseError reports an unsuccessful HTTP status without exposing its body.
@@ -50,6 +57,10 @@ type ResponseError struct {
 	Method     string
 	Host       string
 	StatusCode int
+	// RetryAfter is the parsed Retry-After header; zero when absent or invalid.
+	RetryAfter time.Duration
+	// RateLimit holds the parsed rate-limit headers.
+	RateLimit RateLimit
 }
 
 func (e *ResponseError) Error() string {
@@ -114,7 +125,7 @@ func New(options Options) (*Client, error) {
 		}
 	}
 
-	client := &Client{resty: restyClient, logger: logger}
+	client := &Client{resty: restyClient, logger: logger, onResponse: options.OnResponse}
 	restyClient.OnAfterResponse(client.afterResponse)
 	restyClient.OnError(client.afterError)
 	return client, nil
@@ -135,16 +146,41 @@ func (c *Client) Resty() *resty.Client {
 
 func (c *Client) afterResponse(_ *resty.Client, response *resty.Response) error {
 	c.record(response.Request, response.StatusCode(), response.Time())
+	info := ResponseInfo{
+		Operation:  operation(response.Request),
+		Method:     response.Request.Method,
+		Host:       host(response.Request),
+		StatusCode: response.StatusCode(),
+		Header:     response.Header().Clone(),
+		RetryAfter: parseRetryAfter(response.Header().Get("Retry-After")),
+		RateLimit:  parseRateLimit(response.Header()),
+	}
+	c.notify(response.Request.Context(), info)
 	if !response.IsError() {
 		return nil
 	}
 
 	return &ResponseError{
-		Operation:  operation(response.Request),
-		Method:     response.Request.Method,
-		Host:       host(response.Request),
-		StatusCode: response.StatusCode(),
+		Operation:  info.Operation,
+		Method:     info.Method,
+		Host:       info.Host,
+		StatusCode: info.StatusCode,
+		RetryAfter: info.RetryAfter,
+		RateLimit:  info.RateLimit,
 	}
+}
+
+func (c *Client) notify(ctx context.Context, info ResponseInfo) {
+	if c.onResponse == nil {
+		return
+	}
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			c.logger.LogAttrs(ctx, slog.LevelError, "http response hook panicked",
+				slog.String("operation", info.Operation))
+		}
+	}()
+	c.onResponse(ctx, info)
 }
 
 func (c *Client) afterError(request *resty.Request, err error) {

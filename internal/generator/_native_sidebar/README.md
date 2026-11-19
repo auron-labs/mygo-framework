@@ -29,7 +29,11 @@ the app after a code change, it returns to the page that was showing.
 go test ./...
 CGO_ENABLED=0 go test ./...
 go tool mygo vet .
+golangci-lint run
 ```
+
+`.github/workflows/ci.yml` runs these on Linux and Windows for every push and
+pull request, and fails when `go tool mygo generate` would change a file.
 
 Open **Settings** in the sidebar footer, toggle **Compact spacing**, choose units
 and a theme, close the window, and reopen it. Preferences live in

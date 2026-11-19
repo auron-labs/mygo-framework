@@ -120,22 +120,65 @@ err = manager.Shutdown(shutdownCtx)
 - Only one job per name runs at a time. Starting a name that is still running
   returns `jobs.ErrRunning` and leaves the running job untouched; cancel it or
   wait for it first. A finished job's name can be started again.
+- Lanes limit concurrency. `manager.SetLane("installs", 1)` and
+  `manager.SetLane("checks", 4)` define lanes; `manager.StartIn("installs",
+  name, fn)` runs a job in one. When the lane is full the job is `Queued`, shown
+  in a view as "Waiting in queue", and starts in first-in-first-out order as
+  running jobs finish. `Queued` and `Running` are both non-terminal, and
+  `ErrRunning` applies to either. `Start` jobs belong to no lane and run at
+  once. `StartIn` with an undefined lane returns `jobs.ErrUnknownLane`; `SetLane`
+  rejects an empty name (`jobs.ErrEmptyLane`) or a limit below one.
+- `manager.List()` returns every job's latest status, including finished
+  ones, in start order, for a queue or activity view. Finished jobs stay listed
+  until their name is started again. `Cancel` works on queued jobs too.
 - A job ends as `Done` (returned nil), `Canceled` (returned an error wrapping
   `context.Canceled`), or `Failed` (any other error, or a panic, which is
   recovered and reported in `Status.Err`). A job that returns nil after being
   canceled is `Done`.
-- `Subscribe` callbacks run on the goroutine that changed the status and must
-  not block. The first event for a job is always `Running`, and the last is its
-  terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
-  native view subscribes with a callback: the starter calls `Window.Update`
-  (safe from any goroutine) to sync kept state on the main thread and redraw,
-  then reads `Status` while building the view. A web
-  page can forward the same callback to a `mygo.Event` or a bound method's
-  `*mygo.Channel`.
-- `Shutdown` rejects new jobs, cancels running ones, and waits for them within
-  its context. The native starter calls it with a five-second deadline after
-  the event loop stops and before the database closes. Jobs must return
-  promptly when their context is canceled.
+- `Subscribe` delivers events in order, one at a time. Callbacks must not
+  block and can run on any goroutine that publishes events. A job's first
+  event is `Queued` if its lane is full and `Running` otherwise. Its function
+  starts after the `Running` event is delivered, and its last event is its
+  terminal state. The native starter calls `Window.Update` from the callback
+  to sync kept state on the main thread and redraw, then reads `Status` while
+  building the view. A web app can forward the callback's status to the page
+  through a `mygo.Event` or a bound method's `*mygo.Channel`.
+- `Shutdown` rejects new jobs, cancels queued and running jobs, and waits
+  within its context for the jobs to finish and their events to be delivered.
+  Queued jobs end as `Canceled` without running when the parent context is
+  canceled or `Shutdown` is called.
+  The native starter calls it with a five-second deadline after the event
+  loop stops and before the database closes. Jobs must return promptly when
+  their context is canceled.
+
+### Scheduled tasks
+
+`jobs.Scheduler` runs a task every interval through a `Manager`, so `Status`,
+`Subscribe` and `Cancel` work as for any job (the job name is the task name).
+It remembers the last successful run, so an interval survives restarts.
+
+```go
+runs := jobsettings.New(settingsStore, "") // jobs/jobsettings; keys "schedule.<name>.last_run"
+sched := jobs.NewScheduler(manager, runs)  // a nil store keeps times in memory only
+err := sched.Schedule("update-check", 24*time.Hour, checkForUpdates)
+sched.Start(ctx)
+sched.Nudge()                    // after a network reconnect, resume or focus
+err = sched.RunNow("update-check") // runs now; on success the interval restarts
+next, ok := sched.NextRun("update-check")
+err = sched.Shutdown(shutdownCtx)  // stops the loop; Manager.Shutdown stops tasks
+```
+
+- A task with no stored last run is due as soon as the scheduler starts.
+- Due means the wall-clock time since the last success is at least the
+  interval. The scheduler checks every minute (`WithPollInterval`) and on
+  `Nudge`, so after sleep a task that came due runs once, not once per missed
+  interval. A last run in the future (clock moved back) restarts the interval.
+- Only successful runs are saved. A failed, canceled or panicked run is retried
+  after `WithRetryDelay` (default one minute), not a full interval later.
+- A task never overlaps itself: a due check while it runs is skipped, and
+  `RunNow` returns `jobs.ErrRunning`. `RunNow` on an unknown name returns
+  `jobs.ErrUnknownTask`.
+- A failing store is reported and the scheduler falls back to in-memory times.
 
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
 or `sampleImportFiles` on the files a phone picked from the document picker,
@@ -417,6 +460,17 @@ update signing key in the `MYGO_UPDATER_PRIVATE_KEY` secret, as described in
 [Signed updates](#signed-updates). It builds unsigned installers; MyGo's
 [GitHub Actions guide](https://github.com/egoist/mygo/blob/main/docs/github-actions.md)
 adds macOS and Windows code signing.
+
+## Continuous integration
+
+The native starter includes `.github/workflows/ci.yml`. On every push to `main`
+and every pull request it builds, vets (`go vet` and `go tool mygo vet .`) and
+tests (`CGO_ENABLED=0 go test ./...`) the app on `ubuntu-latest` and
+`windows-latest`, runs `golangci-lint` with the starter's `.golangci.yml`, and
+fails if `go tool mygo generate` changes the locale catalog or any other
+generated file. Hosted runners are headless, so the tests never open a window.
+`mise.toml` pins the tools; keep its Go version equal to `go.mod`. Run the same
+checks locally with `golangci-lint run` and `go tool mygo generate`.
 
 ## Reactive state
 

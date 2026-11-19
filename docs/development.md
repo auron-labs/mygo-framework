@@ -88,6 +88,12 @@ Regenerate `catalog_gen.go` the same way, with the sidebar catalog in a scratch
 directory that has the starter's `mygo.json`. `examples/native` mirrors only the
 plain starter. Changes to the plain `main.go` need mirroring in the overlay's.
 
+The native starter's `_native/mise.toml` pins Go and `golangci-lint` for the
+generated CI workflow. Keep its Go version equal to the one in
+`_native/go.mod.tmpl`; a test checks this. Keep the starter's
+`_native/.golangci.yml` aligned with the shared lint rules in the repository's
+`.golangci.yml`.
+
 ## Prepare a release
 
 [Release Please](https://github.com/googleapis/release-please-action) owns the
