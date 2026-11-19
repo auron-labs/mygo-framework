@@ -224,6 +224,38 @@ only with `RetryOptions`. Reads may retry; writes remain single-attempt unless
 `Writes` is explicitly true. Do not log authorization headers or response
 bodies.
 
+### Conditional polling and rate limits
+
+Send a cached validator with `ConditionalRequest`. A `304 Not Modified` is not
+an error: the call returns a nil error and `httpclient.NotModified(response)`
+is true, so keep using your cached body. On a `200`, store
+`httpclient.ValidatorFrom(response)` for next time.
+
+```go
+response, err := client.ConditionalRequest(ctx, "releases.latest", cached.Validator).
+	SetResult(&release).
+	Get("/repos/example/app/releases/latest")
+var limited *httpclient.ResponseError
+switch {
+case errors.As(err, &limited):
+	// Back off until limited.RetryAfter has passed or limited.RateLimit.Reset.
+	return limited.RetryAfter, err
+case err != nil:
+	return 0, err
+case httpclient.NotModified(response):
+	return 0, nil // unchanged
+default:
+	cached.Validator = httpclient.ValidatorFrom(response)
+}
+```
+
+`ResponseError` carries the parsed `RetryAfter` and `RateLimit` (`Limit`,
+`Remaining`, `Used`, `Reset`, `Resource`; absent values are nil or zero).
+Set `Options.OnResponse` to see the headers of every response, successful or
+not, to track the remaining allowance. The hook runs once per attempt when
+retries are enabled, must be cheap, and never receives the body. Retries do not
+yet honor `Retry-After`.
+
 ## Submit a form from the frontend
 
 `src/framework/request.ts` and `src/framework/form.ts` wrap generated MyGo
