@@ -256,6 +256,35 @@ not, to track the remaining allowance. The hook runs once per attempt when
 retries are enabled, must be cheap, and never receives the body. Retries do not
 yet honor `Retry-After`.
 
+## Download a large file
+
+`Client.Download` streams a file to disk with progress, SHA-256 hashing and
+resume. It writes to `<dest>.part` and renames it to `dest` only after the whole
+body arrived and matched the optional expected digest:
+
+```go
+result, err := client.Download(ctx, "installer.download", "https://example.com/app.zip", dest,
+	httpclient.DownloadOptions{
+		Progress:       func(done, total int64) { /* total <= 0 while unknown */ },
+		ExpectedSHA256: expectedHex,
+	})
+if errors.Is(err, httpclient.ErrChecksumMismatch) {
+	// The partial file was discarded; do not retry blindly.
+}
+// result.Path, result.Size, result.SHA256 (hex), result.Resumed
+```
+
+- Cancelling `ctx` or losing the connection keeps the `.part` file (and a small
+  `.part.json` with the server's validator). The next call to the same `dest`
+  continues with `Range` and `If-Range`. If the server ignores ranges, answers
+  with another range, returns 416, or its ETag/Last-Modified changed, the file
+  is downloaded again from the start. Weak ETags and responses without a
+  validator are never resumed.
+- A checksum mismatch deletes the partial file so a bad download is not resumed.
+- The client's `Timeout` and `Retry` options do not apply to downloads; use
+  `ctx` to bound them. Do not download to the same `dest` concurrently.
+- Progress callbacks are throttled to roughly every 100 ms plus a final call.
+
 ## Submit a form from the frontend
 
 `src/framework/request.ts` and `src/framework/form.ts` wrap generated MyGo
