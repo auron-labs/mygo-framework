@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 var sizes = []int{1_000, 10_000, 100_000}

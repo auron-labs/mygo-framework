@@ -25,6 +25,8 @@ const (
 	mcpEnabledEnvironment  = "MYGO_MCP_ENABLED"
 	mcpPortEnvironment     = "MYGO_MCP_PORT"
 	mcpDiscloseEnvironment = "MYGO_MCP_DISCLOSE"
+	// suspendTimeout bounds how long a suspend waits for pending state.
+	suspendTimeout = 2 * time.Second
 )
 
 func main() {
@@ -48,6 +50,8 @@ func runApp() error {
 	applicationContext, cancelApplication := context.WithCancel(context.Background())
 	bindGenerated(applicationRuntime)
 	mygo.Bind(desktop.NewErrorReporting())
+	draft := desktop.NewNoteDraft()
+	mygo.Bind(draft)
 	quitStage := desktop.NewQuitStage(
 		cancelApplication,
 		applicationRuntime.Shutdown,
@@ -56,8 +60,11 @@ func runApp() error {
 		5*time.Second,
 	)
 	mygo.App.OnBeforeQuit(quitStage.BeforeQuit)
+	defer mygo.Power.OnSuspend(func() { suspendRuntime(applicationRuntime) })()
 
 	var window *mygo.Window
+	// OnSaveState holds a single function: an app that adds mygo.KeepState must fold this in.
+	mygo.App.OnSaveState(func() []byte { return []byte(draft.Get()) })
 	mygo.App.OnSecondInstance(func([]string, string) {
 		if window != nil {
 			window.Restore()
@@ -66,6 +73,9 @@ func runApp() error {
 	})
 	mygo.App.WhenReady(func() {
 		go startRuntime(applicationContext, applicationRuntime)
+		// RestoredState needs the running app, and the page loads after this, so
+		// the draft is back before the form asks for it.
+		draft.Set(string(mygo.App.RestoredState()))
 
 		window = mygo.NewWindow(mygo.WindowOptions{
 			Title:           "MyGo Framework Notes",
@@ -85,6 +95,19 @@ func runApp() error {
 		return fmt.Errorf("run application: %w", err)
 	}
 	return nil
+}
+
+// suspendRuntime saves state the system may end the app before it can: the SQLite
+// write-ahead log and queued error reports. Nothing is released, so the app
+// keeps working after a resume.
+func suspendRuntime(applicationRuntime *bootstrap.Bootstrap) {
+	ctx, cancel := context.WithTimeout(context.Background(), suspendTimeout)
+	defer cancel()
+	if err := applicationRuntime.Suspend(ctx); err != nil {
+		log.Printf("runtime suspend failed: %v", err)
+		errorreport.Capture(err, "runtime.suspend", "runtime")
+	}
+	errorreport.Flush()
 }
 
 func startRuntime(ctx context.Context, applicationRuntime *bootstrap.Bootstrap) {

@@ -6,27 +6,38 @@ import (
 
 	"github.com/auron-labs/mygo-framework/jobs"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
+	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
-	"github.com/oneo-me/onevra/source/icons/lucide"
-	"github.com/oneo-me/onevra/source/shells/sidebar"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 // shellOptions describes the window. The window restores its size and position
-// from StateKey; the defaults apply on the first launch.
+// from StateKey; the defaults apply on the first launch. Tabs, TopActions and
+// OnBack carry the phone's navigation; on desktops the sidebar carries it and
+// the shell ignores them.
 func (s *screen) shellOptions() sidebar.ShellOptions {
 	return sidebar.ShellOptions{
 		Title: appName, Hidden: true, StateKey: "main", Theme: theme.Onevra,
 		Width: defaultWidth, Height: defaultHeight, MinWidth: minWidth, MinHeight: minHeight,
 		LeftWidth: defaultLeftWidth, LeftMinWidth: railWidth,
 		Left: s.left, LeftToolbar: s.footer, ContentTitle: s.contentTitle, Content: s.content,
+		Tabs: s.tabs, TopActions: s.topActions, OnBack: s.back,
 	}
 }
 
 // view lays out the same regions without a window, for the headless tests and
-// the MCP fixture. The sidebar width comes from s.host, as in the window.
+// the MCP fixture: the phone layout on a phone, otherwise the sidebar, whose
+// width comes from s.host, as in the window.
 func (s *screen) view(c *ui.Context) {
+	if s.onPhone {
+		if s.phoneUI == nil {
+			s.phoneUI = sidebar.PhoneView(s.shellOptions())
+		}
+		s.phoneUI(c)
+		return
+	}
 	if s.host == nil {
 		s.host = &staticLeft{width: defaultLeftWidth}
 	}
@@ -170,6 +181,52 @@ func (s *screen) settingsItem(c *ui.Context, rail bool) {
 	}
 }
 
+// tabs lists the phone's tab bar: the sidebar's navigation routes, whose
+// selection follows the current page. A footer route leaves none chosen, which
+// the shell shows as a pushed screen with back.
+func (s *screen) tabs(_ *ui.Context) []sidebar.Tab {
+	current := s.current().id
+	var tabs []sidebar.Tab
+	for _, r := range routes() {
+		if !r.inNav {
+			continue
+		}
+		count := 0
+		if r.count != nil {
+			count = r.count(s)
+		}
+		tabs = append(tabs, sidebar.Tab{
+			Icon: r.icon(), Label: r.title(), Selected: r.id == current, Badge: count,
+			OnSelect: func() { s.navigate(r.id) },
+		})
+	}
+	return tabs
+}
+
+// topActions opens the footer routes from the phone's top bar, as the sidebar's
+// footer does on a desktop.
+func (s *screen) topActions(c *ui.Context) {
+	for _, r := range routes() {
+		if r.inNav {
+			continue
+		}
+		if sidebar.IconButton(c, r.icon(), locales.NavGoTo(r.title())).Clicked() {
+			s.navigate(r.id)
+		}
+	}
+}
+
+// back returns from a pushed footer route to the page before it. A launch that
+// restores a footer route has no page before, and returns to Home.
+func (s *screen) back() {
+	s.syncPhoneRouter()
+	if s.router.CanGoBack() {
+		s.router.Back()
+		return
+	}
+	s.navigate(routes()[0].id)
+}
+
 // compactWindow reports whether the window is narrower than the breakpoint.
 func (s *screen) compactWindow(c *ui.Context) bool {
 	width, _ := c.Size()
@@ -181,13 +238,32 @@ func (s *screen) contentTitle(c *ui.Context) {
 	components.Text(c, s.current().title()).Bold().SingleLine()
 }
 
-// content builds the selected page below the top bar.
+// content builds the selected page below the top bar. On a phone the router
+// moves between pages, so a slide shows two of them at once.
 func (s *screen) content(c *ui.Context) {
+	if !s.onPhone {
+		s.page(c, s.current())
+		return
+	}
+	s.syncPhoneRouter()
+	s.router.View(c, func(r *ui.Route) {
+		page := routes()[0]
+		for _, candidate := range routes() {
+			if r.Match("/" + candidate.id) {
+				page = candidate
+			}
+		}
+		r.Title(page.title())
+		s.page(c, page)
+	})
+}
+
+// page builds the page r in a scrolling column.
+func (s *screen) page(c *ui.Context, r route) {
 	gap := float32(24)
 	if s.prefs.Get().Compact {
 		gap = 8
 	}
-	r := s.current()
 	ui.Scroll(c).Fill().Children(func() {
 		ui.Column(c).FillWidth().Padding(sidebar.HeaderHeight(c)+16, 24, 24, 24).Gap(gap).Children(func() { r.view(c, s) })
 	})

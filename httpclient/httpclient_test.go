@@ -164,19 +164,23 @@ func TestTimeoutAndCancellationReachRequest(t *testing.T) {
 	t.Parallel()
 
 	for _, test := range []struct {
-		name       string
-		timeout    time.Duration
-		cancel     bool
-		want       error
-		cancelWait time.Duration
+		name   string
+		cancel bool
+		want   error
 	}{
-		{name: "client timeout", timeout: 30 * time.Millisecond, want: context.DeadlineExceeded},
-		{name: "caller cancellation", timeout: time.Second, cancel: true, want: context.Canceled, cancelWait: 10 * time.Millisecond},
+		{name: "client timeout", want: context.DeadlineExceeded},
+		{name: "caller cancellation", cancel: true, want: context.Canceled},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
 			requestCanceled := make(chan struct{})
 			server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+				// Cancel only once there is a server request to observe.
+				if test.cancel {
+					cancel()
+				}
 				<-request.Context().Done()
 				close(requestCanceled)
 			}))
@@ -184,18 +188,13 @@ func TestTimeoutAndCancellationReachRequest(t *testing.T) {
 
 			client, err := New(Options{
 				BaseURL: server.URL,
-				Timeout: test.timeout,
+				Timeout: time.Second,
 				Logger:  slog.New(slog.DiscardHandler),
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			if test.cancel {
-				time.AfterFunc(test.cancelWait, cancel)
-			}
 			_, err = client.Request(ctx, "slow.read").Get("/slow")
 			if !errors.Is(err, test.want) {
 				t.Fatalf("error = %v, want %v", err, test.want)

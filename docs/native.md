@@ -5,7 +5,7 @@ from a webview. The native example stores typed settings in the same SQLite data
 package the web starter uses (WAL, foreign keys, embedded Goose migrations),
 without the reference app's service MCP server or TypeScript frontend.
 
-The native starter includes a pinned `auron-labs/mygo-mcp` dependency.
+The native starter includes the framework's `mygomcp` harness.
 
 Create a native project with Go 1.27.3 or newer and the framework CLI installed:
 
@@ -27,20 +27,27 @@ table). The window size and position are restored from the `main` state key,
 opening at 960x640 with a minimum of 520x480. Below 720 DIPs wide the sidebar
 becomes an icon-only rail, implemented with `c.Size()` and `SetLeftWidth` because
 Onevra's shell has no breakpoint; the width the user dragged to returns when the
-window widens. It needs the Onevra version pinned below, and its headless tests
-and MCP fixture cover navigation and the rail. The rest of the starter (preferences,
-jobs, updates, menu) is the plain starter's.
+window widens. When `framework dev` restarts the app after a code change, it
+returns to the page that was showing (`mygo.KeepState` in `main.go`); MyGo
+restores scroll offsets on its own. Its headless tests and MCP fixture cover
+navigation and the rail. The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
 
-The starter pins MyGo v0.9.2 and Onevra v0.2026.18. It includes a Onevra plain
-shell, retained Go view state, and typed settings in SQLite.
+The starter pins MyGo v0.10.0 and imports the maintained Onevra packages from
+`github.com/auron-labs/mygo-framework/onevra`, versioned with the framework.
+See [Onevra installation and migration](../onevra/README.md) for use in existing
+applications. The plain starter includes a Onevra plain shell, retained Go view
+state, and typed settings in SQLite.
 The shell stays hidden until its first frame is drawn, so it opens with its
 content ready while the preference-saving close handler is already installed.
 `framework build` packages it through the pinned `go tool mygo`; no Bun or
 TypeScript frontend is required. `go run .` also runs the application.
 
 Toggle **Compact spacing**, choose units and a theme, close the window, and
-reopen it. The preferences are stored in `my-native-app/app.db` under
-`os.UserConfigDir()`; pass `-data-dir DIR` to use another directory. Startup
+reopen it. The preferences are stored in `my-native-app/app.db`, under
+`~/Library/Application Support` on macOS, `%AppData%` on Windows and
+`$XDG_CONFIG_HOME` (usually `~/.config`) on Linux. On iOS and Android it is in
+MyGo's directory for the app inside the sandbox. Pass
+`-data-dir DIR` on desktop to use another directory. Startup
 opens the database and applies pending migrations from `database/migrations`
 before the window is created. When an existing database has pending
 migrations, the starter first copies it to `backups/` beside it and keeps the
@@ -54,6 +61,14 @@ Preferences live in a [reactive cell](#reactive-state) and are saved 300 ms
 after the last change. Closing the window, including during application quit,
 first saves anything still pending. If a save fails, the window shows an error
 and stays open so the user can try again.
+
+Phones may end an app in the background without a quit. When the system
+suspends the app, it saves any pending preferences and checkpoints the SQLite
+write-ahead log within a bounded time, then sends queued error reports with
+their own bound. On iOS and Android it also cancels a running import, which
+shows as canceled when the user returns; if the system ended the app instead,
+the next launch says why the import stopped. Nothing is released, so the app
+keeps working on resume.
 
 ```sh
 go test ./...
@@ -74,7 +89,8 @@ go run ./examples/native
 go test ./examples/native
 ```
 
-Its preference directory is `mygo-framework-native` under `os.UserConfigDir()`.
+On desktop its preference directory is `mygo-framework-native`; iOS and Android
+use MyGo's directory for the app inside the sandbox.
 
 ## Background jobs
 
@@ -108,8 +124,9 @@ err = manager.Shutdown(shutdownCtx)
 - `Subscribe` callbacks run on the goroutine that changed the status and must
   not block. The first event for a job is always `Running`, and the last is its
   terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
-  native view subscribes with a callback: the starter calls `Window.Invalidate`
-  (safe from any goroutine) and reads `Status` while building the view. A web
+  native view subscribes with a callback: the starter calls `Window.Update`
+  (safe from any goroutine) to sync kept state on the main thread and redraw,
+  then reads `Status` while building the view. A web
   page can forward the same callback to a `mygo.Event` or a bound method's
   `*mygo.Channel`.
 - `Shutdown` rejects new jobs, cancels running ones, and waits for them within
@@ -118,6 +135,7 @@ err = manager.Shutdown(shutdownCtx)
   promptly when their context is canceled.
 
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
+or `sampleImportFiles` on the files a phone picked from the document picker,
 renders `components.Progress` from `Status.Fraction()` and offers **Cancel
 import**; replace the function with real work. See
 [Importing a folder](#importing-a-folder) for how the folder is chosen.
@@ -142,8 +160,8 @@ macOS. A window can also take files anywhere with `Window.OnFileDrop`, which
 gets the files no element took. A drop is a list of files and folders, so
 check `os.Stat(path)` before treating one as a folder.
 
-The starter wires both entry points to the same job and to the persisted last
-import folder (`native.import_folder`, saved automatically):
+The starter wires the desktop entry points to the same job and to the
+persisted last import folder (`native.import_folder`, saved automatically):
 
 - the drop zone in `importjob.go` takes the first dropped folder and says so
   when only files were dropped;
@@ -152,6 +170,15 @@ import folder (`native.import_folder`, saved automatically):
   and returns its result through `Window.Update`;
 - **Start import** re-imports the remembered folder, or opens the picker when
   none was chosen.
+
+On iOS and Android the starter imports files instead. MyGo's folder picker
+does not open a folder on Android (`ACTION_OPEN_DOCUMENT_TREE` returns a tree
+URI that MyGo cannot copy), so the import view hides the drop zone, the
+remembered folder and **Start import**, and offers **Choose files...**. It
+opens `mygo.Dialog.Open(OpenDialogOptions{Multiple: true})`; the picker copies
+the chosen files into a temporary directory. `sampleImportFiles` runs the same
+per-entry loop on the copies, which the starter removes when the job ends,
+however it ends. The copies are not saved as `native.import_folder`.
 
 In tests, `ui.Tester.DropFiles` delivers the same events as a real drop.
 
@@ -362,15 +389,19 @@ Reported: errors returned from `run` (startup failures), failed and panicked
 background jobs (`jobs.Manager`), a failed preference save when closing, and a
 panic that reaches `main`. Cancelled jobs are not reported. Events are flushed
 before the process exits, and the home directory is replaced with `~` in error
-text.
+text; on iOS and Android the app data directory becomes `<app data>`.
 
 ## Logs and support bundles
 
 The native starter writes its logs to `logs/app.log` in the data directory,
 rotating at 10 MB with three compressed backups kept for up to 28 days; the
-standard `log` package writes there too. **Help, Save support bundle...** writes
-a zip with the app version, operating system, migration status and those logs,
-with the home directory replaced by `~`, for the user to attach to a bug report.
+standard `log` package writes there too. **Save support bundle...** is a button
+in the window, and also an item in the desktop **Help** menu. It writes a zip
+with the app version, operating system, migration status and those logs, with
+the home directory replaced by `~` and, on iOS and Android, the app data
+directory by `<app data>`, for the user to attach to a bug report. On phones it
+writes the zip to a temporary file and hands it to `Dialog.SaveCopy`, which
+copies it where the user chooses; the temporary file is removed afterwards.
 The web starter writes the same bundle with `appctl support-bundle FILE`.
 
 ## Releases
@@ -535,7 +566,7 @@ authentication, so keep it local.
 
 MyGo MCP operates on isolated native fixtures. It cannot control running windows,
 OS dialogs, or webviews. The web starter's authenticated service MCP server is
-separate. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-mcp/blob/9f095775017aafe64c22e934d2178fa7b6657209/docs/AGENT_GUIDE.md)
+separate. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-framework/blob/main/mygomcp/docs/AGENT_GUIDE.md)
 for tools and observation rules. The included MCP integration test covers
 discovery, inspection, checkbox interaction, screenshots, fixture isolation,
 and shutdown over a real loopback connection.
@@ -577,17 +608,20 @@ which adds a `replace` directive. Import `.../settings` and a store such as
 `.../settings/sqlite` directly in any other application.
 
 Use MyGo's native `ui.View` for window content and native `mygo.json`
-configuration for packaging. Onevra supplies native components and shells;
-keep the application's MyGo version compatible with the selected Onevra
-version. Go selects the higher MyGo requirement, so verify framework packages
-against that version when upgrading.
+configuration for packaging. The framework's `onevra/components` and
+`onevra/shells` packages supply native controls and window shells. Onevra and
+`mygomcp` share the framework's release tags and MyGo requirement. Go selects
+the higher MyGo requirement if the application requests another version, so
+verify the UI and framework packages together when upgrading.
 
 ## Current CLI boundary
 
 `framework new` creates the web starter; `framework new NAME --native` creates
 the native starter. For native projects identified by `mygo.json`, `framework
-dev`, `build`, and `doctor` skip web adapter generation and delegate through
-`go tool mygo`. Web projects retain generation and `bun run mygo` delegation.
+dev`, `build`, `doctor`, `devices`, and `publish` skip web adapter generation
+and delegate through `go tool mygo`. Web projects retain generation and
+`bun run mygo` delegation, except for `framework devices`, which only lists
+devices and generates nothing.
 
 The native starter intentionally uses direct Go calls and typed settings.
 Framework web/MCP adapter generation targets the web starter. `framework make

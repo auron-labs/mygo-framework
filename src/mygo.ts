@@ -77,6 +77,17 @@ export const ErrorReporting = {
   dsn: bind<[], string>("ErrorReporting.DSN", () => []),
 } as const;
 
+/**
+ * NoteDraft keeps the note body a page has typed but not submitted, so a
+ * phone's system can end the app without losing it.
+ */
+export const NoteDraft = {
+  /** Get returns the unsaved note body, empty when none is kept. */
+  get: bind<[], string>("NoteDraft.Get", () => []),
+  /** Set stores the unsaved note body. */
+  set: bind<[string], void>("NoteDraft.Set", (body: string) => [body]),
+} as const;
+
 // ---- Events ----
 
 /** Events sent by the Go side. Subscribe with `events.name.on(listener)`. */

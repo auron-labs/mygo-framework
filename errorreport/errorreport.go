@@ -7,9 +7,11 @@ package errorreport
 import (
 	"fmt"
 	"os"
-	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/datadir"
 
 	"github.com/getsentry/sentry-go"
 )
@@ -29,6 +31,10 @@ var dsn atomic.Pointer[string]
 // disabled is the user's choice to stop sending reports; see SetEnabled.
 var disabled atomic.Bool
 
+// redactor is resolved on first use rather than at init: MyGo's Android host
+// sets HOME and the XDG directories after package init.
+var redactor = sync.OnceValue(datadir.Redactor)
+
 // Init starts error reporting for release when a DSN is configured. It does
 // nothing without one, and leaves reporting off with an error when the DSN is
 // invalid.
@@ -45,7 +51,7 @@ func Init(release string) error {
 		Release: release,
 		// The SDK defaults to sending the machine's host name, which identifies the user's computer.
 		ServerName: "desktop",
-		BeforeSend: redactHomeDirectory,
+		BeforeSend: redactPaths,
 	})
 	if err != nil {
 		return fmt.Errorf("start error reporting: %w", err)
@@ -54,16 +60,13 @@ func Init(release string) error {
 	return nil
 }
 
-// redactHomeDirectory keeps the user's name out of reports: file errors quote
-// paths, and the data and log directories live under the home directory.
-func redactHomeDirectory(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return event
-	}
-	event.Message = strings.ReplaceAll(event.Message, home, "~")
+// redactPaths keeps the user's name out of reports, and on phones the
+// installation-specific data directory too: file errors quote paths.
+func redactPaths(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
+	redact := redactor()
+	event.Message = redact(event.Message)
 	for i := range event.Exception {
-		event.Exception[i].Value = strings.ReplaceAll(event.Exception[i].Value, home, "~")
+		event.Exception[i].Value = redact(event.Exception[i].Value)
 	}
 	return event
 }

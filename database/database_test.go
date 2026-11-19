@@ -199,6 +199,76 @@ func TestMigrateAppliesPendingMigrations(t *testing.T) {
 	}
 }
 
+func TestCheckpointTruncatesLogAndKeepsData(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "notes.db")
+	database, err := Open(ctx, path, migrations.FS())
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := database.Close(); err != nil {
+			t.Errorf("close database: %v", err)
+		}
+	})
+
+	want := models.Note{Body: "survives checkpoint"}
+	if err := database.GORM.WithContext(ctx).Create(&want).Error; err != nil {
+		t.Fatalf("create note: %v", err)
+	}
+	if got := walSize(t, path); got == 0 {
+		t.Fatal("write-ahead log is empty before checkpoint")
+	}
+
+	if err := database.Checkpoint(ctx); err != nil {
+		t.Fatalf("checkpoint database: %v", err)
+	}
+	if got := walSize(t, path); got != 0 {
+		t.Fatalf("write-ahead log size after checkpoint = %d, want 0", got)
+	}
+
+	var got models.Note
+	if err := database.GORM.WithContext(ctx).First(&got, want.ID).Error; err != nil {
+		t.Fatalf("reload note after checkpoint: %v", err)
+	}
+	if got.Body != want.Body {
+		t.Fatalf("reloaded body = %q, want %q", got.Body, want.Body)
+	}
+}
+
+func TestCheckpointAfterCloseFails(t *testing.T) {
+	t.Parallel()
+
+	database, err := Open(t.Context(), filepath.Join(t.TempDir(), "notes.db"), migrations.FS())
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatalf("close database: %v", err)
+	}
+
+	if err := database.Checkpoint(t.Context()); err == nil {
+		t.Fatal("Checkpoint succeeded on a closed database")
+	}
+}
+
+// walSize returns the size of the write-ahead log, or zero if it does not exist.
+func walSize(t *testing.T, path string) int64 {
+	t.Helper()
+
+	info, err := os.Stat(path + "-wal")
+	if errors.Is(err, os.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		t.Fatalf("stat write-ahead log: %v", err)
+	}
+
+	return info.Size()
+}
+
 type migrationFile struct {
 	name      string
 	statement string

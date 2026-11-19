@@ -62,7 +62,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
+	"github.com/auron-labs/mygo-framework/onevra/components"
 	"gorm.io/gorm"
 )
 
@@ -169,7 +169,7 @@ import (
 	"{{.FrameworkModule}}/database"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 )
 
 func open{{.Name}}TestStore(t *testing.T) *{{.Name}}Store {

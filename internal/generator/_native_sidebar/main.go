@@ -13,9 +13,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/datadir"
 	"github.com/auron-labs/mygo-framework/errorreport"
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/logging"
@@ -23,9 +25,10 @@ import (
 	sqlitesettings "github.com/auron-labs/mygo-framework/settings/sqlite"
 	"github.com/auron-labs/mygo-framework/state"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
 	"github.com/egoist/mygo"
-	"github.com/oneo-me/onevra/source/shells/sidebar"
+	"github.com/egoist/mygo/ui"
 )
 
 const (
@@ -35,6 +38,8 @@ const (
 	saveDelay = 300 * time.Millisecond
 	// saveTimeout bounds how long closing waits for unsaved preferences.
 	saveTimeout = 2 * time.Second
+	// suspendTimeout bounds how long a suspend waits for pending state.
+	suspendTimeout = 2 * time.Second
 	// logDirectory is where the rotating logs live, inside the data directory.
 	logDirectory = "logs"
 )
@@ -57,13 +62,37 @@ type screen struct {
 	dataDir string
 	// update is the newer version found at launch, if the build checks for updates.
 	update *mygo.Update
-	// The fields below are UI-only and touched on the main thread. page is the
-	// selected navigation id, host the shell's sidebar width (see layout.go).
-	page          string
+	// db is checkpointed when the system suspends the app.
+	db *database.Database
+	// saveCopy is Dialog.SaveCopy; tests replace it to stand in for a phone's
+	// save flow.
+	saveCopy func(path, name string) (string, error)
+	// openFiles is Dialog.Open; tests replace it to stand in for a phone's
+	// document picker.
+	openFiles func(options mygo.OpenDialogOptions) ([]string, error)
+	// onPhone cancels a running import at suspend, where the system may end the
+	// app without a quit, and saves the support bundle through Dialog.SaveCopy.
+	onPhone bool
+	// The fields below are UI-only and touched on the main thread. host is the
+	// shell's sidebar width (see layout.go); kept holds the page and what a
+	// phone's system ends the app with; router is the phone's page history
+	// and phoneUI its layout, both created when first drawn.
+	kept          keptState
 	host          leftHost
 	version       string
 	expandedWidth float32
 	railActive    bool
+	router        *ui.Router
+	phoneUI       func(*ui.Context)
+}
+
+// keptState is what MyGo restores at the next launch: the page that was
+// showing, and an import that was running.
+type keptState struct {
+	page string
+	// importRunning records an import that was running when MyGo kept state, so
+	// a launch that restores it says the import stopped.
+	importRunning bool
 }
 
 // savePreferences returns the autosave function for values. It reports each
@@ -92,6 +121,29 @@ func (s *screen) beforeClose(event *mygo.CloseEvent) {
 			s.win.Invalidate()
 		}
 	}
+}
+
+// suspend saves state the system may end the app before it can: pending
+// preferences, the SQLite write-ahead log and queued error reports. On phones,
+// which may stop an app in the background without a quit, it also cancels a
+// running import, which the view then shows as canceled. Nothing is released,
+// so the app keeps working after a resume.
+func (s *screen) suspend() {
+	flushCtx, cancelFlush := context.WithTimeout(context.Background(), saveTimeout)
+	if err := s.saver.Flush(flushCtx); err != nil && s.win != nil {
+		s.win.Invalidate()
+	}
+	cancelFlush()
+	if s.onPhone {
+		s.jobs.Cancel(importJobName)
+	}
+	checkpointCtx, cancelCheckpoint := context.WithTimeout(context.Background(), suspendTimeout)
+	defer cancelCheckpoint()
+	if err := s.db.Checkpoint(checkpointCtx); err != nil {
+		log.Print(err)
+		errorreport.Capture(err, "database.checkpoint", "runtime")
+	}
+	errorreport.Flush()
 }
 
 // watchTheme calls apply with the preferred appearance whenever it changes.
@@ -139,7 +191,7 @@ func start() error {
 	defer errorreport.Flush()
 	defer errorreport.RecoverAndRepanic()
 	mcpAddress := flag.String("mcp", "", "Serve an isolated headless UI over MCP at a loopback IP:port instead of opening a window")
-	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to a profile under the user configuration directory")
+	dataDir := flag.String("data-dir", "", "Directory for the database; defaults to the platform application data directory")
 	flag.Parse()
 	if *mcpAddress != "" {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -160,11 +212,11 @@ func start() error {
 func run(dataDir string) (err error) {
 	useDefaultDir := dataDir == ""
 	if useDefaultDir {
-		configDir, err := os.UserConfigDir()
+		defaultDir, err := datadir.Default(profileName)
 		if err != nil {
 			return fmt.Errorf("locate data directory: %w", err)
 		}
-		dataDir = filepath.Join(configDir, profileName)
+		dataDir = defaultDir
 	}
 	// A second launch with the same data directory would open the database
 	// twice; -data-dir runs a separate instance on purpose.
@@ -202,7 +254,12 @@ func run(dataDir string) (err error) {
 		defer cancel()
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
-	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version()}
+	s := &screen{
+		prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version(),
+		db: db, onPhone: runtime.GOOS == "ios" || runtime.GOOS == "android",
+	}
+	defer mygo.Power.OnSuspend(s.suspend)()
+	mygo.KeepState(&s.kept)
 	errorreport.SetEnabled(prefs.ErrorReports)
 	defer state.Select(cell, func(p preferences) bool { return p.ErrorReports }).Subscribe(errorreport.SetEnabled)()
 	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })
@@ -210,13 +267,14 @@ func run(dataDir string) (err error) {
 	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))
 	defer watchTheme(cell, setTheme)()
 	mygo.App.WhenReady(func() {
+		s.restoreNotice()
 		shell := sidebar.NewShell(s.shellOptions())
 		s.host = shell
 		win := shell.Window()
 		s.win = win
-		// Invalidate is safe from any goroutine; the view reads the job status and preferences itself.
+		// Update is safe from any goroutine; the view reads the job status and preferences itself.
 		jobManager.Subscribe(func(status jobs.Status) {
-			win.Invalidate()
+			win.Update(func() { s.trackImport(status) })
 			s.notifyImportDone(status)
 		})
 		mygo.App.SetMenu(s.menu())
