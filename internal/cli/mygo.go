@@ -30,11 +30,22 @@ func NewBuildCommand() *cobra.Command {
 	return newMyGoCommand("build", false, generator.Generate, runMyGo)
 }
 
+// NewDevicesCommand lists the devices MyGo can run on.
+func NewDevicesCommand() *cobra.Command {
+	return newMyGoCommand("devices", false, nil, runMyGo)
+}
+
 // NewDoctorCommand checks web adapters when needed and runs MyGo's environment doctor.
 func NewDoctorCommand() *cobra.Command {
 	return newMyGoCommand("doctor", true, generator.Generate, runMyGo)
 }
 
+// NewPublishCommand prepares web adapters when needed and delegates store uploads to MyGo.
+func NewPublishCommand() *cobra.Command {
+	return newMyGoCommand("publish", false, generator.Generate, runMyGo)
+}
+
+// A nil generate skips adapter preparation, for commands that only inspect MyGo's outputs.
 func newMyGoCommand(name string, check bool, generate frameworkGenerator, run mygoRunner) *cobra.Command {
 	return &cobra.Command{
 		Use:                name + " [mygo flags]",
@@ -45,13 +56,15 @@ func newMyGoCommand(name string, check bool, generate frameworkGenerator, run my
 			if err != nil {
 				return fmt.Errorf("resolve project directory: %w", err)
 			}
-			_, nativeErr := os.Stat(filepath.Join(directory, "mygo.json"))
-			if nativeErr != nil && !errors.Is(nativeErr, os.ErrNotExist) {
-				return fmt.Errorf("inspect MyGo configuration: %w", nativeErr)
-			}
-			if nativeErr != nil {
-				if _, err := generate(command.Context(), generator.GenerateConfig{Dir: directory, Check: check}); err != nil {
-					return fmt.Errorf("prepare framework files for %s: %w", name, err)
+			if generate != nil {
+				_, nativeErr := os.Stat(filepath.Join(directory, "mygo.json"))
+				if nativeErr != nil && !errors.Is(nativeErr, os.ErrNotExist) {
+					return fmt.Errorf("inspect MyGo configuration: %w", nativeErr)
+				}
+				if nativeErr != nil {
+					if _, err := generate(command.Context(), generator.GenerateConfig{Dir: directory, Check: check}); err != nil {
+						return fmt.Errorf("prepare framework files for %s: %w", name, err)
+					}
 				}
 			}
 			if err := run(command.Context(), directory, command.InOrStdin(), command.OutOrStdout(), command.ErrOrStderr(), append([]string{name}, args...)...); err != nil {
@@ -68,8 +81,12 @@ func myGoCommandDescription(name string) string {
 		return "Start MyGo development (generate adapters for web projects)"
 	case "build":
 		return "Build with MyGo (generate adapters for web projects)"
+	case "devices":
+		return "List the devices MyGo can run on"
 	case "doctor":
 		return "Run the MyGo doctor (check adapters for web projects)"
+	case "publish":
+		return "Publish to an app store with MyGo (generate adapters for web projects)"
 	default:
 		return "Run MyGo"
 	}

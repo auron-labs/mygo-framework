@@ -204,6 +204,16 @@ func (msgs Messages) ImportCanceled() string {
 	return Catalog.Format(msgs.locale, "importCanceled", nil)
 }
 
+// ImportInterrupted says "The import stopped before it finished. Start it again to finish."
+// in the language the app shows.
+func ImportInterrupted() string { return In(i18n.Locale()).ImportInterrupted() }
+
+// ImportInterrupted says "The import stopped before it finished. Start it again to finish."
+// in the language of msgs.
+func (msgs Messages) ImportInterrupted() string {
+	return Catalog.Format(msgs.locale, "importInterrupted", nil)
+}
+
 // ImportFailed says "Import failed: {reason}"
 // in the language the app shows.
 func ImportFailed(reason string) string { return In(i18n.Locale()).ImportFailed(reason) }
@@ -304,6 +314,16 @@ func (msgs Messages) ChooseFolder() string {
 	return Catalog.Format(msgs.locale, "chooseFolder", nil)
 }
 
+// ChooseFiles says "Choose files..."
+// in the language the app shows.
+func ChooseFiles() string { return In(i18n.Locale()).ChooseFiles() }
+
+// ChooseFiles says "Choose files..."
+// in the language of msgs.
+func (msgs Messages) ChooseFiles() string {
+	return Catalog.Format(msgs.locale, "chooseFiles", nil)
+}
+
 // StartImport says "Start import"
 // in the language the app shows.
 func StartImport() string { return In(i18n.Locale()).StartImport() }
@@ -324,6 +344,16 @@ func (msgs Messages) ChooseFolderTitle() string {
 	return Catalog.Format(msgs.locale, "chooseFolderTitle", nil)
 }
 
+// ChooseFilesTitle says "Choose files to import"
+// in the language the app shows.
+func ChooseFilesTitle() string { return In(i18n.Locale()).ChooseFilesTitle() }
+
+// ChooseFilesTitle says "Choose files to import"
+// in the language of msgs.
+func (msgs Messages) ChooseFilesTitle() string {
+	return Catalog.Format(msgs.locale, "chooseFilesTitle", nil)
+}
+
 // ChooseFolderButton says "Import"
 // in the language the app shows.
 func ChooseFolderButton() string { return In(i18n.Locale()).ChooseFolderButton() }
@@ -342,6 +372,16 @@ func FolderPickerFailed() string { return In(i18n.Locale()).FolderPickerFailed()
 // in the language of msgs.
 func (msgs Messages) FolderPickerFailed() string {
 	return Catalog.Format(msgs.locale, "folderPickerFailed", nil)
+}
+
+// FilePickerFailed says "Could not open the file picker."
+// in the language the app shows.
+func FilePickerFailed() string { return In(i18n.Locale()).FilePickerFailed() }
+
+// FilePickerFailed says "Could not open the file picker."
+// in the language of msgs.
+func (msgs Messages) FilePickerFailed() string {
+	return Catalog.Format(msgs.locale, "filePickerFailed", nil)
 }
 
 // FolderUnusable says "That folder could not be used."

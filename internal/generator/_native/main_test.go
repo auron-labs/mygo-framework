@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
@@ -17,9 +18,9 @@ import (
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/state"
 
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 // newScreen returns a screen whose preferences are never persisted.
@@ -145,6 +146,126 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 	}
 }
 
+func TestPhoneImportImportsPickedFilesAndRemovesTheCopies(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		cancel bool
+	}{
+		{name: "finished"},
+		{name: "canceled", cancel: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			picked := make([]string, 0, 2)
+			for _, name := range []string{"a.txt", "b.txt"} {
+				path := filepath.Join(dir, name)
+				if err := os.WriteFile(path, []byte(name), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				picked = append(picked, path)
+			}
+			s := newScreen(t, preferences{})
+			s.onPhone = true
+			var options mygo.OpenDialogOptions
+			s.openFiles = func(o mygo.OpenDialogOptions) ([]string, error) {
+				options = o
+				return picked, nil
+			}
+			running := make(chan struct{}, 1)
+			finished := make(chan jobs.Status, 4)
+			s.jobs.Subscribe(func(st jobs.Status) {
+				switch st.State {
+				case jobs.Running:
+					select {
+					case running <- struct{}{}:
+					default:
+					}
+				case jobs.Done, jobs.Failed, jobs.Canceled:
+					finished <- st
+				}
+			})
+			tt := newTester(s)
+			if err := tt.Click(locales.ChooseFiles()); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case <-running:
+			case <-time.After(5 * time.Second):
+				t.Fatal("the file import did not start")
+			}
+			if !options.Multiple || options.Directory {
+				t.Fatalf("dialog options = %+v, want several files and no folder", options)
+			}
+			if tc.cancel && !s.jobs.Cancel(importJobName) {
+				t.Fatal("no running import to cancel")
+			}
+			select {
+			case st := <-finished:
+				want := jobs.Done
+				if tc.cancel {
+					want = jobs.Canceled
+				}
+				if st.State != want {
+					t.Fatalf("final = %+v, want %s", st, want)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("the file import did not end")
+			}
+			for _, path := range picked {
+				if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+					t.Fatalf("picked copy remains after the %s import: %v", tc.name, err)
+				}
+			}
+			if got := s.prefs.Get().ImportFolder; got != "" {
+				t.Fatalf("picked files were remembered as the import folder: %q", got)
+			}
+			wantText := locales.ImportFinished()
+			if tc.cancel {
+				wantText = locales.ImportCanceled()
+			}
+			tt.Frame()
+			if !tt.HasText(wantText) {
+				t.Fatalf("view after the %s import = %q", tc.name, tt.Texts())
+			}
+		})
+	}
+}
+
+func TestPhoneImportViewOffersOnlyTheFilePicker(t *testing.T) {
+	folder := filepath.Join(t.TempDir(), "remembered")
+	s := newScreen(t, preferences{ImportFolder: folder})
+	s.onPhone = true
+	tt := newTester(s)
+	tt.Frame()
+	for _, text := range []string{locales.ChooseFolder(), locales.StartImport(), locales.DropFolder(), locales.DropFolderLast(folder)} {
+		if tt.HasText(text) {
+			t.Fatalf("phone import view shows %q: %q", text, tt.Texts())
+		}
+	}
+	if _, ok := tt.Find(locales.ChooseFiles()); !ok {
+		t.Fatalf("phone import view has no file picker: %q", tt.Texts())
+	}
+}
+
+func TestPhoneImportShowsPickerFailure(t *testing.T) {
+	s := newScreen(t, preferences{})
+	s.onPhone = true
+	s.openFiles = func(mygo.OpenDialogOptions) ([]string, error) {
+		return nil, errors.New("denied")
+	}
+	tt := newTester(s)
+	if err := tt.Click(locales.ChooseFiles()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText(locales.FilePickerFailed()) {
+		t.Fatalf("view after a failed picker = %q", tt.Texts())
+	}
+	if got := s.prefs.Get().ImportFolder; got != "" {
+		t.Fatalf("failed picker remembered a folder: %q", got)
+	}
+}
+
 func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
 	folder := t.TempDir()
 	for _, name := range []string{"a", "b"} {
@@ -166,6 +287,42 @@ func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
 	}
 	if err := sampleImport(filepath.Join(folder, "missing"))(t.Context(), nil); err == nil {
 		t.Fatal("a missing folder was imported")
+	}
+}
+
+func TestSaveSupportBundleButtonUsesTheCopyFlowOnPhones(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.onPhone = true
+	s.dataDir = t.TempDir()
+	offered := make(chan string, 1)
+	s.saveCopy = func(path, name string) (string, error) {
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			t.Errorf("open support bundle: %v", err)
+			return "", fmt.Errorf("open support bundle: %w", err)
+		}
+		defer func() {
+			if err := reader.Close(); err != nil {
+				t.Errorf("close support bundle: %v", err)
+			}
+		}()
+		if len(reader.File) == 0 {
+			t.Error("support bundle is empty")
+		}
+		offered <- name
+		return "/saved/" + name, nil
+	}
+	tt := newTester(s)
+	if err := tt.Click(locales.SaveSupportBundle()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case name := <-offered:
+		if name != supportBundleName {
+			t.Fatalf("offered %q, want %q", name, supportBundleName)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the button did not save a copy")
 	}
 }
 
@@ -200,7 +357,20 @@ func persistentScreen(t *testing.T, dir string) (*screen, *database.Database) {
 	cell := state.NewCell(initial)
 	saver := state.Autosave(cell, time.Hour, savePreferences(values))
 	t.Cleanup(func() { _ = saver.Close(context.Background()) })
-	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context())}, db
+	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context()), db: db}, db
+}
+
+// walSize returns the size of the write-ahead log, or zero if it does not exist.
+func walSize(t *testing.T, path string) int64 {
+	t.Helper()
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		t.Fatalf("stat write-ahead log: %v", err)
+	}
+	return info.Size()
 }
 
 func TestPreferencesPersistWithoutClosingTheWindow(t *testing.T) {
@@ -334,6 +504,134 @@ func TestSaveFailureIsVisibleAndBlocksClose(t *testing.T) {
 	}
 }
 
+func TestSuspendSavesPreferencesAndCheckpoints(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = db.Close() })
+	tt := newTester(s)
+	if err := tt.Click("Compact spacing"); err != nil {
+		t.Fatal(err)
+	}
+
+	s.suspend()
+
+	if got := walSize(t, filepath.Join(dir, "app.db-wal")); got != 0 {
+		t.Fatalf("write-ahead log size after suspend = %d, want 0", got)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, reopened := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = reopened.Close() })
+	if got := restarted.prefs.Get(); !got.Compact {
+		t.Fatalf("preferences after suspend = %+v, want the change persisted", got)
+	}
+}
+
+func TestSuspendCancelsImportOnPhones(t *testing.T) {
+	s, db := persistentScreen(t, t.TempDir())
+	t.Cleanup(func() { _ = db.Close() })
+	s.onPhone = true
+	// Several files keep the job running after its first progress report, so
+	// suspend finds it to cancel rather than already finished.
+	dir := t.TempDir()
+	picked := make([]string, 0, 6)
+	for i := range 6 {
+		path := filepath.Join(dir, fmt.Sprintf("%d.txt", i))
+		if err := os.WriteFile(path, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		picked = append(picked, path)
+	}
+	s.openFiles = func(mygo.OpenDialogOptions) ([]string, error) { return picked, nil }
+	reported := make(chan struct{}, 1)
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		switch {
+		case st.State == jobs.Running && st.Message != "":
+			select {
+			case reported <- struct{}{}:
+			default:
+			}
+		case st.State != jobs.Running:
+			finished <- st
+		}
+	})
+	tt := newTester(s)
+	if err := tt.Click(locales.ChooseFiles()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-reported:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the import did not report progress")
+	}
+	if !s.kept.importRunning {
+		t.Fatal("running import was not kept")
+	}
+
+	s.suspend()
+
+	if st := <-finished; st.State != jobs.Canceled {
+		t.Fatalf("final = %+v", st)
+	}
+	tt.Frame()
+	if !tt.HasText(locales.ImportCanceled()) || tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after suspend = %q", tt.Texts())
+	}
+}
+
+func TestRestoredImportNoticeExplainsInterruptedImport(t *testing.T) {
+	s := newScreen(t, preferences{})
+	s.kept.importRunning = true
+	s.restoreImportNotice()
+	if s.kept.importRunning {
+		t.Fatal("restored notice left importRunning set")
+	}
+	tt := newTester(s)
+	tt.Frame()
+	if !tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after restore = %q", tt.Texts())
+	}
+}
+
+func TestFinishedImportClearsRunningState(t *testing.T) {
+	s := newScreen(t, preferences{})
+	s.trackImport(jobs.Status{Name: importJobName, State: jobs.Running})
+	if !s.kept.importRunning {
+		t.Fatal("running import was not kept")
+	}
+	s.trackImport(jobs.Status{Name: importJobName, State: jobs.Done})
+	s.restoreImportNotice()
+	if s.kept.importRunning {
+		t.Fatal("finished import stayed kept as running")
+	}
+	tt := newTester(s)
+	tt.Frame()
+	if tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after finished import = %q", tt.Texts())
+	}
+}
+
+func TestPreferencesSaveAfterSuspend(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = db.Close() })
+	s.suspend()
+	s.prefs.Update(func(p *preferences) { p.Units = unitsImperial })
+	if err := s.saver.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, reopened := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = reopened.Close() })
+	if got := restarted.prefs.Get(); got.Units != unitsImperial {
+		t.Fatalf("preferences after suspend and save = %+v, want imperial", got)
+	}
+}
+
 func TestOpenPreferencesAcceptsRelativeDataDirectories(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "launch"), 0o700); err != nil {
@@ -414,5 +712,83 @@ func TestFoundUpdateOffersInstallAndReportsFailure(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("The update could not be installed.") || !tt.HasText("Install update") {
 		t.Fatalf("failed view = %q", tt.Texts())
+	}
+}
+
+// phoneTester shows the starter in a phone-sized window with an iPhone's safe
+// area.
+func phoneTester(s *screen, width, height int) *ui.Tester {
+	s.onPhone = true
+	tt := ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, width, height)
+	tt.SetInsets(47, 12, 34, 9)
+	tt.Frame()
+	return tt
+}
+
+// A finger changes a preference, and a finger drag scrolls to the controls
+// below the fold of a short window.
+func TestPhoneFingerReachesEveryControl(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.dataDir = t.TempDir()
+	offered := make(chan struct{}, 1)
+	s.saveCopy = func(string, string) (string, error) { offered <- struct{}{}; return "", nil }
+	tt := phoneTester(s, 844, 390)
+	r, ok := tt.Find(locales.CompactSpacing())
+	if !ok {
+		t.Fatalf("missing %q: %q", locales.CompactSpacing(), tt.Texts())
+	}
+	tt.FingerDown(r.X+r.W/2, r.Y+r.H/2)
+	tt.FingerUp(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if !s.prefs.Get().Compact {
+		t.Fatal("a tap did not change the preference")
+	}
+	// The support bundle button starts below the window; a finger drag up
+	// brings it into view.
+	for range 6 {
+		if b, ok := tt.Find(locales.SaveSupportBundle()); ok && b.Y+b.H <= 390-34 {
+			break
+		}
+		tt.FingerDown(400, 300)
+		tt.FingerMove(400, 250)
+		tt.FingerMove(400, 150)
+		tt.FingerUp(400, 150)
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+	b, ok := tt.Find(locales.SaveSupportBundle())
+	if !ok || b.Y+b.H > 390-34 {
+		t.Fatalf("the support bundle button is out of reach: %+v %v", b, ok)
+	}
+	tt.FingerDown(b.X+b.W/2, b.Y+b.H/2)
+	tt.FingerUp(b.X+b.W/2, b.Y+b.H/2)
+	select {
+	case <-offered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("tapping the button did not save a copy")
+	}
+}
+
+// Every control on the main screen has an accessible name and a role.
+func TestPhoneControlsHaveNamesAndRoles(t *testing.T) {
+	named := []ui.Role{
+		ui.RoleButton, ui.RoleLink, ui.RoleCheckBox, ui.RoleRadio, ui.RoleSwitch, ui.RoleTab,
+		ui.RoleTextField, ui.RoleComboBox, ui.RolePopUpButton, ui.RoleToggleButton, ui.RoleSlider,
+	}
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.update = &mygo.Update{Version: "2.0.0"}
+	tt := phoneTester(s, 390, 1600)
+	controls := 0
+	for _, a := range tt.AccessAll() {
+		if !slices.Contains(named, a.Role) {
+			continue
+		}
+		controls++
+		if a.Name == "" {
+			t.Errorf("a %v at %+v has no accessible name", a.Role, a.Bounds)
+		}
+	}
+	if controls < 5 {
+		t.Fatalf("found %d controls: %q", controls, tt.Texts())
 	}
 }

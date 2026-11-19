@@ -43,8 +43,10 @@ generated-code header.
 ## Report errors
 
 Set `SENTRY_DSN` in the environment the app is launched from to send unexpected
-errors and panics to Sentry, including uncaught frontend errors (the page reads the DSN from the Go process). Without it nothing is initialised or sent. Only
-errors are reported, and the home directory is replaced with `~` in error text.
+errors and panics to Sentry, including uncaught frontend errors (the page reads
+the DSN from the Go process). Without it nothing is initialised or sent. Only
+errors are reported, and the home directory is replaced with `~` in error text
+(the app data directory becomes `<app data>` on iOS and Android).
 
 ## Maintain the database offline
 
@@ -55,10 +57,14 @@ go run ./cmd/appctl db status
 go run ./cmd/appctl db up
 ```
 
-Both commands use the same application profile as the desktop app. Pass
-`--data-directory PATH` before `db` to operate on a portable or test profile.
-`db status` opens an existing database read-only and never applies migrations;
-only `db up` changes the schema.
+Both commands use the same application profile as the desktop app, which stores
+its data in `~/Library/Application Support/<app>` on macOS, `%AppData%\<app>` on
+Windows and `$XDG_CONFIG_HOME/<app>` (usually `~/.config/<app>`) on Linux; iOS
+and Android use MyGo's directory for the app inside the sandbox. Pass
+`--data-directory PATH` before `db` to operate on a portable or test profile;
+phones have no command line and always use the default. `db status` opens an
+existing database read-only and never applies migrations; only `db up` changes
+the schema.
 
 ## Verify and build
 

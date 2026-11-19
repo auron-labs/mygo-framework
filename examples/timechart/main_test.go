@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 func newTester(t *testing.T) (*ui.Tester, *screen) {

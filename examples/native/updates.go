@@ -8,9 +8,9 @@ import (
 	"github.com/auron-labs/mygo-framework/jobs"
 	"github.com/auron-labs/mygo-framework/locales"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
 )
 
 const (
@@ -22,7 +22,8 @@ const (
 // contacts no server unless the build was made with an update feed and public
 // key (the updates section of mygo.json); otherwise Updater.Enabled is false.
 func (s *screen) checkForUpdates() {
-	if !mygo.Updater.Enabled() {
+	// Phones get updates from their store, and the prompt is desktop-only.
+	if s.onPhone || !mygo.Updater.Enabled() {
 		return
 	}
 	err := s.jobs.Start(updateCheckJob, func(ctx context.Context, _ jobs.Report) error {

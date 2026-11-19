@@ -3,6 +3,11 @@
 # It needs `updates.github` in mygo.json, and the update signing key as the
 # MYGO_UPDATER_PRIVATE_KEY secret (`go tool mygo keygen` makes the pair). Set a
 # SENTRY_DSN secret to compile an error-reporting DSN into the build.
+# Phones need their own signing: iOS builds run on a macOS runner with the
+# Apple team as `ios.team` in mygo.json, and the identifier's provisioning
+# profile and signing certificate installed; Android builds sign with
+# `android.keystore`, its passwords from the MYGO_ANDROID_KEYSTORE_PASSWORD and
+# MYGO_ANDROID_KEY_PASSWORD secrets.
 # Signing and notarizing for other machines:
 # https://github.com/egoist/mygo/blob/main/docs/github-actions.md
 name: Release

@@ -4,8 +4,9 @@ This repository is a framework module and reference application for
 building local-first [MyGo](https://mygo.egoist.dev/) desktop apps in Go. It
 adds a predictable application layout, SQLite and GORM persistence, Goose
 migrations, validation, explicit dependency injection, structured logging,
-typed settings, OS secrets, outbound HTTP helpers, form state, generators, and
-optional MCP tools without replacing MyGo's runtime or IPC.
+typed settings, OS secrets, outbound HTTP helpers, form state, generators,
+[Onevra native UI packages](onevra/README.md), and optional MCP tools without
+replacing MyGo's runtime or IPC.
 
 The included Notes app is the working reference. It persists notes in one
 SQLite database, uses the same service from the desktop UI and MCP, and shuts
@@ -18,7 +19,7 @@ down its listener and storage in dependency order.
 - Git
 - The native libraries required by MyGo on your operating system
 
-The manifests pin MyGo 0.9.2 and the frontend toolchain. Run
+The manifests pin MyGo 0.10.0 and the frontend toolchain. Run
 `framework doctor` inside a generated project to check the local MyGo build
 requirements.
 
@@ -53,7 +54,17 @@ The last command opens the Notes desktop app with MyGo's normal live-reload
 workflow. Add a note, quit the app, and start it again to see the persisted
 note.
 
+The native starter sets `ios.minimumSystemVersion` 17.0 and `android.minSdk`
+26, the web starter carries MyGo's commented phone settings, and web projects
+get `dev:ios` and `dev:android` scripts. They are always generated: they do
+nothing on desktop builds, and a flag would leave projects that later want
+phones adding the settings by hand.
+
 ## Native Go UI
+
+Onevra is maintained in this module under `onevra/`, alongside `mygomcp`.
+Import its components, themes, shells, and icons directly in any MyGo app; see
+[installation and migration](onevra/README.md).
 
 Create a native starter with Onevra components and persisted preferences:
 
@@ -68,7 +79,7 @@ Add `--shell sidebar` for a variant on Onevra's sidebar shell, with page
 routing, a footer and an icon rail in narrow windows.
 
 Native projects use the pinned Go MyGo tool for development, diagnostics, and
-packaging. They also include [MyGo MCP](https://github.com/auron-labs/mygo-mcp)
+packaging. They also include [MyGo MCP](mygomcp/README.md)
 for headless UI inspection, interaction, and screenshots. Start the harness with
 `go run . -mcp 127.0.0.1:8080` and connect an MCP client to
 `http://127.0.0.1:8080/mcp` using Streamable HTTP.
@@ -119,7 +130,9 @@ flow.
 | --- | --- |
 | `framework dev` | Start MyGo development; generate adapters first for web projects |
 | `framework build` | Build with MyGo; generate adapters first for web projects |
+| `framework devices` | List the devices MyGo can run on |
 | `framework doctor` | Run the pinned MyGo doctor; check adapters first for web projects |
+| `framework publish` | Upload a mobile build to its store; generate adapters first for web projects |
 | `framework generate` | Refresh framework-owned Go adapters and registrations |
 | `framework generate --check` | Fail if committed generated files are stale |
 | `framework make feature NAME` | Create a complete feature and regenerate adapters |
@@ -130,14 +143,17 @@ flow.
 | `go run ./cmd/appctl db restore FILE` | Replace the database with a backup while the desktop app is closed |
 | `go run ./cmd/appctl support-bundle FILE` | Write versions, migration status and logs to a zip for a bug report |
 
-MyGo flags pass through `framework dev` and `framework build`. Use each
-command's `--help` output for the pinned MyGo options.
+MyGo flags pass through `framework dev`, `framework build`, `framework devices`,
+`framework doctor`, and `framework publish`. Use each command's `--help` output
+for the pinned MyGo options.
 
 ## Learn the framework
 
 - [Capability recipes](docs/recipes.md) show settings, secrets, HTTP, forms,
   migrations, MCP exposure, runtime defaults, and the verification commands.
 - [Native applications](docs/native.md) cover the native Go UI starter.
+- [Phones and tablets](docs/mobile.md) cover prerequisites, devices, building,
+  signing and publishing on iOS and Android.
 
 The framework intentionally has no Goravel dependency, mandatory UI server,
 global service facade, automatic database repair, plaintext secret fallback, or

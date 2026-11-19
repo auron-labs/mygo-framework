@@ -20,5 +20,11 @@ export const startErrorReporting = async (loadDsn: () => Promise<string>): Promi
   return true;
 };
 
+// reportError sends an unexpected failure to error reporting, when a DSN was
+// configured.
+export const reportError = (error: unknown): void => {
+  Sentry.captureException(error);
+};
+
 // flushErrorReports delivers pending events, for use as the page unloads.
 export const flushErrorReports = (): Promise<boolean> => Sentry.flush(2000);

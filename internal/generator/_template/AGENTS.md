@@ -18,6 +18,14 @@
   files in `database/migrations`; never rewrite an applied migration.
 - Give each closable resource one owner. Preserve startup rollback, readiness
   gating, request cancellation, and dependency-ordered shutdown.
+- Phones may end an app in the background without a quit. When the system
+  suspends the app, `main.go` checkpoints the SQLite write-ahead log within a
+  bounded time, then flushes queued error reports with their own bound. Nothing
+  is released, so the app keeps working on resume.
+- The page hands the note body the user has typed but not submitted to the
+  bound `NoteDraft`; `App.OnSaveState` keeps it for the next launch, which seeds
+  the form from it. `App.OnSaveState` holds one function: an app that adds
+  `mygo.KeepState` must fold the draft into what it keeps.
 
 ## Generate only owned adapters
 

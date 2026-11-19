@@ -247,6 +247,23 @@ func dataSourceName(path string, readOnly bool) string {
 	return source.String()
 }
 
+// Checkpoint copies the write-ahead log into the database file and truncates
+// it, so committed data is in the main file if the process ends without a
+// clean shutdown. It fails when the log cannot be checkpointed completely.
+func (d *Database) Checkpoint(ctx context.Context) error {
+	var busy, logFrames, checkpointed int
+	err := d.SQL.QueryRowContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)").
+		Scan(&busy, &logFrames, &checkpointed)
+	if err != nil {
+		return fmt.Errorf("checkpoint SQLite database: %w", err)
+	}
+	if busy != 0 {
+		return errors.New("checkpoint SQLite database: write-ahead log is busy")
+	}
+
+	return nil
+}
+
 // Close releases the shared pool once.
 func (d *Database) Close() error {
 	d.closeOnce.Do(func() {

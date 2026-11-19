@@ -1,0 +1,266 @@
+{
+  "@@locale": "en",
+  "minimum": "minimum",
+  "maximum": "maximum",
+  "today": "Today",
+  "chooseMonth": "Choose month",
+  "chooseYear": "Choose year",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "previousYear": "Previous year",
+  "nextYear": "Next year",
+  "previousYears": "Previous years",
+  "nextYears": "Next years",
+  "monthSelection": "Month selection",
+  "yearSelection": "Year selection",
+  "chooseTime": "Choose time",
+  "hours": "Hours",
+  "minutes": "Minutes",
+  "divider": "Divider",
+  "saturationBrightness": "Saturation and brightness",
+  "hue": "Hue",
+  "opacity": "Opacity",
+  "colorFormat": "Color format",
+  "copyColor": "Copy color",
+  "red": "Red",
+  "green": "Green",
+  "blue": "Blue",
+  "hexColor": "Hex color",
+  "opacityPercent": "Opacity percent",
+  "hueDegrees": "Hue degrees",
+  "saturationPercent": "Saturation percent",
+  "brightnessPercent": "Brightness percent",
+  "lightnessPercent": "Lightness percent",
+  "settings": "Settings",
+  "searchSettings": "Search settings",
+  "searchSettingsPlaceholder": "Search settings…",
+  "settingsCategory": "Settings category",
+  "searchResults": "Search results",
+  "noSettings": "No matching settings. Try another search.",
+  "closeSettings": "Close settings",
+  "closeToast": "Close",
+  "toggleSidebar": "Toggle sidebar",
+  "resizeSidebar": "Resize sidebar",
+  "toggleRightSidebar": "Toggle right sidebar",
+  "resizeRightSidebar": "Resize right sidebar",
+  "minimizeWindow": "Minimize window",
+  "maximizeWindow": "Maximize window",
+  "restoreWindow": "Restore window",
+  "closeWindow": "Close window",
+  "numberAdjust": "Adjust {label}",
+  "@numberAdjust": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "numberIncrease": "{label} Increase",
+  "@numberIncrease": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "numberDecrease": "{label} Decrease",
+  "@numberDecrease": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "searchCommands": "Search commands",
+  "searchCommandsPlaceholder": "Search commands…",
+  "noMatchingCommands": "No matching commands",
+  "loadingContent": "Loading content",
+  "loading": "Loading…",
+  "commands": "Commands",
+  "removeTag": "Remove {label}",
+  "@removeTag": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "tagAdded": "Added {label}",
+  "@tagAdded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "tagRemoved": "Removed {label}",
+  "@tagRemoved": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "tagSelected": "{label} selected. Press Backspace to remove it.",
+  "@tagSelected": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "tagExists": "{label} is already added",
+  "@tagExists": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "holdDone": "Done",
+  "holdHint": "{seconds, plural, one {Press and hold for # second to confirm. With a keyboard, hold Space or Enter.} other {Press and hold for # seconds to confirm. With a keyboard, hold Space or Enter.}}",
+  "@holdHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "num"
+      }
+    }
+  },
+  "avatarOnline": "{label}, online",
+  "@avatarOnline": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "avatarOffline": "{label}, offline",
+  "@avatarOffline": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "breadcrumbsMore": "Show hidden path",
+  "avatarGroup": "Team members",
+  "avatarGroupMore": "{count, plural, one {# more member} other {# more members}}",
+  "@avatarGroupMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "slides": "Slides",
+  "chooseSlide": "Choose a slide",
+  "previousSlide": "Previous slide",
+  "nextSlide": "Next slide",
+  "startRotation": "Start slide rotation",
+  "pauseRotation": "Pause slide rotation",
+  "slideOf": "{index} of {count}",
+  "@slideOf": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTotal": "Total",
+  "chartOff": "Off",
+  "chartKeepOneSegment": "At least one segment must stay visible",
+  "stepperProgress": "Progress",
+  "stepperComplete": "All steps complete",
+  "stepperCompleted": "Completed",
+  "stepperCurrent": "Current step",
+  "stepperUpcoming": "Not started",
+  "stepperError": "Error",
+  "stepperAnnounce": "Step {step} of {count}: {label}",
+  "@stepperAnnounce": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "cardStack": "Cards",
+  "cardStackPass": "Pass",
+  "cardStackKeep": "Keep",
+  "cardStackUndo": "Undo",
+  "cardStackStartOver": "Start over",
+  "cardStackReviewed": "All cards reviewed",
+  "cardStackHint": "Drag the top card, or use the left and right arrow keys to {left} or {right} it. Backspace undoes the last decision.",
+  "@cardStackHint": {
+    "placeholders": {
+      "left": {
+        "type": "String"
+      },
+      "right": {
+        "type": "String"
+      }
+    }
+  },
+  "cardStackCard": "{label}, {index} of {count}",
+  "@cardStackCard": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cardStackDecided": "{label}: {action}.",
+  "@cardStackDecided": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "cardStackOutcome": "{label} {outcome}.",
+  "@cardStackOutcome": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "outcome": {
+        "type": "String"
+      }
+    }
+  },
+  "cardStackRemaining": "{count, plural, =0 {All cards reviewed.} one {# left.} other {# left.}}",
+  "@cardStackRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cardStackRestored": "{label} restored.",
+  "@cardStackRestored": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "goBack": "Back",
+  "cardStackRestoredAll": "All cards are back in the stack."
+}

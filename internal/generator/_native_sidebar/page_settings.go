@@ -5,8 +5,8 @@ import (
 
 	"github.com/auron-labs/mygo-framework/errorreport"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
 )
 
 // settingsPage edits the typed preferences. Controls bind to local copies and
@@ -42,5 +42,8 @@ func settingsPage(c *ui.Context, s *screen) {
 	components.Text(c, locales.PreferencesSavedAutomatically()).Wrap()
 	if s.saver.Err().Get() != nil {
 		components.Text(c, locales.PreferencesSaveFailed()).Wrap()
+	}
+	if components.Button(c, locales.SaveSupportBundle(), components.ButtonSecondary).Clicked() {
+		s.saveSupportBundle()
 	}
 }
