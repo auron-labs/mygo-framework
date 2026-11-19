@@ -66,8 +66,14 @@ type screen struct {
 	update *mygo.Update
 	// db is checkpointed when the system suspends the app.
 	db *database.Database
+	// saveCopy is Dialog.SaveCopy; tests replace it to stand in for a phone's
+	// save flow.
+	saveCopy func(path, name string) (string, error)
+	// openFiles is Dialog.Open; tests replace it to stand in for a phone's
+	// document picker.
+	openFiles func(options mygo.OpenDialogOptions) ([]string, error)
 	// onPhone cancels a running import at suspend, where the system may end the
-	// app without a quit.
+	// app without a quit, and saves the support bundle through Dialog.SaveCopy.
 	onPhone bool
 	// kept is what MyGo restores at the next launch, after a phone ends the app.
 	kept keptState
@@ -120,6 +126,9 @@ func (s *screen) view(c *ui.Context) {
 			components.Text(c, locales.PreferencesSaveFailed()).Wrap()
 		}
 		s.importView(c)
+		if components.Button(c, locales.SaveSupportBundle(), components.ButtonSecondary).Clicked() {
+			s.saveSupportBundle()
+		}
 	})
 }
 

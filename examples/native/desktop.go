@@ -21,6 +21,9 @@ import (
 // <scheme>://import?folder=/path. The scheme is listed in mygo.json.
 const importLinkHost = "import"
 
+// supportBundleName is the file name offered for the support bundle.
+const supportBundleName = "support-bundle.zip"
+
 // menu is the application menu bar. Its items call the same actions as the
 // buttons, on the main thread like the view.
 func (s *screen) menu() *mygo.Menu {
@@ -103,25 +106,65 @@ func (s *screen) notifyImportDone(status jobs.Status) {
 	}()
 }
 
-// saveSupportBundle asks where to save the support bundle and writes it. The
-// dialog blocks until it closes, so it runs off the UI thread.
+// saveSupportBundle asks where to save the support bundle and writes it. A
+// phone app has no path of its own, so there the bundle goes to a temporary
+// file, which Dialog.SaveCopy copies where the user chooses. The dialogs block
+// until they close, so they run off the UI thread.
 func (s *screen) saveSupportBundle() {
 	go func() {
-		path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
-			Parent: s.win, Title: locales.SaveSupportBundleTitle(), DefaultPath: "support-bundle.zip",
-			Filters: []mygo.FileFilter{{Name: "Zip", Extensions: []string{"zip"}}},
-		})
-		if err != nil || path == "" {
-			if err != nil {
-				log.Printf("choose support bundle file: %v", err)
+		var err error
+		if s.onPhone {
+			saveCopy := s.saveCopy
+			if saveCopy == nil {
+				saveCopy = mygo.Dialog.SaveCopy
 			}
-			return
+			err = saveSupportBundleCopy(s.dataDir, saveCopy)
+		} else {
+			path, saveErr := mygo.Dialog.Save(mygo.SaveDialogOptions{
+				Parent: s.win, Title: locales.SaveSupportBundleTitle(), DefaultPath: supportBundleName,
+				Filters: []mygo.FileFilter{{Name: "Zip", Extensions: []string{"zip"}}},
+			})
+			if saveErr != nil || path == "" {
+				if saveErr != nil {
+					log.Printf("choose support bundle file: %v", saveErr)
+				}
+				return
+			}
+			err = writeSupportBundle(path, s.dataDir)
 		}
-		if err := writeSupportBundle(path, s.dataDir); err != nil {
+		if err != nil {
 			log.Print(err)
 			mygo.Dialog.Error(appName, locales.SupportBundleFailed())
 		}
 	}()
+}
+
+// saveSupportBundleCopy writes the support bundle to a temporary file and hands
+// it to save, which copies it where the user chose. The temporary file is
+// removed afterwards, whether the user saved, canceled or the copy failed.
+func saveSupportBundleCopy(dataDir string, save func(path, name string) (string, error)) error {
+	file, err := os.CreateTemp("", "support-bundle-*.zip")
+	if err != nil {
+		return fmt.Errorf("create support bundle: %w", err)
+	}
+	path := file.Name()
+	defer removeSupportBundleCopy(path)
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close support bundle: %w", err)
+	}
+	if err := writeSupportBundle(path, dataDir); err != nil {
+		return err
+	}
+	_, err = save(path, supportBundleName)
+	return err
+}
+
+// removeSupportBundleCopy removes the temporary file handed to Dialog.SaveCopy.
+// A failure to remove it does not change the outcome of the save.
+func removeSupportBundleCopy(path string) {
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Printf("remove support bundle copy: %v", err)
+	}
 }
 
 func writeSupportBundle(path, dataDir string) (err error) {

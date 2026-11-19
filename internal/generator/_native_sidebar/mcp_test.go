@@ -103,7 +103,7 @@ func TestNativeMCP(t *testing.T) {
 		"session_id": id, "observation_id": observation.ID, "label": "Go to Settings",
 	}, &observation)
 	callNativeTool(ctx, t, session, "mygo_inspect", map[string]any{"session_id": id}, &observation)
-	if !slices.Contains(observation.Labels, "Compact spacing") {
+	if !slices.Contains(observation.Labels, "Compact spacing") || !slices.Contains(observation.Labels, "Save support bundle...") {
 		t.Fatalf("Settings page not shown: %+v", observation.Labels)
 	}
 	beforeY := checkboxY()

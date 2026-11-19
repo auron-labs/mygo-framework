@@ -135,6 +135,7 @@ err = manager.Shutdown(shutdownCtx)
   promptly when their context is canceled.
 
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
+or `sampleImportFiles` on the files a phone picked from the document picker,
 renders `components.Progress` from `Status.Fraction()` and offers **Cancel
 import**; replace the function with real work. See
 [Importing a folder](#importing-a-folder) for how the folder is chosen.
@@ -159,8 +160,8 @@ macOS. A window can also take files anywhere with `Window.OnFileDrop`, which
 gets the files no element took. A drop is a list of files and folders, so
 check `os.Stat(path)` before treating one as a folder.
 
-The starter wires both entry points to the same job and to the persisted last
-import folder (`native.import_folder`, saved automatically):
+The starter wires the desktop entry points to the same job and to the
+persisted last import folder (`native.import_folder`, saved automatically):
 
 - the drop zone in `importjob.go` takes the first dropped folder and says so
   when only files were dropped;
@@ -169,6 +170,15 @@ import folder (`native.import_folder`, saved automatically):
   and returns its result through `Window.Update`;
 - **Start import** re-imports the remembered folder, or opens the picker when
   none was chosen.
+
+On iOS and Android the starter imports files instead. MyGo's folder picker
+does not open a folder on Android (`ACTION_OPEN_DOCUMENT_TREE` returns a tree
+URI that MyGo cannot copy), so the import view hides the drop zone, the
+remembered folder and **Start import**, and offers **Choose files...**. It
+opens `mygo.Dialog.Open(OpenDialogOptions{Multiple: true})`; the picker copies
+the chosen files into a temporary directory. `sampleImportFiles` runs the same
+per-entry loop on the copies, which the starter removes when the job ends,
+however it ends. The copies are not saved as `native.import_folder`.
 
 In tests, `ui.Tester.DropFiles` delivers the same events as a real drop.
 
@@ -385,10 +395,13 @@ text; on iOS and Android the app data directory becomes `<app data>`.
 
 The native starter writes its logs to `logs/app.log` in the data directory,
 rotating at 10 MB with three compressed backups kept for up to 28 days; the
-standard `log` package writes there too. **Help, Save support bundle...** writes
-a zip with the app version, operating system, migration status and those logs,
-with the home directory replaced by `~` and, on iOS and Android, the app data
-directory by `<app data>`, for the user to attach to a bug report.
+standard `log` package writes there too. **Save support bundle...** is a button
+in the window, and also an item in the desktop **Help** menu. It writes a zip
+with the app version, operating system, migration status and those logs, with
+the home directory replaced by `~` and, on iOS and Android, the app data
+directory by `<app data>`, for the user to attach to a bug report. On phones it
+writes the zip to a temporary file and hands it to `Dialog.SaveCopy`, which
+copies it where the user chooses; the temporary file is removed afterwards.
 The web starter writes the same bundle with `appctl support-bundle FILE`.
 
 ## Releases

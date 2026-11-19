@@ -22,7 +22,8 @@ const (
 // contacts no server unless the build was made with an update feed and public
 // key (the updates section of mygo.json); otherwise Updater.Enabled is false.
 func (s *screen) checkForUpdates() {
-	if !mygo.Updater.Enabled() {
+	// Phones get updates from their store, and the prompt is desktop-only.
+	if s.onPhone || !mygo.Updater.Enabled() {
 		return
 	}
 	err := s.jobs.Start(updateCheckJob, func(ctx context.Context, _ jobs.Report) error {

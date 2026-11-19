@@ -43,4 +43,7 @@ func settingsPage(c *ui.Context, s *screen) {
 	if s.saver.Err().Get() != nil {
 		components.Text(c, locales.PreferencesSaveFailed()).Wrap()
 	}
+	if components.Button(c, locales.SaveSupportBundle(), components.ButtonSecondary).Clicked() {
+		s.saveSupportBundle()
+	}
 }

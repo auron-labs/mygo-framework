@@ -63,8 +63,14 @@ type screen struct {
 	update *mygo.Update
 	// db is checkpointed when the system suspends the app.
 	db *database.Database
+	// saveCopy is Dialog.SaveCopy; tests replace it to stand in for a phone's
+	// save flow.
+	saveCopy func(path, name string) (string, error)
+	// openFiles is Dialog.Open; tests replace it to stand in for a phone's
+	// document picker.
+	openFiles func(options mygo.OpenDialogOptions) ([]string, error)
 	// onPhone cancels a running import at suspend, where the system may end the
-	// app without a quit.
+	// app without a quit, and saves the support bundle through Dialog.SaveCopy.
 	onPhone bool
 	// The fields below are UI-only and touched on the main thread. host is the
 	// shell's sidebar width (see layout.go); kept holds the page and what a

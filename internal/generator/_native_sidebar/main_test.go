@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
@@ -149,6 +150,126 @@ func TestDroppedFolderIsImportedAndRemembered(t *testing.T) {
 	}
 }
 
+func TestPhoneImportImportsPickedFilesAndRemovesTheCopies(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		cancel bool
+	}{
+		{name: "finished"},
+		{name: "canceled", cancel: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			picked := make([]string, 0, 2)
+			for _, name := range []string{"a.txt", "b.txt"} {
+				path := filepath.Join(dir, name)
+				if err := os.WriteFile(path, []byte(name), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				picked = append(picked, path)
+			}
+			s := newScreen(t, preferences{})
+			s.onPhone = true
+			var options mygo.OpenDialogOptions
+			s.openFiles = func(o mygo.OpenDialogOptions) ([]string, error) {
+				options = o
+				return picked, nil
+			}
+			running := make(chan struct{}, 1)
+			finished := make(chan jobs.Status, 4)
+			s.jobs.Subscribe(func(st jobs.Status) {
+				switch st.State {
+				case jobs.Running:
+					select {
+					case running <- struct{}{}:
+					default:
+					}
+				case jobs.Done, jobs.Failed, jobs.Canceled:
+					finished <- st
+				}
+			})
+			tt := newTester(s, pageImport)
+			if err := tt.Click(locales.ChooseFiles()); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case <-running:
+			case <-time.After(5 * time.Second):
+				t.Fatal("the file import did not start")
+			}
+			if !options.Multiple || options.Directory {
+				t.Fatalf("dialog options = %+v, want several files and no folder", options)
+			}
+			if tc.cancel && !s.jobs.Cancel(importJobName) {
+				t.Fatal("no running import to cancel")
+			}
+			select {
+			case st := <-finished:
+				want := jobs.Done
+				if tc.cancel {
+					want = jobs.Canceled
+				}
+				if st.State != want {
+					t.Fatalf("final = %+v, want %s", st, want)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("the file import did not end")
+			}
+			for _, path := range picked {
+				if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+					t.Fatalf("picked copy remains after the %s import: %v", tc.name, err)
+				}
+			}
+			if got := s.prefs.Get().ImportFolder; got != "" {
+				t.Fatalf("picked files were remembered as the import folder: %q", got)
+			}
+			wantText := locales.ImportFinished()
+			if tc.cancel {
+				wantText = locales.ImportCanceled()
+			}
+			tt.Frame()
+			if !tt.HasText(wantText) {
+				t.Fatalf("view after the %s import = %q", tc.name, tt.Texts())
+			}
+		})
+	}
+}
+
+func TestPhoneImportViewOffersOnlyTheFilePicker(t *testing.T) {
+	folder := filepath.Join(t.TempDir(), "remembered")
+	s := newScreen(t, preferences{ImportFolder: folder})
+	s.onPhone = true
+	tt := newTester(s, pageImport)
+	tt.Frame()
+	for _, text := range []string{locales.ChooseFolder(), locales.StartImport(), locales.DropFolder(), locales.DropFolderLast(folder)} {
+		if tt.HasText(text) {
+			t.Fatalf("phone import view shows %q: %q", text, tt.Texts())
+		}
+	}
+	if _, ok := tt.Find(locales.ChooseFiles()); !ok {
+		t.Fatalf("phone import view has no file picker: %q", tt.Texts())
+	}
+}
+
+func TestPhoneImportShowsPickerFailure(t *testing.T) {
+	s := newScreen(t, preferences{})
+	s.onPhone = true
+	s.openFiles = func(mygo.OpenDialogOptions) ([]string, error) {
+		return nil, errors.New("denied")
+	}
+	tt := newTester(s, pageImport)
+	if err := tt.Click(locales.ChooseFiles()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText(locales.FilePickerFailed()) {
+		t.Fatalf("view after a failed picker = %q", tt.Texts())
+	}
+	if got := s.prefs.Get().ImportFolder; got != "" {
+		t.Fatalf("failed picker remembered a folder: %q", got)
+	}
+}
+
 func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
 	folder := t.TempDir()
 	for _, name := range []string{"a", "b"} {
@@ -170,6 +291,42 @@ func TestSampleImportReportsEveryEntryAndStopsWhenCanceled(t *testing.T) {
 	}
 	if err := sampleImport(filepath.Join(folder, "missing"))(t.Context(), nil); err == nil {
 		t.Fatal("a missing folder was imported")
+	}
+}
+
+func TestSaveSupportBundleButtonUsesTheCopyFlowOnPhones(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.onPhone = true
+	s.dataDir = t.TempDir()
+	offered := make(chan string, 1)
+	s.saveCopy = func(path, name string) (string, error) {
+		reader, err := zip.OpenReader(path)
+		if err != nil {
+			t.Errorf("open support bundle: %v", err)
+			return "", fmt.Errorf("open support bundle: %w", err)
+		}
+		defer func() {
+			if err := reader.Close(); err != nil {
+				t.Errorf("close support bundle: %v", err)
+			}
+		}()
+		if len(reader.File) == 0 {
+			t.Error("support bundle is empty")
+		}
+		offered <- name
+		return "/saved/" + name, nil
+	}
+	tt := newTester(s, pageSettings)
+	if err := tt.Click(locales.SaveSupportBundle()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case name := <-offered:
+		if name != supportBundleName {
+			t.Fatalf("offered %q, want %q", name, supportBundleName)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the button did not save a copy")
 	}
 }
 
@@ -379,27 +536,40 @@ func TestSuspendCancelsImportOnPhones(t *testing.T) {
 	s, db := persistentScreen(t, t.TempDir())
 	t.Cleanup(func() { _ = db.Close() })
 	s.onPhone = true
-	s.prefs.Update(func(p *preferences) { p.ImportFolder = t.TempDir() })
-	reported := make(chan struct{})
-	s.work = func(string) jobs.Func {
-		return func(ctx context.Context, report jobs.Report) error {
-			report(1, 4, "Imported 1 of 4 items")
-			close(reported)
-			<-ctx.Done()
-			return ctx.Err()
+	// Several files keep the job running after its first progress report, so
+	// suspend finds it to cancel rather than already finished.
+	dir := t.TempDir()
+	picked := make([]string, 0, 6)
+	for i := range 6 {
+		path := filepath.Join(dir, fmt.Sprintf("%d.txt", i))
+		if err := os.WriteFile(path, nil, 0o600); err != nil {
+			t.Fatal(err)
 		}
+		picked = append(picked, path)
 	}
+	s.openFiles = func(mygo.OpenDialogOptions) ([]string, error) { return picked, nil }
+	reported := make(chan struct{}, 1)
 	finished := make(chan jobs.Status, 8)
 	s.jobs.Subscribe(func(st jobs.Status) {
-		if st.State != jobs.Running {
+		switch {
+		case st.State == jobs.Running && st.Message != "":
+			select {
+			case reported <- struct{}{}:
+			default:
+			}
+		case st.State != jobs.Running:
 			finished <- st
 		}
 	})
 	tt := newTester(s, pageImport)
-	if err := tt.Click("Start import"); err != nil {
+	if err := tt.Click(locales.ChooseFiles()); err != nil {
 		t.Fatal(err)
 	}
-	<-reported
+	select {
+	case <-reported:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the import did not report progress")
+	}
 	if !s.kept.importRunning {
 		t.Fatal("running import was not kept")
 	}

@@ -47,7 +47,10 @@ On the **Import** page, drop a folder on the import area, or choose one with
 **Choose folder...**, to
 run a sample background job from `importjob.go` with a progress bar and a
 **Cancel import** button. The last folder is remembered; **Start import** runs
-it again. The job service in `jobs/` runs
+it again. On phones, where MyGo's folder picker does not work on Android, the
+drop zone and the remembered folder are hidden and **Choose files...** imports
+files from the document picker instead; the picker's temporary copies are
+removed when the import ends. The job service in `jobs/` runs
 one job per name, recovers panics as job errors, and stops running jobs when
 the app quits. Replace `sampleImport` with your own work.
 
