@@ -3,6 +3,8 @@
   "identifier": "__PROJECT_IDENTIFIER__",
   "version": "0.1.0",
   "out": "build",
+  "ios": { "minimumSystemVersion": "17.0" },
+  "android": { "minSdk": 26 },
   "urlSchemes": ["mygo-framework-native"],
   "i18n": { "dir": "locales", "source": "en" }
 }

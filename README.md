@@ -49,6 +49,12 @@ The last command opens the Notes desktop app with MyGo's normal live-reload
 workflow. Add a note, quit the app, and start it again to see the persisted
 note.
 
+The native starter sets `ios.minimumSystemVersion` 17.0 and `android.minSdk`
+26, the web starter carries MyGo's commented phone settings, and web projects
+get `dev:ios` and `dev:android` scripts. They are always generated: they do
+nothing on desktop builds, and a flag would leave projects that later want
+phones adding the settings by hand.
+
 ## Native Go UI
 
 Onevra is maintained in this module under `onevra/`, alongside `mygomcp`.
@@ -119,7 +125,9 @@ flow.
 | --- | --- |
 | `framework dev` | Start MyGo development; generate adapters first for web projects |
 | `framework build` | Build with MyGo; generate adapters first for web projects |
+| `framework devices` | List the devices MyGo can run on |
 | `framework doctor` | Run the pinned MyGo doctor; check adapters first for web projects |
+| `framework publish` | Upload a mobile build to its store; generate adapters first for web projects |
 | `framework generate` | Refresh framework-owned Go adapters and registrations |
 | `framework generate --check` | Fail if committed generated files are stale |
 | `framework make feature NAME` | Create a complete feature and regenerate adapters |
@@ -130,14 +138,17 @@ flow.
 | `go run ./cmd/appctl db restore FILE` | Replace the database with a backup while the desktop app is closed |
 | `go run ./cmd/appctl support-bundle FILE` | Write versions, migration status and logs to a zip for a bug report |
 
-MyGo flags pass through `framework dev` and `framework build`. Use each
-command's `--help` output for the pinned MyGo options.
+MyGo flags pass through `framework dev`, `framework build`, `framework devices`,
+`framework doctor`, and `framework publish`. Use each command's `--help` output
+for the pinned MyGo options.
 
 ## Learn the framework
 
 - [Capability recipes](docs/recipes.md) show settings, secrets, HTTP, forms,
   migrations, MCP exposure, runtime defaults, and the verification commands.
 - [Native applications](docs/native.md) cover the native Go UI starter.
+- [Phones and tablets](docs/mobile.md) cover prerequisites, devices, building,
+  signing and publishing on iOS and Android.
 
 The framework intentionally has no Goravel dependency, mandatory UI server,
 global service facade, automatic database repair, plaintext secret fallback, or

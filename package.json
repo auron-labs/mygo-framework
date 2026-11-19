@@ -5,6 +5,8 @@
   "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "mygo dev",
+    "dev:ios": "mygo dev -platform ios",
+    "dev:android": "mygo dev -platform android",
     "build": "mygo build",
     "generate": "mygo generate",
     "dev:web": "vite",

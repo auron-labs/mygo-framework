@@ -23,8 +23,8 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 	}
 	checks := map[string][]string{
 		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2"},
-		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.10.0"`},
-		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.10.0"`, `"dev:ios": "mygo dev -platform ios"`, `"dev:android": "mygo dev -platform android"`},
+		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`, `ios: { team: "ABCDE12345"`, `android: { keystore: "upload.jks"`},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
 		"src/framework/errorReporting.ts":            {"startErrorReporting"},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
@@ -150,6 +150,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		"locales/en.json":        {"compactSpacing", "navHome"},
 		"locales/catalog_gen.go": {"func CompactSpacing()", "func NavHome()"},
 		// Files the variant does not replace come from the plain starter.
+		"mygo.json":      {`"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"desktop.go":     {"support-bundle"},
 		"updates.go":     {"checkForUpdates"},
 		"importjob.go":   {"sampleImport"},
@@ -204,7 +205,7 @@ func TestCreateNativeProject(t *testing.T) {
 	}
 	for path, expected := range map[string][]string{
 		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool github.com/egoist/mygo/cmd/mygo"},
-		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`},
+		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`, `"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/onevra/components"`, `"github.com/auron-labs/mygo-framework/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
 		"importjob.go":           {`"github.com/auron-labs/mygo-framework/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},

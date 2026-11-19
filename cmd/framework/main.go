@@ -25,10 +25,12 @@ func run() int {
 		version,
 		cli.NewBuildCommand(),
 		cli.NewDevCommand(),
+		cli.NewDevicesCommand(),
 		cli.NewDoctorCommand(),
 		cli.NewGenerateCommand(),
 		cli.NewMakeCommand(),
 		cli.NewProjectCommand(),
+		cli.NewPublishCommand(),
 	)
 	if err := command.ExecuteContext(ctx); err != nil {
 		_, _ = fmt.Fprintf(command.ErrOrStderr(), "framework: %v\n", err)

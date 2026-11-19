@@ -607,8 +607,10 @@ verify the UI and framework packages together when upgrading.
 
 `framework new` creates the web starter; `framework new NAME --native` creates
 the native starter. For native projects identified by `mygo.json`, `framework
-dev`, `build`, and `doctor` skip web adapter generation and delegate through
-`go tool mygo`. Web projects retain generation and `bun run mygo` delegation.
+dev`, `build`, `doctor`, `devices`, and `publish` skip web adapter generation
+and delegate through `go tool mygo`. Web projects retain generation and
+`bun run mygo` delegation, except for `framework devices`, which only lists
+devices and generates nothing.
 
 The native starter intentionally uses direct Go calls and typed settings.
 Framework web/MCP adapter generation targets the web starter. `framework make
