@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/datadir"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/datadir"
 )
 
 // maxLogBytes bounds how much of one log file is read into the bundle.

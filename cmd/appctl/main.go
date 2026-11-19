@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/internal/appctl"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/internal/appctl"
 )
 
 var version = "dev"

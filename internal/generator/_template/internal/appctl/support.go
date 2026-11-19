@@ -8,7 +8,7 @@ import (
 	"mygo-framework/app/profile"
 	"os"
 
-	"github.com/auron-labs/mygo-framework/diagnostics"
+	"github.com/auron-labs/mygo-framework/v2/diagnostics"
 
 	"github.com/spf13/cobra"
 )

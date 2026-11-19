@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
 )
 
 func TestDatabaseStatusDoesNotCreateDatabase(t *testing.T) {

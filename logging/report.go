@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 )
 
 // ReportUnexpected logs an unexpected failure at the adapter boundary and

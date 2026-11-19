@@ -1,7 +1,7 @@
 # Onevra
 
 Native UI components for MyGo, maintained as packages of
-`github.com/auron-labs/mygo-framework`. Use the controls, themes, shells, and
+`github.com/auron-labs/mygo-framework/v2`. Use the controls, themes, shells, and
 Lucide icons in any MyGo application; framework bootstrap and persistence are
 optional.
 
@@ -10,7 +10,7 @@ optional.
 Requires Go 1.27.3 or newer. From your application's module:
 
 ```sh
-go get github.com/auron-labs/mygo-framework@latest
+go get github.com/auron-labs/mygo-framework/v2@latest
 ```
 
 Onevra shares the framework's release tags and currently uses MyGo v0.10.0.
@@ -25,9 +25,9 @@ package main
 import (
     "log"
 
-    "github.com/auron-labs/mygo-framework/onevra/components"
-    "github.com/auron-labs/mygo-framework/onevra/shells/plain"
-    "github.com/auron-labs/mygo-framework/onevra/theme"
+    "github.com/auron-labs/mygo-framework/v2/onevra/components"
+    "github.com/auron-labs/mygo-framework/v2/onevra/shells/plain"
+    "github.com/auron-labs/mygo-framework/v2/onevra/theme"
     "github.com/egoist/mygo"
     "github.com/egoist/mygo/ui"
 )
@@ -119,7 +119,7 @@ Desktop-only on phones, or compact:
 ## Migrate from upstream
 
 Replace the import prefix `github.com/oneo-me/onevra/source` with
-`github.com/auron-labs/mygo-framework/onevra` throughout your application,
+`github.com/auron-labs/mygo-framework/v2/onevra` throughout your application,
 then run `go mod tidy`. Package names and exported APIs are preserved from the
 imported upstream commit. Update all imports together: named types from the
 old and new paths are distinct Go types. Dependencies exposing upstream Onevra

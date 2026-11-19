@@ -8,8 +8,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/profiles"
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/profiles"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 
 	// Validating time zones must not depend on the host's zoneinfo database.
 	_ "time/tzdata"

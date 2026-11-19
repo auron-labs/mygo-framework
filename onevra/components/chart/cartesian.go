@@ -3,7 +3,7 @@ package chart
 import (
 	"math"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
 	"github.com/egoist/mygo/ui"
 	base "github.com/egoist/mygo/ui/chart"
 )

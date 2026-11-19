@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/internal/generator"
+	"github.com/auron-labs/mygo-framework/v2/internal/generator"
 
 	"github.com/spf13/cobra"
 )
@@ -74,7 +74,7 @@ func resolveFramework(ctx context.Context, directory, checkout string, stdout, s
 			return fmt.Errorf("resolve framework checkout: %w", err)
 		}
 		steps = [][]string{
-			{"mod", "edit", "-require=" + generator.FrameworkModule + "@v0.0.0", "-replace=" + generator.FrameworkModule + "=" + absolute},
+			{"mod", "edit", "-require=" + generator.FrameworkModule + "@v2.0.0", "-replace=" + generator.FrameworkModule + "=" + absolute},
 			{"mod", "tidy"},
 		}
 	}

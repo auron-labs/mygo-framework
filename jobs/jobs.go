@@ -10,7 +10,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 )
 
 // State is where a job is in its lifecycle.

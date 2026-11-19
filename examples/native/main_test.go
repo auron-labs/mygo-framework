@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/jobs"
-	"github.com/auron-labs/mygo-framework/locales"
-	"github.com/auron-labs/mygo-framework/state"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
+	"github.com/auron-labs/mygo-framework/v2/locales"
+	"github.com/auron-labs/mygo-framework/v2/state"
 
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )

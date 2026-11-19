@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/egoist/mygo/ui"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 )
 
 // importPage is the sample import: folder picker, drop zone and job progress.

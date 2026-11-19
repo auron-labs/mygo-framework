@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/settings"
-	settingsbbolt "github.com/auron-labs/mygo-framework/settings/bbolt"
-	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/settings"
+	settingsbbolt "github.com/auron-labs/mygo-framework/v2/settings/bbolt"
+	settingssqlite "github.com/auron-labs/mygo-framework/v2/settings/sqlite"
 )
 
 type openBackend func(t *testing.T, path string) (settings.Store, func())

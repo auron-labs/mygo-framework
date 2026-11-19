@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/app/models"
-	"github.com/auron-labs/mygo-framework/app/requests"
-	"github.com/auron-labs/mygo-framework/app/services"
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/problem"
-	"github.com/auron-labs/mygo-framework/validation"
+	"github.com/auron-labs/mygo-framework/v2/app/models"
+	"github.com/auron-labs/mygo-framework/v2/app/requests"
+	"github.com/auron-labs/mygo-framework/v2/app/services"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/problem"
+	"github.com/auron-labs/mygo-framework/v2/validation"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )

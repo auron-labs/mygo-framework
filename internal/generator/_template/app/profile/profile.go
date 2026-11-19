@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/auron-labs/mygo-framework/datadir"
+	"github.com/auron-labs/mygo-framework/v2/datadir"
 )
 
 const (

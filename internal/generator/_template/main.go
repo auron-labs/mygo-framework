@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 
 	"github.com/egoist/mygo"
 )

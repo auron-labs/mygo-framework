@@ -4,10 +4,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/internal/settingstest"
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/internal/settingstest"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 )
 
 func TestStoreContract(t *testing.T) {

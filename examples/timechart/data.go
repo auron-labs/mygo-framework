@@ -6,7 +6,7 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/timechart"
+	"github.com/auron-labs/mygo-framework/v2/timechart"
 )
 
 const (

@@ -8,7 +8,7 @@ import (
 	"mygo-framework/app/requests"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/validation"
+	"github.com/auron-labs/mygo-framework/v2/validation"
 
 	"gorm.io/gorm"
 )

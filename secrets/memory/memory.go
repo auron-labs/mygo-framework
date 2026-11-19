@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/auron-labs/mygo-framework/secrets"
+	"github.com/auron-labs/mygo-framework/v2/secrets"
 )
 
 // Store keeps copied secret bytes in process memory.

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 )
 
 func TestMenuStartsImportOfRememberedFolder(t *testing.T) {

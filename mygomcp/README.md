@@ -19,10 +19,10 @@ module replacement, reflection, or unsafe access is used.
 From your application's Go module:
 
 ```sh
-go get github.com/auron-labs/mygo-framework@latest
+go get github.com/auron-labs/mygo-framework/v2@latest
 ```
 
-MyGo MCP is the `mygomcp` package of the `github.com/auron-labs/mygo-framework`
+MyGo MCP is the `mygomcp` package of the `github.com/auron-labs/mygo-framework/v2`
 module and is versioned with it. See [releases](https://github.com/auron-labs/mygo-framework/releases)
 for version history; pin a specific tag in `go get` when you need reproducible setup.
 If accessing a private copy, configure Git authentication and include
@@ -42,7 +42,7 @@ import (
     "os"
     "os/signal"
 
-    mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+    mygomcp "github.com/auron-labs/mygo-framework/v2/mygomcp"
     "github.com/egoist/mygo/ui"
 )
 

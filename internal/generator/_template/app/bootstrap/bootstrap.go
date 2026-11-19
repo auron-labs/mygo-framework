@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/logging"
-	appRuntime "github.com/auron-labs/mygo-framework/runtime"
-	"github.com/auron-labs/mygo-framework/validation"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/logging"
+	appRuntime "github.com/auron-labs/mygo-framework/v2/runtime"
+	"github.com/auron-labs/mygo-framework/v2/validation"
 
 	"github.com/samber/do/v2"
 )

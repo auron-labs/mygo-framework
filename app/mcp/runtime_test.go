@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/app/services"
+	"github.com/auron-labs/mygo-framework/v2/app/services"
 )
 
 func TestRuntimeIsDisabledWithoutOpeningAListener(t *testing.T) {

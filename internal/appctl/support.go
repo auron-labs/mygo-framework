@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/auron-labs/mygo-framework/app/profile"
-	"github.com/auron-labs/mygo-framework/diagnostics"
+	"github.com/auron-labs/mygo-framework/v2/app/profile"
+	"github.com/auron-labs/mygo-framework/v2/diagnostics"
 
 	"github.com/spf13/cobra"
 )

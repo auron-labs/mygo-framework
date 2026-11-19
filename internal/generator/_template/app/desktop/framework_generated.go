@@ -4,8 +4,8 @@ package desktop
 import (
 	"context"
 	"fmt"
-	"github.com/auron-labs/mygo-framework/problem"
-	appRuntime "github.com/auron-labs/mygo-framework/runtime"
+	"github.com/auron-labs/mygo-framework/v2/problem"
+	appRuntime "github.com/auron-labs/mygo-framework/v2/runtime"
 	"log/slog"
 	requests "mygo-framework/app/requests"
 	services "mygo-framework/app/services"

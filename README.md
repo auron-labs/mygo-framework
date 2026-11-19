@@ -12,6 +12,13 @@ The included Notes app is the working reference. It persists notes in one
 SQLite database, uses the same service from the desktop UI and MCP, and shuts
 down its listener and storage in dependency order.
 
+## Upgrading from v1
+
+Update framework imports and any `go.mod` tool directives to
+`github.com/auron-labs/mygo-framework/v2`, then run `go mod tidy`. If your
+release workflow injects a Sentry DSN with `MYGO_LDFLAGS`, update the package
+path in that flag to `github.com/auron-labs/mygo-framework/v2/errorreport`.
+
 ## Requirements
 
 - Go 1.27.3 or newer

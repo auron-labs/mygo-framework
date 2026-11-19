@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 )
 
 // collect subscribes before starting and returns every status of the job up to its terminal one.

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/problem"
+	"github.com/auron-labs/mygo-framework/v2/problem"
 )
 
 func TestReadinessReleasesConcurrentWaiters(t *testing.T) {

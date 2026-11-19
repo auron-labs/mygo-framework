@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
+	"github.com/auron-labs/mygo-framework/v2/onevra/icons/lucide"
 	"github.com/egoist/mygo/ui"
 )
 

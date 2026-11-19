@@ -1,6 +1,6 @@
 package desktop
 
-import "github.com/auron-labs/mygo-framework/errorreport"
+import "github.com/auron-labs/mygo-framework/v2/errorreport"
 
 // ErrorReporting tells pages where to report their errors.
 type ErrorReporting struct{}

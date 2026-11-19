@@ -1,8 +1,8 @@
 package main
 
 import (
-	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	mygomcp "github.com/auron-labs/mygo-framework/v2/mygomcp"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

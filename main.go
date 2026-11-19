@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/app/bootstrap"
-	"github.com/auron-labs/mygo-framework/app/desktop"
-	appMCP "github.com/auron-labs/mygo-framework/app/mcp"
-	"github.com/auron-labs/mygo-framework/app/profile"
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/app/bootstrap"
+	"github.com/auron-labs/mygo-framework/v2/app/desktop"
+	appMCP "github.com/auron-labs/mygo-framework/v2/app/mcp"
+	"github.com/auron-labs/mygo-framework/v2/app/profile"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 
 	"github.com/egoist/mygo"
 )

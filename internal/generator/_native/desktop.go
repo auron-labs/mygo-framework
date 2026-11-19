@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/auron-labs/mygo-framework/diagnostics"
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/diagnostics"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 
 	"github.com/egoist/mygo"
 )

@@ -1,7 +1,7 @@
 // Package errorreport sends unexpected errors and panics to Sentry. Nothing is
 // initialised or sent unless a DSN is configured: SENTRY_DSN in the process
 // environment, or a DSN compiled in with
-// -ldflags "-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=...".
+// -ldflags "-X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=...".
 package errorreport
 
 import (
@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/datadir"
+	"github.com/auron-labs/mygo-framework/v2/datadir"
 
 	"github.com/getsentry/sentry-go"
 )

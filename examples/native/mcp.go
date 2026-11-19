@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 
-	"github.com/auron-labs/mygo-framework/jobs"
-	"github.com/auron-labs/mygo-framework/state"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
+	"github.com/auron-labs/mygo-framework/v2/state"
 
-	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	mygomcp "github.com/auron-labs/mygo-framework/v2/mygomcp"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

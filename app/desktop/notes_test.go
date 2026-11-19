@@ -11,15 +11,15 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/app/bootstrap"
-	"github.com/auron-labs/mygo-framework/app/models"
-	"github.com/auron-labs/mygo-framework/app/requests"
-	"github.com/auron-labs/mygo-framework/app/services"
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/problem"
-	appRuntime "github.com/auron-labs/mygo-framework/runtime"
-	"github.com/auron-labs/mygo-framework/validation"
+	"github.com/auron-labs/mygo-framework/v2/app/bootstrap"
+	"github.com/auron-labs/mygo-framework/v2/app/models"
+	"github.com/auron-labs/mygo-framework/v2/app/requests"
+	"github.com/auron-labs/mygo-framework/v2/app/services"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/problem"
+	appRuntime "github.com/auron-labs/mygo-framework/v2/runtime"
+	"github.com/auron-labs/mygo-framework/v2/validation"
 )
 
 func TestNotesWaitsForReadinessBeforeResolvingServices(t *testing.T) {

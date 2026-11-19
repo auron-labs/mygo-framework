@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/state"
+	"github.com/auron-labs/mygo-framework/v2/state"
 )
 
 type recorder struct {

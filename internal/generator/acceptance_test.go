@@ -229,12 +229,12 @@ import (
 	"testing"
 
 	"acceptance-app/database/migrations"
-	"github.com/auron-labs/mygo-framework/httpclient"
-	appdb "github.com/auron-labs/mygo-framework/database"
-	secretmemory "github.com/auron-labs/mygo-framework/secrets/memory"
-	"github.com/auron-labs/mygo-framework/settings"
-	settingsbolt "github.com/auron-labs/mygo-framework/settings/bbolt"
-	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
+	"github.com/auron-labs/mygo-framework/v2/httpclient"
+	appdb "github.com/auron-labs/mygo-framework/v2/database"
+	secretmemory "github.com/auron-labs/mygo-framework/v2/secrets/memory"
+	"github.com/auron-labs/mygo-framework/v2/settings"
+	settingsbolt "github.com/auron-labs/mygo-framework/v2/settings/bbolt"
+	settingssqlite "github.com/auron-labs/mygo-framework/v2/settings/sqlite"
 )
 
 func TestGeneratedFrameworkCapabilities(t *testing.T) {

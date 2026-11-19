@@ -18,7 +18,7 @@ var projectTemplate embed.FS
 
 // FrameworkModule is the module path generated applications import for the
 // framework packages.
-const FrameworkModule = "github.com/auron-labs/mygo-framework"
+const FrameworkModule = "github.com/auron-labs/mygo-framework/v2"
 
 // ProjectConfig selects the parent directory and new project name.
 type ProjectConfig struct {
