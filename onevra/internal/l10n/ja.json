@@ -97,5 +97,6 @@
   "cardStackOutcome": "{label}：{outcome}。",
   "cardStackRemaining": "{count, plural, =0 {すべてのカードを確認しました。} other {残り # 枚。}}",
   "cardStackRestored": "{label}を元に戻しました。",
+  "goBack": "戻る",
   "cardStackRestoredAll": "すべてのカードを戻しました。"
 }

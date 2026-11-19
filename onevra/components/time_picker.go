@@ -119,7 +119,7 @@ func TimePicker(c *ui.Context, value *time.Time) *TimeControl {
 				column.Children(func() {
 					for n := range count {
 						selected := n == *current
-						row := ui.Box(c).FillWidth().Height(t.Space(8)).Shrink(0).Center().Radius(t.Radius).
+						row := ui.Box(c).FillWidth().MinHeight(max(t.Space(8), TouchMin(c))).Shrink(0).Center().Radius(t.Radius).
 							Role(ui.RoleListItem).Label(fmt.Sprintf("%s %02d", label, n)).Selected(selected)
 						if row.Clicked() {
 							*current = n

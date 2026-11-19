@@ -46,7 +46,9 @@ func Quota(c *ui.Context, options QuotaOptions) QuotaResult {
 	var result QuotaResult
 	t := c.Theme()
 	result.Root = ui.Column(c).FillWidth().MinWidth(0).Gap(7).Children(func() {
-		ui.Row(c).FillWidth().MinWidth(0).Height(20).AlignItems(ui.Center).Gap(6).Children(func() {
+		// The 20-DIP header holds a fine pointer's compact actions; a coarse
+		// one's TouchMin-sized actions raise it.
+		ui.Row(c).FillWidth().MinWidth(0).Height(max(float32(20), components.TouchMin(c))).AlignItems(ui.Center).Gap(6).Children(func() {
 			if options.Leading != nil {
 				options.Leading(c, 13)
 			}
@@ -92,9 +94,11 @@ func Quota(c *ui.Context, options QuotaOptions) QuotaResult {
 	return result
 }
 
-// quotaAction is a 20-point icon button with a tooltip in a Quota header.
+// quotaAction is an icon button with a tooltip in a Quota header, the coarse
+// pointer's minimum square when one points.
 func quotaAction(c *ui.Context, label string, icon func() *ui.SVG) ui.Element {
-	b := components.Button(c, "", components.ButtonGhost).Label(label).Size(20, 20).Padding(0).Shrink(0).Center()
+	hit := max(float32(20), components.TouchMin(c))
+	b := components.Button(c, "", components.ButtonGhost).Label(label).Size(hit, hit).Padding(0).Shrink(0).Center()
 	b.Children(func() { components.Icon(c, icon).Size(13, 13).Shrink(0) })
 	components.Tooltip(c, b, label)
 	return b

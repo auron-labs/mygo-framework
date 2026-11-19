@@ -178,6 +178,9 @@ type cardStackMotion struct {
 	lift      float32
 	drag      *cardDrag
 	release   *cardRelease
+	// touch is the raw finger dragging, where a touchscreen sends touches
+	// instead of pointer drags.
+	touch uint64
 	// top is the card on top in the last frame and where it showed, in the
 	// stage's coordinates.
 	top     string
@@ -340,8 +343,32 @@ func CardStack(c *ui.Context, state *CardStackState, options CardStackOptions) C
 			sm.lift = cardLift(d.x, d.y, s)
 		}
 		built := map[string]bool{}
-		sm.top = ""
+		// Asking for the pointer marks the stage as following it, so on a
+		// touch screen a finger drags cards rather than panning the page.
+		stage.PointerPosition()
 		stage.HandleInput(sm.input)
+		// Linux and Windows report a finger's touches beside the scrolling
+		// they make of it, where phones raise pointer drags: follow the
+		// touches, and let input hold the page still meanwhile.
+		for _, t := range stage.Touches() {
+			switch t.Phase {
+			case ui.TouchBegan:
+				if sm.touch == 0 && sm.drag == nil {
+					sm.touch = t.ID
+					sm.input(ui.InputEvent{Kind: ui.InputPointerDown, X: t.StartX, Y: t.StartY, Time: c.Now()})
+				}
+			case ui.TouchMoved:
+				if t.ID == sm.touch {
+					sm.input(ui.InputEvent{Kind: ui.InputPointerMove, X: t.X, Y: t.Y, Time: c.Now()})
+				}
+			case ui.TouchEnded, ui.TouchCanceled:
+				if t.ID == sm.touch {
+					sm.input(ui.InputEvent{Kind: ui.InputPointerUp, X: t.X, Y: t.Y, Canceled: t.Phase == ui.TouchCanceled, Time: c.Now()})
+					sm.touch = 0
+				}
+			}
+		}
+		sm.top = ""
 		stage.Children(func() {
 			card := func(i int) {
 				item := items[i]
@@ -506,6 +533,10 @@ func (sm *cardStackMotion) input(ev ui.InputEvent) bool {
 		}
 		sm.drag = nil
 		sm.release = &cardRelease{d.id, d.x, d.y, cardVelocity(d.samples, ev.Time), ev.Canceled}
+	case ui.InputScroll:
+		// On Linux and Windows the finger dragging a card scrolls the page
+		// as well; keep the page still while it holds a card.
+		return sm.drag != nil
 	default:
 		return false
 	}

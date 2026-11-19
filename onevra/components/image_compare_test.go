@@ -164,3 +164,69 @@ func TestImageCompareRejectsInvalidValues(t *testing.T) {
 		})
 	}
 }
+
+// A finger drags the divider on a phone's touch screen, and the raw touches
+// a Linux or Windows touchscreen sends drag it too. A touchpad's scrolling,
+// which reports no touches, moves nothing.
+func TestImageCompareFingerDrag(t *testing.T) {
+	for _, orientation := range []Orientation{Horizontal, Vertical} {
+		t.Run(fmt.Sprint(orientation), func(t *testing.T) {
+			position := float32(50)
+			changed := false
+			var cmp *ImageCompareControl
+			tt := ui.NewTester(func(c *ui.Context) {
+				cmp = ImageCompare(c, &position, func() { ui.Box(c).Fill() }, func() { ui.Box(c).Fill() },
+					ImageCompareOptions{Orientation: orientation, AspectRatio: 1})
+				cmp.Label("Compare").Width(200)
+				if cmp.Changed() {
+					changed = true
+				}
+			}, 300, 300)
+			tt.Frame()
+			r, ok := tt.Find("Compare")
+			if !ok {
+				t.Fatal("comparison not found")
+			}
+			along := func(f float32) (float32, float32) {
+				if orientation == Vertical {
+					return r.X + r.W/2, r.Y + r.H*f
+				}
+				return r.X + r.W*f, r.Y + r.H/2
+			}
+			x, y := along(.25)
+			tt.FingerDown(x, y)
+			x, y = along(.75)
+			tt.FingerMove(x, y)
+			tt.FingerUp(x, y)
+			if position != 75 {
+				t.Fatalf("finger drag set %v, want 75", position)
+			}
+			if !changed {
+				t.Fatal("finger drag reported no change")
+			}
+			position, changed = 50, false
+			tt.Frame()
+			x, y = along(.5)
+			if orientation == Vertical {
+				tt.Scroll(x, y, 0, -50)
+			} else {
+				tt.Scroll(x, y, -50, 0)
+			}
+			if position != 50 || changed {
+				t.Fatalf("touchpad scroll set %v (changed %v), want no change", position, changed)
+			}
+			tt.TouchDown(1, x, y)
+			tt.Frame()
+			x, y = along(.75)
+			tt.TouchMove(1, x, y)
+			tt.Frame()
+			tt.TouchUp(1, x, y)
+			if position != 75 {
+				t.Fatalf("touchscreen drag set %v, want 75", position)
+			}
+			if !changed {
+				t.Fatal("touchscreen drag reported no change")
+			}
+		})
+	}
+}

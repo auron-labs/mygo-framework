@@ -136,6 +136,7 @@ func ColorView(c *ui.Context, value *ui.Color) *ColorControl {
 	}
 	out.Children(func() {
 		plane := ui.Box(c).FillWidth().Height(t.Space(40)).Radius(t.Radius).Focusable().FocusRing(false).Role(ui.RoleSlider).Label(words.SaturationBrightness).Cursor(ui.CursorCrosshair)
+		fingers := ui.Local(plane, "color-plane-fingers", func() fingerTrack { return fingerTrack{} })
 		_, _, held := plane.Dragged()
 		var knob ui.Element
 		plane.Children(func() {
@@ -152,7 +153,11 @@ func ColorView(c *ui.Context, value *ui.Color) *ColorControl {
 		press := plane.Animate(0, target, 150*time.Millisecond)
 		diameter := t.Space(4.5) * (1 + .15*press)
 		x := st.hsv
-		if !plane.IsDisabled() {
+		enabled := !plane.IsDisabled()
+		if !enabled {
+			*fingers = fingerTrack{}
+		}
+		if enabled {
 			if held {
 				px, py, _ := plane.PointerPosition()
 				r := plane.LayoutBounds()
@@ -162,6 +167,16 @@ func ColorView(c *ui.Context, value *ui.Color) *ColorControl {
 					plane.Focus()
 				}
 			}
+			// A touchscreen sends a finger drag as raw touches beside the
+			// scrolling it makes of it.
+			r := plane.LayoutBounds()
+			fingers.follow(plane, fingerBoth, func(_, _ float32) {
+				if r.W > 0 && r.H > 0 {
+					x.s = float64(max(0, min(1, fingers.x/r.W)))
+					x.v = 1 - float64(max(0, min(1, fingers.y/r.H)))
+					plane.Focus()
+				}
+			})
 			switch {
 			case plane.Shortcut(0, ui.KeyRight):
 				x.s += .01
@@ -181,6 +196,7 @@ func ColorView(c *ui.Context, value *ui.Color) *ColorControl {
 		}
 		knob.Size(diameter, diameter).LeftPercent(float32(x.s)*100).TopPercent(float32(1-x.v)*100).
 			Margin(-diameter/2, 0, 0, -diameter/2)
+		plane.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 		plane.Range(0, 100, x.s*100).Step(1).Value(fmt.Sprintf("%.0f%% saturation, %.0f%% brightness", x.s*100, x.v*100))
 		focus := plane.FocusVisible()
 		plane.Draw(func(p *ui.Painter, r ui.Rect) {
@@ -282,6 +298,23 @@ func colorChannel(c *ui.Context, value *float64, hi float64, label string, paint
 	})
 	// Apply pending input before capturing the fraction for this frame's paint.
 	e.Changed()
+	// A touchscreen sends a finger drag as raw touches beside the scrolling
+	// it makes of it, where phones raise pointer drags.
+	fingers := ui.Local(e, "color-channel-fingers", func() fingerTrack { return fingerTrack{} })
+	enabled := !e.IsDisabled()
+	if !enabled {
+		*fingers = fingerTrack{}
+	}
+	r := e.LayoutBounds()
+	span := r.W - d
+	fingers.follow(e, fingerHorizontal, func(_, _ float32) {
+		if !enabled || span <= 0 {
+			return
+		}
+		*value = float64(max(0, min(1, (fingers.x-d/2)/span))) * hi
+		e.SetChanged()
+	})
+	e.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 	fraction := float32(*value / hi)
 	_, _, held := e.Dragged()
 	target := float32(0)

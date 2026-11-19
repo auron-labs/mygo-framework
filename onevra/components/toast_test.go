@@ -218,3 +218,58 @@ func TestToastsStack(t *testing.T) {
 		}
 	}
 }
+
+// A pointer that cannot hover cannot fan the stack out, so it stays open and a
+// finger reaches every toast's action, not only the newest one's.
+func TestToastsReachEveryActionWithoutHover(t *testing.T) {
+	for _, placement := range []ToastPlacement{ToastTop, ToastBottom} {
+		var acted []string
+		added := false
+		tt := ui.NewTester(func(c *ui.Context) {
+			if !added {
+				added = true
+				for _, title := range []string{"Toast A", "Toast B", "Toast C"} {
+					c.AddToast(ui.Toast{
+						ID: title, Title: title, Action: "Undo " + title, Timeout: -1,
+						OnAction: func() { acted = append(acted, title) },
+					})
+				}
+			}
+			Toasts(c, ToastOptions{Placement: placement})
+		}, 800, 600)
+		tt.SetPreferences(ui.Preferences{
+			ReduceMotion: true, TextScale: 1,
+			Pointer: ui.PointerCoarse, AnyPointer: ui.PointerCoarse, NoHover: true, NoAnyHover: true,
+		})
+		// dy is how far toward the window an older toast is from a newer one.
+		dy := func(older, newer ui.Rect) float32 {
+			if placement.Top() {
+				return older.Y - newer.Y
+			}
+			return newer.Y - older.Y
+		}
+		var rects [3]ui.Rect
+		for i, title := range []string{"Toast A", "Toast B", "Toast C"} {
+			r, ok := tt.Find(title)
+			if !ok {
+				t.Fatalf("%v: missing %q in %q", placement, title, tt.Texts())
+			}
+			rects[i] = r
+		}
+		if d1, d2 := dy(rects[1], rects[2]), dy(rects[0], rects[1]); d1 < 40 || d2 < 40 {
+			t.Fatalf("%v: the stack is not open without hover: %+v", placement, rects)
+		}
+		// Oldest first, so each tap proves that toast's controls are uncovered.
+		for _, title := range []string{"Toast A", "Toast B", "Toast C"} {
+			r, ok := tt.Find("Undo " + title)
+			if !ok {
+				t.Fatalf("%v: %q is not reachable: %q", placement, "Undo "+title, tt.Texts())
+			}
+			tt.FingerDown(r.X+r.W/2, r.Y+r.H/2)
+			tt.FingerUp(r.X+r.W/2, r.Y+r.H/2)
+		}
+		if want := []string{"Toast A", "Toast B", "Toast C"}; !slices.Equal(acted, want) {
+			t.Fatalf("%v: taps chose %q, want %q", placement, acted, want)
+		}
+	}
+}

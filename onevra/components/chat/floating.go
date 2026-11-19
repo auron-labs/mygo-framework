@@ -93,8 +93,9 @@ func FloatingConversationWith(c *ui.Context, layout *FloatingConversationState, 
 		// Bare blur: the default background tint would wash out the transcript.
 		components.ScrollEdge(c, components.ScrollEdgeOptions{Style: components.ScrollEdgeBlur, Bottom: true, Extent: edge, Uncolored: true}).Key("bottom-edge")
 		if !follow {
+			hit := max(float32(32), components.TouchMin(c))
 			b := components.Button(c, "", components.ButtonGhost).Label(jumpLabel).Absolute().Attach(ui.AnchorBottom, ui.AnchorBottom).
-				Bottom(height+12).Size(32, 32).Padding(0).Radius(16)
+				Bottom(height+12).Size(hit, hit).Padding(0).Radius(hit / 2)
 			t := c.Theme()
 			tint := t.Background.Alpha(.75)
 			if b.Hovered() {

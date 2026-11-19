@@ -92,6 +92,10 @@ func ImageCompare(c *ui.Context, position *float32, before, after func(), option
 	clamp := func(v float32) float32 { return max(0, min(v, 100)) }
 	t := c.Theme()
 	vertical := o.Orientation == Vertical
+	axis := fingerHorizontal
+	if vertical {
+		axis = fingerVertical
+	}
 	frame := ui.Box(c).Clip().Radius(t.Radius).Background(t.Surface).MinWidth(t.Space(20)).MinHeight(t.Space(20))
 	if o.AspectRatio > 0 {
 		frame.AspectRatio(o.AspectRatio)
@@ -159,6 +163,23 @@ func ImageCompare(c *ui.Context, position *float32, before, after func(), option
 			shown             float32
 		}
 		g := ui.Local(handle, "image-compare-gesture", func() gesture { return gesture{} })
+		// A touchscreen sends a finger drag as raw touches beside the
+		// scrolling it makes of it, where phones raise pointer drags.
+		fingers := ui.Local(handle, "image-compare-fingers", func() fingerTrack { return fingerTrack{} })
+		if !enabled {
+			*fingers = fingerTrack{}
+		}
+		fingers.follow(handle, axis, func(dx, dy float32) {
+			if !enabled || extent <= 0 {
+				return
+			}
+			d := dx
+			if vertical {
+				d = dy
+			}
+			set(*position + d/extent*100)
+		})
+		handle.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 		x, y, _ := handle.PointerPosition()
 		near := t.Space(5)
 		dx, dy, held := handle.Dragged()

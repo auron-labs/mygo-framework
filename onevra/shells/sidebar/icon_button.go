@@ -13,10 +13,11 @@ func IconButton(c *ui.Context, icon *ui.SVG, label string) ui.Element {
 	return components.IconButton(c, icon, label, components.IconButtonPlain)
 }
 
-// iconButton varies the glyph size without shrinking the hit target.
+// iconButton varies the glyph size without shrinking the hit target, which
+// takes the coarse pointer's minimum.
 func iconButton(c *ui.Context, icon *ui.SVG, label string, iconSize float32) ui.Element {
 	t := c.Theme()
-	size := max(32, t.Rem(2))
+	size := max(32, t.Rem(2), components.TouchMin(c))
 	b := ui.ButtonBase(c).Size(size, size).Radius(t.Radius).
 		TextColor(t.TextMuted).Label(label)
 	// Paint after properties such as Disabled have been applied by the caller.

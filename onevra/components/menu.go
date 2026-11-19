@@ -188,7 +188,7 @@ func (m *Menu) Group(label string, build func(m *Menu)) {
 	m.flush()
 	m.dividing()
 	t := m.c.Theme()
-	Text(m.c, label).FontSize(11.5).FontWeight(500).TextColor(t.TextMuted).Padding(8, 8, 3, 8).SingleLine().Ellipsis("…")
+	Text(m.c, label).FontSize(fontDIPs(m.c, 11.5)).FontWeight(500).TextColor(t.TextMuted).Padding(8, 8, 3, 8).SingleLine().Ellipsis("…")
 	m.shown = true
 	build(m)
 	m.flush()
@@ -243,6 +243,11 @@ func (m *Menu) flush() {
 	c, t := m.c, m.c.Theme()
 	b := ui.ButtonBase(c).Key(len(m.items)).Label(it.label).Disabled(it.disabled).FillWidth().MinWidth(0).
 		Padding(6, 8).Radius(6).Justify(ui.Start).AlignItems(ui.Center).Gap(8).Background(ui.Color{}).TextColor(t.Text)
+	// A row takes the coarse pointer's minimum square; under a fine one it
+	// keeps the compact padding above.
+	if h := TouchMin(c); h > 0 {
+		b.MinHeight(h)
+	}
 	if it.check {
 		b.Role(ui.RoleMenuItemCheckBox).Checked(it.checked)
 	} else {
@@ -266,9 +271,9 @@ func (m *Menu) flush() {
 				mark.Children(func() { Icon(c, lucide.Check).Size(12, 12).TextColor(t.Accent) })
 			}
 		}
-		Text(c, it.label).Grow(1).MinWidth(0).SingleLine().Ellipsis("…").FontSize(13)
+		Text(c, it.label).Grow(1).MinWidth(0).SingleLine().Ellipsis("…").FontSize(fontDIPs(c, 13))
 		if it.shortcut != "" {
-			Text(c, it.shortcut).Shrink(0).FontSize(11.5).TextColor(t.TextMuted).MarginStart(16)
+			Text(c, it.shortcut).Shrink(0).FontSize(fontDIPs(c, 11.5)).TextColor(t.TextMuted).MarginStart(16)
 		}
 	})
 	if b.Clicked() {

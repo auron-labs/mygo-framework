@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/auron-labs/mygo-framework/onevra/internal/l10n"
+	"github.com/auron-labs/mygo-framework/onevra/internal/phone"
 
 	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
@@ -76,6 +77,23 @@ type ShellOptions struct {
 	RightMinWidth, RightMaxWidth int
 	// RightCollapsed starts the right sidebar closed.
 	RightCollapsed bool
+	// Tabs builds the destinations of the phone's bottom tab bar, in the
+	// order given; its entries are read per frame, so selection and badges
+	// follow application state. Desktops keep the sidebar's Left list as the
+	// navigation and ignore Tabs. On phones, while no entry is Selected, the
+	// shell shows Content as a pushed screen — a top bar with a back button,
+	// without the tab bar — for the routes a desktop reaches from the
+	// sidebar's footer; OnBack reports the back. Nil Tabs leaves the phone
+	// without a tab bar.
+	Tabs func(*ui.Context) []Tab
+	// TopActions builds trailing controls at the top bar's end on phones,
+	// such as the account or Settings button that opens a pushed screen.
+	// Phones only: desktops leave footer routes to the sidebar's LeftToolbar.
+	TopActions func(*ui.Context)
+	// OnBack runs when the user takes the pushed screen away on a phone —
+	// its back button, the keyboard's Back key or the system's back — to
+	// return to the route a tab shows. Nil omits the back button.
+	OnBack func()
 	// Toasts places the window's toasts; top placements also clear the header.
 	Toasts components.ToastOptions
 	// Theme, when set, returns the frame's theme; Shell installs it before
@@ -273,7 +291,9 @@ func (s *Shell) refresh() {
 // Call it from a content builder; Shell does not automatically inset Left,
 // Content or pages.
 // The header remains above content for window dragging and header controls;
-// keep interactive body content below this height.
+// keep interactive body content below this height. On phones the shell's top
+// bar uses the same height below the status bar, so content clears both with
+// the one call.
 func HeaderHeight(c *ui.Context) float32 {
 	return max(48, c.TitleBar().Height, c.Theme().Rem(3))
 }
@@ -291,6 +311,10 @@ func (s *Shell) view(c *ui.Context) {
 	// The theme must be installed before any widget is created.
 	if s.options.Theme != nil {
 		c.SetTheme(s.options.Theme(c))
+	}
+	if phone.On() {
+		s.phoneView(c)
+		return
 	}
 	components.WithDialogWindowDrag(c, HeaderHeight(c), func() { s.build(c) })
 	toasts := s.options.Toasts

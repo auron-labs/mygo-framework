@@ -96,3 +96,73 @@ func TestColorChannelOverhangSemantics(t *testing.T) {
 		}
 	}
 }
+
+// A finger drags the saturation/brightness plane and a hue strip on a phone's
+// touch screen, and the raw touches a Linux or Windows touchscreen sends do
+// too.
+func TestColorViewFingerDrag(t *testing.T) {
+	for _, touch := range []bool{false, true} {
+		t.Run(fmt.Sprint("raw=", touch), func(t *testing.T) {
+			value := ui.RGB(255, 0, 0)
+			changes := 0
+			var state *colorViewState
+			tt := ui.NewTester(func(c *ui.Context) {
+				v := ColorView(c, &value)
+				state = ui.Local(v.Element, "color-view", func() colorViewState { return colorViewState{} })
+				if v.Changed() {
+					changes++
+				}
+			}, 360, 600)
+			tt.Frame()
+			down := func(x, y float32) {
+				if touch {
+					tt.TouchDown(1, x, y)
+					tt.Frame()
+				} else {
+					tt.FingerDown(x, y)
+				}
+			}
+			move := func(x, y float32) {
+				if touch {
+					tt.TouchMove(1, x, y)
+					tt.Frame()
+				} else {
+					tt.FingerMove(x, y)
+				}
+			}
+			up := func(x, y float32) {
+				if touch {
+					tt.TouchUp(1, x, y)
+				} else {
+					tt.FingerUp(x, y)
+				}
+			}
+			plane, ok := tt.Find("Saturation and brightness")
+			if !ok {
+				t.Fatal("missing plane")
+			}
+			down(plane.X+plane.W/2, plane.Y+plane.H/2)
+			move(plane.X-10, plane.Y+plane.H+10)
+			up(plane.X-10, plane.Y+plane.H+10)
+			if value != ui.RGB(0, 0, 0) || changes == 0 {
+				t.Fatalf("plane drag set %v, changes=%d", value, changes)
+			}
+
+			value, changes = ui.RGB(255, 0, 0), 0
+			tt.Frame()
+			hue, ok := tt.Find("Hue")
+			if !ok {
+				t.Fatal("missing hue strip")
+			}
+			down(hue.X+4, hue.Y+hue.H/2)
+			move(hue.X+hue.W/2, hue.Y+hue.H/2)
+			up(hue.X+hue.W/2, hue.Y+hue.H/2)
+			if value.G == 0 || value.B == 0 || changes == 0 {
+				t.Fatalf("hue drag set %v, changes=%d", value, changes)
+			}
+			if state.hsv.h < 170 || state.hsv.h > 200 {
+				t.Fatalf("hue drag left hue at %v, want about half", state.hsv.h)
+			}
+		})
+	}
+}

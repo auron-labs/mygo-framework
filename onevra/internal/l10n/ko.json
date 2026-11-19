@@ -97,5 +97,6 @@
   "cardStackOutcome": "{label}: {outcome}.",
   "cardStackRemaining": "{count, plural, =0 {모든 카드를 확인했습니다.} other {#장 남음.}}",
   "cardStackRestored": "{label} 복원됨.",
+  "goBack": "뒤로",
   "cardStackRestoredAll": "모든 카드를 다시 쌓았습니다."
 }

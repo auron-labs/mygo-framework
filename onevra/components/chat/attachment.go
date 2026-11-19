@@ -36,12 +36,19 @@ func AttachmentPreview(c *ui.Context, options AttachmentPreviewOptions) Attachme
 			})
 		}
 		if options.RemoveLabel != "" {
+			// Under a coarse pointer the hit square grows past the 18-point
+			// badge it holds, which stays put in the tile's corner.
+			hit := max(float32(18), components.TouchMin(c))
 			b := ui.ButtonBase(c).Label(options.RemoveLabel).Absolute().Top(3).Right(3).
-				Size(18, 18).Radius(5).Center().Background(t.Background.Alpha(.9)).TextColor(t.Text)
-			if b.Hovered() || b.Focused() {
-				b.Background(t.Surface).Border(1, t.Accent)
-			}
-			b.Children(func() { components.Icon(c, lucide.X).Size(11, 11) })
+				Size(hit, hit).Radius(5).Justify(ui.End).AlignItems(ui.Start).
+				Background(ui.Color{}).TextColor(t.Text)
+			b.Children(func() {
+				badge := ui.Box(c).Size(18, 18).Radius(5).Center().Background(t.Background.Alpha(.9))
+				if b.Hovered() || b.Focused() {
+					badge.Background(t.Surface).Border(1, t.Accent)
+				}
+				badge.Children(func() { components.Icon(c, lucide.X).Size(11, 11) })
+			})
 			result.Remove = b.Clicked()
 		}
 	})
@@ -71,7 +78,9 @@ type AttachmentResult struct {
 func Attachment(c *ui.Context, options AttachmentOptions) AttachmentResult {
 	var result AttachmentResult
 	t := c.Theme()
-	result.Root = ui.Row(c).MinWidth(0).MaxWidth(220).Height(30).AlignItems(ui.Center).Gap(6).Padding(0, 4).
+	// A coarse pointer gets the touch minimum's height and remove square; a
+	// fine one the compact 30 and 18.
+	result.Root = ui.Row(c).MinWidth(0).MaxWidth(220).Height(max(float32(30), components.TouchMin(c))).AlignItems(ui.Center).Gap(6).Padding(0, 4).
 		Radius(7).Border(1, strongBorder(t)).Background(t.Background.Mix(t.Text, .035)).Children(func() {
 		if options.Image != nil {
 			ui.Image(c, options.Image).Size(22, 22).Fit(ui.Cover).Radius(4).Shrink(0)
@@ -92,7 +101,8 @@ func Attachment(c *ui.Context, options AttachmentOptions) AttachmentResult {
 			ui.Box(c).Width(2)
 			return
 		}
-		b := ui.ButtonBase(c).Label(options.RemoveLabel).Size(18, 18).Shrink(0).Radius(4).Center().Background(ui.Color{}).TextColor(tertiary(t))
+		hit := max(float32(18), components.TouchMin(c))
+		b := ui.ButtonBase(c).Label(options.RemoveLabel).Size(hit, hit).Shrink(0).Radius(4).Center().Background(ui.Color{}).TextColor(tertiary(t))
 		if b.Hovered() || b.Focused() {
 			b.Background(overlayStrong(t)).TextColor(t.Text)
 		}

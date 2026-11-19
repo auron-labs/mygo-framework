@@ -249,7 +249,7 @@ func activityGroup(c *ui.Context, step Step, live bool) {
 	t := c.Theme()
 	open := step.Group.expanded(live)
 	ui.Column(c).Key("activities").FillWidth().MinWidth(0).Gap(4).Children(func() {
-		b := ui.ButtonBase(c).Label(step.Title).Expanded(open).FillWidth().MinWidth(0).Height(26).Justify(ui.Start).
+		b := ui.ButtonBase(c).Label(step.Title).Expanded(open).FillWidth().MinWidth(0).Height(max(float32(26), components.TouchMin(c))).Justify(ui.Start).
 			AlignItems(ui.Center).Gap(6).Background(ui.Color{}).TextColor(secondary(t))
 		hover := b.Hovered() || b.Focused()
 		b.Children(func() {
@@ -515,6 +515,34 @@ type ComposerOptions struct {
 	// StopDisabled keeps Stop shown but inactive while the host's run cannot
 	// be interrupted yet. Editing and Send remain available.
 	StopDisabled bool
+	// Keyboard, Capitalize and Autofill describe the editor to the on-screen
+	// keyboards of phones and tablets, as TextBox's same-named options do.
+	// ReturnKey names what the keyboard's return key says and defaults to
+	// Send, as plain Enter sends; Autocorrect turns the keyboard's
+	// corrections and suggestions on or off, nil leaving them to the
+	// keyboard.
+	Keyboard    ui.KeyboardType
+	ReturnKey   ui.ReturnKeyType
+	Capitalize  ui.Capitalization
+	Autofill    ui.AutofillKind
+	Autocorrect *bool
+}
+
+// composerEditorOptions maps the composer's keyboard options onto its
+// editor's.
+func composerEditorOptions(options ComposerOptions) components.TextBoxOptions {
+	editorOptions := components.TextBoxOptions{
+		Multiline:   true,
+		Keyboard:    options.Keyboard,
+		ReturnKey:   options.ReturnKey,
+		Capitalize:  options.Capitalize,
+		Autofill:    options.Autofill,
+		Autocorrect: options.Autocorrect,
+	}
+	if editorOptions.ReturnKey == ui.ReturnDefault {
+		editorOptions.ReturnKey = ui.ReturnSend
+	}
+	return editorOptions
 }
 
 type composerEnterKey struct{}
@@ -548,7 +576,7 @@ func Composer(c *ui.Context, draft *string, options ComposerOptions) ComposerRes
 			if options.Attachments != nil {
 				ui.Row(c).Key("attachments").FillWidth().Wrap().Gap(6).Padding(0, 10, 6, 10).Children(func() { options.Attachments(c) })
 			}
-			result.Input = components.TextBox(c.Key("input"), draft, components.TextBoxOptions{Multiline: true}).FillWidth().Lines(1, 10).MinHeight(40).
+			result.Input = components.TextBox(c.Key("input"), draft, composerEditorOptions(options)).FillWidth().Lines(1, 10).MinHeight(40).
 				Label(options.Label).Placeholder(options.Placeholder).Border(0, ui.Color{}).Background(ui.Color{}).Padding(2, 14, 0, 14).FontSize(13.5)
 			// MyGo's OnPaste wraps fn without a nil check, so attach only a real hook.
 			if options.OnPaste != nil {
@@ -619,7 +647,10 @@ func Composer(c *ui.Context, draft *string, options ComposerOptions) ComposerRes
 			card.BorderColor(strongBorder(t))
 		}
 		if options.Footer != nil {
-			ui.Row(c).Key("composer-footer").FillWidth().MinWidth(0).Height(28).Padding(4, 10, 0, 10).AlignItems(ui.Center).Gap(2).
+			// The 28-DIP strip holds a fine pointer's compact controls; a
+			// coarse one's TouchMin-sized controls raise it.
+			h := max(float32(28), components.TouchMin(c)+4)
+			ui.Row(c).Key("composer-footer").FillWidth().MinWidth(0).Height(h).Padding(4, 10, 0, 10).AlignItems(ui.Center).Gap(2).
 				Children(func() { options.Footer(c) })
 		}
 	})
@@ -627,7 +658,8 @@ func Composer(c *ui.Context, draft *string, options ComposerOptions) ComposerRes
 }
 
 func pillAction(c *ui.Context, label string, background, foreground ui.Color) ui.Element {
-	b := ui.ButtonBase(c).Label(label).Height(26).Padding(0, 12).Shrink(0).Radius(13).Center().Background(background).TextColor(foreground)
+	h := max(float32(26), components.TouchMin(c))
+	b := ui.ButtonBase(c).Label(label).Height(h).Padding(0, 12).Shrink(0).Radius(h / 2).Center().Background(background).TextColor(foreground)
 	if b.Pressed() {
 		b.Opacity(.8)
 	} else if b.Hovered() {
@@ -640,7 +672,8 @@ func pillAction(c *ui.Context, label string, background, foreground ui.Color) ui
 // IconAction is a keyboard-operable, named icon button with a focus tooltip.
 func IconAction(c *ui.Context, label string, icon func() *ui.SVG) ui.Element {
 	t := c.Theme()
-	b := ui.ButtonBase(c).Label(label).Size(26, 26).Shrink(0).Radius(6).Center().Background(ui.Color{}).TextColor(tertiary(t))
+	hit := max(float32(26), components.TouchMin(c))
+	b := ui.ButtonBase(c).Label(label).Size(hit, hit).Shrink(0).Radius(6).Center().Background(ui.Color{}).TextColor(tertiary(t))
 	if b.Hovered() || b.Focused() {
 		b.Background(overlay(t)).TextColor(t.Text)
 	}

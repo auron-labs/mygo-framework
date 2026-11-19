@@ -23,12 +23,14 @@ const (
 //
 // IconButtonPlain keeps a transparent face and tints it on hover and press.
 // IconButtonToolbar keeps the raised, shadowed face of ButtonToolbar, matching
-// TabsSegmented's chosen segment. IconButtonCompact shrinks the plain face.
+// TabsSegmented's chosen segment. IconButtonCompact shrinks the plain face;
+// under a coarse pointer every style still takes TouchMin's square, keeping
+// its smaller glyph.
 func IconButton(c *ui.Context, icon *ui.SVG, label string, style IconButtonStyle) ui.Element {
 	t := c.Theme()
-	size, glyph := max(32, t.Rem(2)), t.Rem(1.25)
+	size, glyph := max(32, t.Rem(2), TouchMin(c)), t.Rem(1.25)
 	if style == IconButtonCompact {
-		size, glyph = max(20, t.Rem(1.25)), t.Rem(.875)
+		size, glyph = max(20, t.Rem(1.25), TouchMin(c)), t.Rem(.875)
 	}
 	var b ui.Element
 	switch style {

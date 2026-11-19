@@ -217,9 +217,10 @@ func TagInput(c *ui.Context, tags *[]string) *TagInputControl {
 	n.Background(t.Surface.Alpha(0.5)).Border(1, n.AnimateColor("border", border, ui.Animation{Duration: 160 * time.Millisecond, Ease: tagStandard}))
 	n.Transition(ui.ElementTransition{Animation: &tagSmooth, Size: true})
 
-	// Pills fill a TextBox's line, so one row matches its height.
+	// Pills fill a TextBox's line, so one row matches its height. Under a
+	// coarse pointer the line takes TouchMin's square, for the finger.
 	_, line := c.MeasureText(0, ui.Span{Text: "Ag"})
-	height, inset := line+t.Space(1.5), t.Space(.75)
+	height, inset := max(line+t.Space(1.5), TouchMin(c)), t.Space(.75)
 	n.Children(func() {
 		row := ui.Row(c).FillWidth().Shrink(0).Wrap().AlignItems(ui.Center).AlignContent(ui.Start).
 			Gap(t.Space(1.5)).Padding(inset).Cursor(ui.CursorText)
@@ -255,7 +256,7 @@ func TagInput(c *ui.Context, tags *[]string) *TagInputControl {
 				}
 				chip.Children(func() {
 					Text(c, tag).SingleLine().Ellipsis("…").MinWidth(0).Unselectable()
-					size := t.Space(4)
+					size := max(t.Space(4), TouchMin(c))
 					b := ui.ButtonBase(c).Label(words.Label("removeTag", tag)).Size(size, size).Shrink(0).
 						Radius(size / 2).Center().KeepFocus().Cursor(ui.CursorPointer)
 					color := t.TextMuted

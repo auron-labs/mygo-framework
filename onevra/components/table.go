@@ -148,7 +148,7 @@ func (l *tableColumns) cells(c *ui.Context, role ui.Role, fill func(col int)) []
 func (l *tableColumns) header(c *ui.Context) ui.Element {
 	t := c.Theme()
 	s := l.state
-	head := ui.Row(c).FillWidth().Height(t.Space(8)).Shrink(0).AlignItems(ui.Stretch).Role(ui.RoleRow).Clip()
+	head := ui.Row(c).FillWidth().MinHeight(t.Space(8)).Shrink(0).AlignItems(ui.Stretch).Role(ui.RoleRow).Clip()
 	head.Children(func() {
 		heads := l.cells(c, ui.RoleColumnHeader, func(j int) {
 			col := &l.columns[j]

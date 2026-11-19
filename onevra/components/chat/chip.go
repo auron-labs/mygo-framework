@@ -35,7 +35,9 @@ func Chip(c *ui.Context, label string, options ChipOptions) ui.Element {
 	} else {
 		b = ui.ButtonBase(c)
 	}
-	b.Label(label).Height(26).MinWidth(0).Shrink(1).Padding(0, 7).Radius(6).AlignItems(ui.Center).Gap(6).
+	// A coarse pointer gets the touch minimum's height; a fine one the
+	// compact 26.
+	b.Label(label).Height(max(float32(26), components.TouchMin(c))).MinWidth(0).Shrink(1).Padding(0, 7).Radius(6).AlignItems(ui.Center).Gap(6).
 		Background(ui.Color{}).TextColor(secondary(t))
 	if !options.ReadOnly && (b.Hovered() || b.Focused()) {
 		b.Background(overlay(t))

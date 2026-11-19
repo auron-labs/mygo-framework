@@ -52,6 +52,17 @@ type NumberInputOptions struct {
 	LeadingIcon *ui.SVG
 	// HideStepper hides the right-hand up/down buttons, which are shown by default.
 	HideStepper bool
+	// Keyboard, ReturnKey, Capitalize and Autofill describe the field to the
+	// on-screen keyboards of phones and tablets, as TextBox's same-named
+	// options do; zero values keep the defaults, except that Keyboard picks a
+	// numeric pad, or a decimal one when the bounds or the step allow
+	// fractions. Autocorrect turns the keyboard's corrections and
+	// suggestions on or off; nil leaves them to the keyboard.
+	Keyboard    ui.KeyboardType
+	ReturnKey   ui.ReturnKeyType
+	Capitalize  ui.Capitalization
+	Autofill    ui.AutofillKind
+	Autocorrect *bool
 }
 
 // NumberInput creates a numeric text field with optional prefix scrubbing and
@@ -137,6 +148,15 @@ func numberInput(c *ui.Context, value *float64, lo, hi, step float64, opts Numbe
 					state.text = format()
 				}
 			}
+			// The editor takes the number field's own keyboard traits,
+			// whatever editor built it, as the color fields' does.
+			applyKeyboard(n.input, keyboardOptions{
+				Keyboard:    numberKeyboard(opts.Keyboard, lo, hi, step),
+				ReturnKey:   opts.ReturnKey,
+				Capitalize:  opts.Capitalize,
+				Autofill:    opts.Autofill,
+				Autocorrect: opts.Autocorrect,
+			})
 			width, _ := c.MeasureText(0, ui.Span{Text: opts.LeadingText})
 			width += t.Space(2.5)
 			if opts.LeadingText != "" {
@@ -151,6 +171,33 @@ func numberInput(c *ui.Context, value *float64, lo, hi, step float64, opts Numbe
 			if opts.LeadingText != "" || opts.LeadingIcon != nil {
 				n.grip = ui.Box(c).Absolute().Left(1).Top(1).Bottom(1).Width(width).
 					Cursor(ui.CursorResizeEW).Focusable().Role(ui.RoleSlider)
+				// A touchscreen sends a finger drag as raw touches beside
+				// the scrolling it makes of it.
+				enabled := !n.grip.IsDisabled()
+				fingers := ui.Local(n.grip, "number-input-fingers", func() fingerTrack { return fingerTrack{} })
+				if !enabled {
+					*fingers = fingerTrack{}
+				}
+				fingers.follow(n.grip, fingerHorizontal, func(dx, _ float32) {
+					if !enabled {
+						return
+					}
+					if !state.held {
+						state.scrub = *value
+					}
+					state.scrub = max(lo, min(hi, state.scrub+float64(dx/t.Space(.25))*dragScale))
+					v := state.scrub
+					// Dividing by the reciprocal avoids binary tails for
+					// ordinary decimal steps. Extreme finite steps can
+					// overflow the quotient; retain the bounded value.
+					p := 1 / dragStep
+					if finite(p) && p > 0 && finite(v*p) {
+						v = math.Round(v*p) / p
+					}
+					set(v)
+					state.text = format()
+				})
+				n.grip.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 				dx, _, held := n.grip.Dragged()
 				if !n.grip.IsDisabled() {
 					if held {
@@ -240,4 +287,18 @@ func numberInput(c *ui.Context, value *float64, lo, hi, step float64, opts Numbe
 	state.value = *value
 	n.Label("")
 	return n
+}
+
+// numberKeyboard resolves a number field's on-screen keyboard: the choice
+// the options give, or a numeric pad, a decimal one when the bounds or the
+// step allow fractions. MyGo's kinds carry no signed variant, so bounds
+// below zero change nothing.
+func numberKeyboard(configured ui.KeyboardType, lo, hi, step float64) ui.KeyboardType {
+	if configured != ui.KeyboardDefault {
+		return configured
+	}
+	if lo != math.Trunc(lo) || hi != math.Trunc(hi) || step != math.Trunc(step) {
+		return ui.KeyboardDecimal
+	}
+	return ui.KeyboardNumber
 }

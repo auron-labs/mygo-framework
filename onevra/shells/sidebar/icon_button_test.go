@@ -7,6 +7,23 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// TestIconButtonTouchTarget checks that a coarse pointer's button takes the
+// touch minimum; the fine pointer's 32 is what TestIconButton asserts.
+func TestIconButtonTouchTarget(t *testing.T) {
+	tt := ui.NewTesterWith(func(c *ui.Context) {
+		ui.Row(c).Fill().Children(func() {
+			IconButton(c, lucide.Settings(), "Settings")
+		})
+	}, 200, 100, ui.TesterOptions{Preferences: ui.Preferences{
+		TextScale: 1, Pointer: ui.PointerCoarse, AnyPointer: ui.PointerCoarse,
+		NoHover: true, NoAnyHover: true,
+	}})
+	r, ok := tt.Find("Settings")
+	if !ok || r.W < 44 || r.H < 44 {
+		t.Fatalf("hit target %+v, want at least a 44×44 square", r)
+	}
+}
+
 func TestIconButton(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		clicks := 0

@@ -425,7 +425,7 @@ func Carousel(c *ui.Context, state *CarouselState, options CarouselOptions) ui.E
 // stays focusable but looks unavailable, for an arrow at the end.
 func carouselButton(c *ui.Context, icon func() *ui.SVG, label string, dimmed bool) ui.Element {
 	t := c.Theme()
-	size := carouselControl * t.Space(.25)
+	size := max(carouselControl*t.Space(.25), TouchMin(c))
 	b := ui.ButtonBase(c).Size(size, size).Shrink(0).Radius(size/2).Border(1, t.Border).Label(label).TextColor(t.Text)
 	face := t.Surface
 	switch {

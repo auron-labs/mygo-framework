@@ -25,7 +25,8 @@ type MeterState struct{ Open bool }
 func ContextMeter(c *ui.Context, state *MeterState, options ContextMeterOptions) ui.Element {
 	t := c.Theme()
 	fill := meterColor(t, options.Fraction)
-	b := ui.ButtonBase(c).Label(options.Label).Height(20).Padding(0, 5).Radius(5).Shrink(0).Center().Background(ui.Color{})
+	b := ui.ButtonBase(c).Label(options.Label).Height(max(float32(20), components.TouchMin(c))).
+		MinWidth(max(float32(23), components.TouchMin(c))).Padding(0, 5).Radius(5).Shrink(0).Center().Background(ui.Color{})
 	if state.Open {
 		b.Background(overlayStrong(t))
 	} else if b.Hovered() || b.Focused() {

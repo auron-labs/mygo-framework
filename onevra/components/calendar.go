@@ -63,14 +63,15 @@ func (s *calendarState) page(delta int) {
 	s.cursor = calendarMonth(s.cursor, delta*months)
 }
 
-// Calendar builds the fixed-size six-week view (Monday-first by default) used inside
+// Calendar builds the six-week view (Monday-first by default) used inside
 // CalendarPicker. Arrows move its cursor; Page Up/Down change months with day
 // clamping; Home/End move to month boundaries. Enter/Space or a day click selects
 // a date, preserving its time and location. Navigation alone does not select.
 // Click the title to switch from days to months, then to a twelve-year grid.
 // Choose a year to open months, and a month to open days. In these grids,
 // arrows move by cell and Page Up/Down changes pages. Today returns to today's
-// day view without committing a value. All modes retain the same fixed size.
+// day view without committing a value. All modes retain the same size, which
+// grows with the desktop's text scale and otherwise keeps MyGo's spacing.
 // Key or disable a parent before construction.
 func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 	words := localized(c)
@@ -78,7 +79,15 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 		panic("components.Calendar: nil date")
 	}
 	t := c.Theme()
-	out := &CalendarControl{Element: ui.Column(c).Width(t.Space(56)).Height(t.Space(62)).Shrink(0).Gap(t.Space(.5)).Focusable().Role(ui.RoleTable)}
+	// The cell takes the height of a day's type, so a larger text scale grows
+	// the grid rather than clipping the numbers inside their cells. AlignSelf
+	// keeps a parent column from stretching the grid wider than its cells.
+	// A coarse pointer takes TouchMin's square, which a phone window still
+	// fits: 7 cells and the gaps come to about 311 of its 390 DIPs.
+	_, line := c.MeasureText(0, ui.Span{Text: "88"})
+	touch := TouchMin(c)
+	cellW, cellH := max(t.Space(8), line, touch), max(t.Space(7), line, touch)
+	out := &CalendarControl{Element: ui.Column(c).MinWidth(cellW * 7).MinHeight(t.Space(62)).AlignSelf(ui.Start).Shrink(0).Gap(t.Space(.5)).Focusable().Role(ui.RoleTable)}
 	st := ui.Local(out.Element, "calendar", func() calendarState { return calendarState{cursor: calendarDay(*value), last: *value} })
 	if st.last != *value {
 		st.cursor, st.last, st.view = calendarDay(*value), *value, calendarDays
@@ -135,7 +144,7 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 		}
 	}
 	out.Children(func() {
-		ui.Row(c).FillWidth().Height(t.Space(8)).Margin(0, 0, t.Space(2), 0).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().MinHeight(t.Space(8)).Margin(0, 0, t.Space(2), 0).AlignItems(ui.Center).Children(func() {
 			title := words.date(st.cursor, "January 2006")
 			titleLabel := words.ChooseMonth
 			previous, next := words.PreviousMonth, words.NextMonth
@@ -150,7 +159,7 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 				titleLabel = words.ChooseYear
 				previous, next = words.PreviousYears, words.NextYears
 			}
-			heading := Button(c, "", ButtonGhost).Width(0).Grow(1).MinWidth(0).Height(t.Space(8)).Padding(0).
+			heading := Button(c, "", ButtonGhost).Width(0).Grow(1).MinWidth(0).MinHeight(t.Space(8)).Padding(0).
 				Justify(ui.Start).Background(ui.Color{}).Label(titleLabel)
 			heading.Children(func() { Text(c, title).FillWidth().MinWidth(0).SingleLine().Bold() })
 			if !heading.IsDisabled() && heading.Clicked() {
@@ -159,14 +168,14 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 				}
 				out.Focus()
 			}
-			today := Button(c, "", ButtonGhost).Size(t.Space(7), t.Space(8)).Padding(t.Space(1.5)).Label(words.Today)
+			today := Button(c, "", ButtonGhost).Size(max(t.Space(7), touch), max(t.Space(8), touch)).Padding(t.Space(1.5)).Label(words.Today)
 			today.Children(func() { Icon(c, lucide.RotateCcw()) })
 			if !today.IsDisabled() && today.Clicked() {
 				st.cursor, st.view = calendarDay(time.Now().In(value.Location())), calendarDays
 				out.Focus()
 			}
 			nav := func(label string, delta int, icon *ui.SVG) {
-				b := Button(c, "", ButtonGhost).Size(t.Space(7), t.Space(8)).Padding(t.Space(1.5)).Label(label)
+				b := Button(c, "", ButtonGhost).Size(max(t.Space(7), touch), max(t.Space(8), touch)).Padding(t.Space(1.5)).Label(label)
 				b.Children(func() { Icon(c, icon) })
 				if !b.IsDisabled() && b.Clicked() {
 					st.page(delta)
@@ -182,16 +191,16 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 		}
 		month := time.Date(st.cursor.Year(), st.cursor.Month(), 1, 0, 0, 0, 0, time.UTC)
 		out.Label(words.date(month, "January 2006")).Value(words.date(st.cursor, "January 2, 2006"))
-		ui.Row(c).Height(t.Space(4)).Margin(0, 0, t.Space(2), 0).Children(func() {
+		ui.Row(c).MinHeight(t.Space(4)).Margin(0, 0, t.Space(2), 0).Children(func() {
 			for col := range 7 {
 				label := words.Weekdays[(int(words.firstWeekday())+col)%7]
-				Text(c, label).Width(t.Space(8)).TextAlign(ui.Center).TextColor(t.TextMuted).Role(ui.RoleColumnHeader)
+				Text(c, label).Width(cellW).TextAlign(ui.Center).TextColor(t.TextMuted).Role(ui.RoleColumnHeader)
 			}
 		})
 		start := month.AddDate(0, 0, -((int(month.Weekday()) - int(words.firstWeekday()) + 7) % 7))
 		today := calendarDay(time.Now().In(value.Location()))
 		for week := range 6 {
-			ui.Row(c).Height(t.Space(7)).Role(ui.RoleRow).Children(func() {
+			ui.Row(c).MinHeight(cellH).Role(ui.RoleRow).Children(func() {
 				for col := range 7 {
 					day := start.AddDate(0, 0, week*7+col)
 					selected := day.Equal(calendarDay(*value))
@@ -199,7 +208,7 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 					if selected {
 						variant = ButtonPrimary
 					}
-					cell := Button(c, fmt.Sprint(day.Day()), variant).Size(t.Space(8), t.Space(7)).Padding(0).Label(words.date(day, "January 2, 2006")).Checked(selected)
+					cell := Button(c, fmt.Sprint(day.Day()), variant).Width(cellW).MinHeight(cellH).Padding(0).Label(words.date(day, "January 2, 2006")).Checked(selected)
 					if !selected {
 						if day.Month() != month.Month() {
 							cell.TextColor(t.TextMuted)

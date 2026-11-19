@@ -71,7 +71,8 @@ type ToastOptions struct {
 // optional action and a close button named by the "onevra.closeToast" message.
 // Older toasts tuck behind the newest one, each peeking out a little further
 // and drawn a little smaller, and fan out while the pointer rests on the stack
-// or the keyboard focus is in it.
+// or the keyboard focus is in it. Where the pointer cannot hover, they stay
+// fanned out, so every toast and its controls remain reachable.
 func Toasts(c *ui.Context, options ...ToastOptions) ui.Element {
 	var o ToastOptions
 	if len(options) > 0 {
@@ -102,9 +103,11 @@ func Toasts(c *ui.Context, options ...ToastOptions) ui.Element {
 			viewport.Padding(margin, margin, margin+inset, margin)
 		}
 		// The stack takes the pointer across the gaps between fanned-out
-		// toasts, so that crossing them keeps the stack open.
+		// toasts, so that crossing them keeps the stack open. A pointer that
+		// cannot hover cannot open it, so there the stack stays open and
+		// every toast keeps its content, action and close button reachable.
 		stack := ui.Box(c).Key("onevra.toasts").Width(min(max(0, width-2*margin), t.Space(90)))
-		expanded := stack.Hovered() || stack.FocusWithin()
+		expanded := !c.Preferences().Hover() || stack.Hovered() || stack.FocusWithin()
 		n := len(toasts)
 		roots := make([]ui.Element, n)
 		// Each toast's own height comes from the previous frame's layout of
@@ -183,7 +186,7 @@ func toastContent(c *ui.Context, parts ui.ToastParts, toast ui.Toast, closeLabel
 			styleButton(c, parts.ActionButton(), ButtonSecondary).Shrink(0).
 				Label(toast.Action).Children(func() { Text(c, toast.Action).SingleLine() })
 		}
-		size := t.Space(6)
+		size := max(t.Space(6), TouchMin(c))
 		styleButton(c, parts.CloseButton(), ButtonGhost).Label(closeLabel).
 			Size(size, size).Padding(0).Shrink(0).TextColor(t.TextMuted).Children(func() {
 			Icon(c, lucide.X).Size(t.Rem(.875), t.Rem(.875))

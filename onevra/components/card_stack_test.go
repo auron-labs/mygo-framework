@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -213,5 +214,48 @@ func TestCardStackFollowsApplicationDecisions(t *testing.T) {
 	settleCardStack(tt)
 	if tt.HasText("Lisbon") {
 		t.Fatal("thrown card still built after its flight")
+	}
+}
+
+// A finger drags the top card, as a phone sends it and as the raw touches of
+// Linux and Windows touchscreens do beside the scrolling they make of them.
+func TestCardStackFingerDrag(t *testing.T) {
+	for _, touch := range []bool{false, true} {
+		t.Run(fmt.Sprint("raw=", touch), func(t *testing.T) {
+			var state CardStackState
+			var events []CardStackEvent
+			tt := cardStackTester(&state, &events)
+			tt.Frame()
+			r, ok := tt.Find("Lisbon, 1 of 3")
+			if !ok {
+				t.Fatal("no top card")
+			}
+			x, y := r.X+r.W/2, r.Y+r.H/4
+			if touch {
+				tt.TouchDown(1, x, y)
+				tt.Frame()
+			} else {
+				tt.FingerDown(x, y)
+			}
+			for i := 1; i <= 3; i++ {
+				tt.Advance(16 * time.Millisecond)
+				if touch {
+					tt.TouchMove(1, x-200*float32(i)/3, y)
+					tt.Frame()
+				} else {
+					tt.FingerMove(x-200*float32(i)/3, y)
+				}
+			}
+			tt.Advance(16 * time.Millisecond)
+			if touch {
+				tt.TouchUp(1, x-200, y)
+			} else {
+				tt.FingerUp(x-200, y)
+			}
+			settleCardStack(tt)
+			if want := []CardStackDecision{{"a", CardLeft}}; !slices.Equal(state.Decisions, want) {
+				t.Fatalf("decisions %v, want %v", state.Decisions, want)
+			}
+		})
 	}
 }

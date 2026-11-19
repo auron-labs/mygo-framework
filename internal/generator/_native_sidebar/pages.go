@@ -55,5 +55,13 @@ func (s *screen) restoreNotice() {
 	}
 }
 
-// navigate selects a page by navigation id.
-func (s *screen) navigate(id string) { s.kept.page = id }
+// navigate selects a page by navigation id, remembering the navigation page
+// shown, which a phone's pushed footer route returns to.
+func (s *screen) navigate(id string) {
+	for _, r := range routes() {
+		if r.id == id && r.inNav {
+			s.lastNav = id
+		}
+	}
+	s.kept.page = id
+}

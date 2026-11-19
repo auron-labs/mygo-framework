@@ -1,6 +1,6 @@
 # Onevra
 
-Native desktop UI components for MyGo, maintained as packages of
+Native UI components for MyGo, maintained as packages of
 `github.com/auron-labs/mygo-framework`. Use the controls, themes, shells, and
 Lucide icons in any MyGo application; framework bootstrap and persistence are
 optional.
@@ -68,6 +68,53 @@ MyGo primitives; MyGo owns rendering, input, and native integration.
 See the [native application guide](../docs/native.md),
 [native example](../examples/native), and [time chart example](../examples/timechart)
 for state, persistence, headless testing, and MCP integration.
+
+## Phones and touchscreens
+
+Components work by finger on phones (iOS and Android) and on Linux and Windows
+touchscreens.
+
+- **Finger drags** move the slider, the image-compare handle, the number
+  input's scrub grip, the colour plane and strips, the card stack, and the
+  carousel. On Linux and Windows these follow raw `Touches()`, so touchpad
+  scrolling never moves a control.
+- **Long press** opens a context menu; long menus scroll.
+- **Touch targets:** under a coarse pointer, interactive controls take at
+  least `components.TouchMin` (44 DIPs) around their glyphs.
+- **Toasts** stay fanned out where the pointer cannot hover, keeping every
+  toast's action and close button tappable.
+- **Text entry:** `TextBoxOptions`, `NumberInputOptions`, and chat's
+  `ComposerOptions` take `Keyboard`, `ReturnKey`, `Capitalize`, `Autofill`, and
+  `Autocorrect`. `NumberInput` defaults to a numeric pad, or a decimal one when
+  its bounds or step allow fractions; the composer's return key defaults to
+  Send.
+- **Theme:** `theme.Onevra` follows the system's text scale (iOS Dynamic Type,
+  Android's font scale) and the system's dark mode.
+- **`shells/plain`** on phones draws no header, caption buttons, or drag
+  regions. MyGo's root keeps content inside the safe area and fills the
+  system bars with the root's background.
+- **`shells/sidebar`** on phones has no sidebars: `ShellOptions.Tabs` becomes
+  a bottom tab bar, `TopActions` builds the top-bar buttons that open pushed
+  screens, and while no tab is selected the shell shows the content as a
+  pushed screen whose back button — and the system Back key — run `OnBack`.
+  iOS's edge-swipe back needs the app's routing on `ui.Router`.
+
+Desktop-only on phones, or compact:
+
+- Tooltips are hover hints only; icon-only controls carry accessible names, so
+  nothing needs one.
+- The title bar, caption buttons, drag regions, vibrancy, remembered window
+  state, the sidebar shell's resizable side panels and right panel, and the
+  generated sidebar app's 720-DIP icon rail and footer (update prompt, account
+  card) stay on the desktop.
+- A switch toggles by tap; its knob's drag stays on the desktop, as do drag
+  resizing of split panes and table columns.
+- The number input's stepper buttons stay compact; scrub or the keyboard's
+  arrows cover them by touch.
+- Chat components keep fixed type sizes and do not follow the system text
+  scale.
+- Over the card stack, a vertical finger drag takes the deck rather than
+  scrolling the page.
 
 ## Migrate from upstream
 

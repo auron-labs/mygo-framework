@@ -98,3 +98,55 @@ func TestNumberInputOptionalControls(t *testing.T) {
 		}
 	}
 }
+
+// A finger drags the scrub grip on a phone's touch screen, and the raw touches
+// a Linux or Windows touchscreen sends scrub with it. A touchpad's scrolling,
+// which reports no touches, scrubs nothing.
+func TestNumberInputFingerScrub(t *testing.T) {
+	value := .2
+	var unit float32
+	changed := false
+	var num *NumberInputControl
+	tt := ui.NewTester(func(c *ui.Context) {
+		c.SetTheme(theme.Palette(false))
+		unit = c.Theme().Space(.25)
+		num = NumberInput(c, &value, -1, 1, .1, NumberInputOptions{LeadingText: "X", LeadingIcon: lucide.MoveHorizontal(), HideStepper: true})
+		num.Label("Amount")
+		if num.Changed() {
+			changed = true
+		}
+	}, 300, 100)
+	tt.Frame()
+	r, ok := tt.Find("Adjust Amount")
+	if !ok {
+		t.Fatal("missing drag handle")
+	}
+	x, y := r.X+r.W/2, r.Y+r.H/2
+	tt.FingerDown(x, y)
+	tt.FingerMove(x+3*unit, y)
+	tt.FingerUp(x+3*unit, y)
+	if value != .5 {
+		t.Fatalf("finger scrub set %v, want 0.5", value)
+	}
+	if !changed {
+		t.Fatal("finger scrub reported no change")
+	}
+	changed = false
+	tt.Scroll(x, y, -3*unit, 0)
+	if value != .5 || changed {
+		t.Fatalf("touchpad scroll set %v (changed %v), want no change", value, changed)
+	}
+	value = -.5
+	tt.Frame()
+	tt.TouchDown(1, x, y)
+	tt.Frame()
+	tt.TouchMove(1, x+10*unit, y)
+	tt.Frame()
+	tt.TouchUp(1, x+10*unit, y)
+	if value != .5 {
+		t.Fatalf("touchscreen scrub set %v, want 0.5", value)
+	}
+	if !changed {
+		t.Fatal("touchscreen scrub reported no change")
+	}
+}

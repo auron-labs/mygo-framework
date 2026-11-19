@@ -101,6 +101,11 @@ func SidebarItemWithContent(c *ui.Context, label string, selected bool, leading 
 	b := ui.ButtonBase(c).Key(label).Label(label).FillWidth().Justify(ui.Start).
 		Padding(t.Space(1.75), t.Space(2)).Gap(t.Space(2)).Radius(t.Radius).
 		Selected(selected).Background(ui.Color{}).TextColor(t.Text)
+	// An item takes the coarse pointer's minimum square; under a fine one
+	// its height is the content's.
+	if h := TouchMin(c); h > 0 {
+		b.MinHeight(h)
+	}
 	if selected {
 		b.Background(t.Text.Alpha(.1))
 	}

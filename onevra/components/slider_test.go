@@ -207,3 +207,82 @@ func TestSliderDrag(t *testing.T) {
 		t.Errorf("drag set %v, want near 100", value)
 	}
 }
+
+// A finger drags a slider on a phone's touch screen, and the raw touches a
+// Linux or Windows touchscreen sends drag it too. A touchpad's scrolling,
+// which reports no touches, moves nothing.
+func TestSliderFingerDrag(t *testing.T) {
+	value := 20.0
+	changed := false
+	var slider *SliderControl
+	tt := ui.NewTester(func(c *ui.Context) {
+		slider = Slider(c, &value, 0, 100)
+		slider.Label("volume").Width(240)
+		if slider.Changed() {
+			changed = true
+		}
+	}, 300, 100)
+	tt.Frame()
+	r, ok := tt.Find("volume")
+	if !ok {
+		t.Fatal("slider not found")
+	}
+	tt.FingerDown(r.X+r.W*0.2, r.Y+r.H/2)
+	tt.FingerMove(r.X+r.W*0.5, r.Y+r.H/2)
+	tt.FingerUp(r.X+r.W*0.5, r.Y+r.H/2)
+	if value != 50 {
+		t.Fatalf("finger drag set %v, want 50", value)
+	}
+	if !changed {
+		t.Fatal("finger drag reported no change")
+	}
+	changed, before := false, value
+	tt.Scroll(r.X+r.W*0.5, r.Y+r.H/2, -50, 0)
+	if value != before || changed {
+		t.Fatalf("touchpad scroll set %v (changed %v), want no change", value, changed)
+	}
+	tt.TouchDown(1, r.X+r.W*0.2, r.Y+r.H/2)
+	tt.Frame()
+	for _, f := range []float32{0.3, 0.4, 0.5} {
+		tt.TouchMove(1, r.X+r.W*f, r.Y+r.H/2)
+		tt.Frame()
+	}
+	tt.TouchUp(1, r.X+r.W*0.5, r.Y+r.H/2)
+	if value <= before {
+		t.Fatalf("touchscreen drag set %v, want more than %v", value, before)
+	}
+	if !changed {
+		t.Fatal("touchscreen drag reported no change")
+	}
+}
+
+func TestSliderRangeFingerDrag(t *testing.T) {
+	low, high := 20.0, 80.0
+	tt := ui.NewTester(func(c *ui.Context) {
+		Slider(c, &low, 0, 100, SliderOptions{Range: &high, Step: 10}).Label("Price").Width(240)
+	}, 300, 100)
+	tt.Frame()
+	r, ok := tt.Find("Price")
+	if !ok {
+		t.Fatal("slider not found")
+	}
+	knob, ok := tt.Find("Price minimum")
+	if !ok {
+		t.Fatal("minimum thumb not found")
+	}
+	tt.FingerDown(knob.X+knob.W/2, knob.Y+knob.H/2)
+	tt.FingerMove(r.X+r.W*0.5, r.Y+r.H/2)
+	tt.FingerUp(r.X+r.W*0.5, r.Y+r.H/2)
+	if low != 50 || high != 80 {
+		t.Fatalf("finger drag set %v %v, want 50 80", low, high)
+	}
+	before := high
+	tt.TouchDown(1, r.X+r.W*0.85, r.Y+r.H/2)
+	tt.Frame()
+	tt.TouchMove(1, r.X+r.W*0.95, r.Y+r.H/2)
+	tt.Frame()
+	tt.TouchUp(1, r.X+r.W*0.95, r.Y+r.H/2)
+	if high <= before || low != 50 {
+		t.Fatalf("touchscreen drag set %v %v, want the maximum above %v", low, high, before)
+	}
+}

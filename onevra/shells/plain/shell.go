@@ -1,13 +1,16 @@
 // Package plain provides a single-content native window without the default
 // title bar. The window title is shown in the draggable header instead, so it
 // stays visible while the shell owns only presentation. Applications own
-// content, localization, state and lifetime.
+// content, localization, state and lifetime. On phones the system owns the
+// window's chrome, so the shell draws no header there; MyGo's root keeps
+// content inside the safe area and the shell keeps its toasts off the bars.
 package plain
 
 import (
 	"runtime"
 
 	"github.com/auron-labs/mygo-framework/onevra/internal/l10n"
+	"github.com/auron-labs/mygo-framework/onevra/internal/phone"
 
 	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
@@ -33,14 +36,17 @@ type ShellOptions struct {
 	// HeaderLeading builds optional leading header content, such as a segmented
 	// tab list. It replaces the header title, which remains the native window
 	// title; build a title inside it if the header should also show one. It runs
-	// on the UI thread and must not start background work.
+	// on the UI thread and must not start background work. Desktops only:
+	// phones draw no header.
 	HeaderLeading func(*ui.Context)
 	// HeaderActions builds optional trailing controls at the right of the
 	// header, before the Windows caption buttons, such as a Settings action. It
-	// runs on the UI thread and must not start background work.
+	// runs on the UI thread and must not start background work. Desktops only:
+	// phones draw no header.
 	HeaderActions func(*ui.Context)
-	// Content is automatically inset below the draggable window-control area.
-	// Dialogs inherit its drag strip and remain relative to the whole window.
+	// Content is automatically inset below the draggable window-control area on
+	// desktops, and by the phone's safe area on phones. Dialogs inherit the
+	// desktop drag strip and remain relative to the whole window.
 	Content func(*ui.Context)
 	// ContentBehindHeader extends Content to the top of the window, behind
 	// the unpainted header, such as for content that scrolls under it. Use
@@ -147,12 +153,17 @@ func (s *Shell) headerTitle(c *ui.Context) {
 }
 
 // HeaderHeight is the frame's native-control clearance and modal drag height.
-// Shell insets content by this amount unless ContentBehindHeader is set.
+// Shell insets content by this amount on desktops unless
+// ContentBehindHeader is set; on phones it insets by Context.SafeArea instead.
 func HeaderHeight(c *ui.Context) float32 { return max(48, c.TitleBar().Height, c.Theme().Rem(3)) }
 
 func (s *Shell) view(c *ui.Context) {
 	if s.options.Theme != nil {
 		c.SetTheme(s.options.Theme(c))
+	}
+	if phone.On() {
+		s.phoneView(c)
+		return
 	}
 	height := HeaderHeight(c)
 	inset := height
@@ -196,6 +207,21 @@ func (s *Shell) view(c *ui.Context) {
 		toasts.Inset += height
 	}
 	components.Toasts(c, toasts)
+}
+
+// phoneView builds the phone's window: the system owns its chrome, so
+// there is no header to drag, no caption buttons and no window-control
+// room. MyGo's root already keeps content inside the safe area, with the
+// root's background filling under the bars; the shell applies
+// Context.SafeArea itself only to what draws over them, as the toasts at
+// their edge.
+func (s *Shell) phoneView(c *ui.Context) {
+	ui.Column(c).Fill().Background(c.Theme().Background).Clip().Children(func() {
+		if s.options.Content != nil {
+			s.options.Content(c)
+		}
+	})
+	components.Toasts(c, phone.ToastOptions(c, s.options.Toasts))
 }
 
 func captionButton(c *ui.Context, icon *ui.SVG, name string) ui.Element {

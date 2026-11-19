@@ -82,7 +82,7 @@ func TreeItemWithLeading(c *ui.Context, label string, open *bool, selected bool,
 	}
 	branch := open != nil && children != nil
 	e := ui.ButtonBase(c).Key(label).Label(label).Role(ui.RoleTreeItem).
-		Level(scope.depth+1).FillWidth().MinWidth(0).Height(t.Space(7)).
+		Level(scope.depth+1).FillWidth().MinWidth(0).MinHeight(t.Space(7)).
 		Justify(ui.Start).Gap(t.Space(.5)).Radius(t.Radius).FocusRing(true).
 		Padding(0, t.Space(2), 0, t.Space(1+4*float32(scope.depth))).
 		Selected(selected).Background(ui.Transparent).TextColor(t.Text)

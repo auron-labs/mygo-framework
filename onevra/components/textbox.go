@@ -18,6 +18,16 @@ type TextBoxOptions struct {
 	// space and does not become part of the value, selection or copied text.
 	// Keep it short and single-line; supply the accessible name with Label.
 	LeadingText string
+	// Keyboard, ReturnKey, Capitalize and Autofill describe the field to the
+	// on-screen keyboards of phones and tablets, as MyGo's same-named editor
+	// methods do; zero values keep the keyboard's defaults. Autocorrect turns
+	// the keyboard's corrections and suggestions on or off; nil leaves them to
+	// the keyboard.
+	Keyboard    ui.KeyboardType
+	ReturnKey   ui.ReturnKeyType
+	Capitalize  ui.Capitalization
+	Autofill    ui.AutofillKind
+	Autocorrect *bool
 }
 
 // TextBox creates a text input editing *value. Configure mode and read-only
@@ -56,6 +66,13 @@ func styleTextBox(c *ui.Context, e ui.Element, options TextBoxOptions) ui.Elemen
 		e.MinHeight(t.Space(20))
 	}
 	e.ReadOnly(options.ReadOnly)
+	applyKeyboard(e, keyboardOptions{
+		Keyboard:    options.Keyboard,
+		ReturnKey:   options.ReturnKey,
+		Capitalize:  options.Capitalize,
+		Autofill:    options.Autofill,
+		Autocorrect: options.Autocorrect,
+	})
 	background, border := t.Surface, t.Border
 	if options.ReadOnly {
 		background = background.Mix(t.Text, 0.04)
@@ -102,4 +119,26 @@ func styleTextBox(c *ui.Context, e ui.Element, options TextBoxOptions) ui.Elemen
 		})
 	}
 	return dimmed(e)
+}
+
+// keyboardOptions collects what a text field tells the on-screen keyboards
+// of phones and tablets, as MyGo's same-named editor methods set it. Zero
+// values keep the keyboard's defaults; a nil Autocorrect leaves the
+// keyboard's own corrections and suggestions.
+type keyboardOptions struct {
+	Keyboard    ui.KeyboardType
+	ReturnKey   ui.ReturnKeyType
+	Capitalize  ui.Capitalization
+	Autofill    ui.AutofillKind
+	Autocorrect *bool
+}
+
+// applyKeyboard sets the keyboard traits k describes on the editor e, in the
+// frames that call it, as the options an application gave resolve during
+// construction.
+func applyKeyboard(e ui.Element, k keyboardOptions) {
+	e.Keyboard(k.Keyboard).ReturnKey(k.ReturnKey).Capitalize(k.Capitalize).Autofill(k.Autofill)
+	if k.Autocorrect != nil {
+		e.Autocorrect(*k.Autocorrect)
+	}
 }

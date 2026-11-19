@@ -90,7 +90,23 @@ func Slider(c *ui.Context, value *float64, lo, hi float64, options ...SliderOpti
 	}
 	if o.Range == nil {
 		e = ui.SliderBase(c, value, lo, hi).Step(o.Step)
+		// A touchscreen sends a finger drag as raw touches beside the
+		// scrolling it makes of it, where phones raise pointer drags.
+		fingers := ui.Local(e, "slider-fingers", func() fingerTrack { return fingerTrack{} })
+		width, enabled := e.LayoutBounds().W-thumb, !e.IsDisabled()
+		if !enabled {
+			*fingers = fingerTrack{}
+		}
 		s.changed = e.Changed()
+		fingers.follow(e, fingerHorizontal, func(dx, _ float32) {
+			if !enabled || width <= 0 {
+				return
+			}
+			if v := sliderSnap(*value+float64(dx/width)*(hi-lo), lo, hi, o.Step); v != *value {
+				*value, s.changed = v, true
+			}
+		})
+		e.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 	} else {
 		e = ui.Box(c).Role(ui.RoleGroup)
 	}
@@ -224,6 +240,24 @@ func sliderRange(c *ui.Context, s *SliderControl, low, high *float64, lo, hi, st
 			s.changed = true
 		}
 	}
+	// A touchscreen sends a finger drag as raw touches beside the scrolling
+	// it makes of it; the thumb nearest where the finger landed moves.
+	fingers := ui.Local(e, "slider-fingers", func() fingerTrack { return fingerTrack{} })
+	width, enabled := e.LayoutBounds().W-thumb, !e.IsDisabled()
+	if !enabled {
+		*fingers = fingerTrack{}
+	}
+	fingers.follow(e, fingerHorizontal, func(dx, _ float32) {
+		if !enabled || width <= 0 {
+			return
+		}
+		k := 0
+		if v := lo + float64(max(0, min(1, (fingers.startX-thumb/2)/width)))*(hi-lo); math.Abs(v-*high) < math.Abs(v-*low) || v > *high {
+			k = 1
+		}
+		set(k, *values[k]+float64(dx/width)*(hi-lo))
+	})
+	e.HandleInput(func(ev ui.InputEvent) bool { return enabled && fingers.takesScroll(ev) })
 	dragging := ui.Local(e, "slider-thumb", func() int { return -1 })
 	_, _, trackHeld := e.Dragged()
 	held := trackHeld

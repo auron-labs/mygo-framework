@@ -14,13 +14,16 @@ import (
 )
 
 // shellOptions describes the window. The window restores its size and position
-// from StateKey; the defaults apply on the first launch.
+// from StateKey; the defaults apply on the first launch. Tabs, TopActions and
+// OnBack carry the phone's navigation; on desktops the sidebar carries it and
+// the shell ignores them.
 func (s *screen) shellOptions() sidebar.ShellOptions {
 	return sidebar.ShellOptions{
 		Title: appName, Hidden: true, StateKey: "main", Theme: theme.Onevra,
 		Width: defaultWidth, Height: defaultHeight, MinWidth: minWidth, MinHeight: minHeight,
 		LeftWidth: defaultLeftWidth, LeftMinWidth: railWidth,
 		Left: s.left, LeftToolbar: s.footer, ContentTitle: s.contentTitle, Content: s.content,
+		Tabs: s.tabs, TopActions: s.topActions, OnBack: s.back,
 	}
 }
 
@@ -168,6 +171,50 @@ func (s *screen) settingsItem(c *ui.Context, rail bool) {
 			s.navItem(c, r, rail)
 		}
 	}
+}
+
+// tabs lists the phone's tab bar: the sidebar's navigation routes, whose
+// selection follows the current page. A footer route leaves none chosen, which
+// the shell shows as a pushed screen with back.
+func (s *screen) tabs(_ *ui.Context) []sidebar.Tab {
+	current := s.current().id
+	var tabs []sidebar.Tab
+	for _, r := range routes() {
+		if !r.inNav {
+			continue
+		}
+		count := 0
+		if r.count != nil {
+			count = r.count(s)
+		}
+		tabs = append(tabs, sidebar.Tab{
+			Icon: r.icon(), Label: r.title(), Selected: r.id == current, Badge: count,
+			OnSelect: func() { s.navigate(r.id) },
+		})
+	}
+	return tabs
+}
+
+// topActions opens the footer routes from the phone's top bar, as the sidebar's
+// footer does on a desktop.
+func (s *screen) topActions(c *ui.Context) {
+	for _, r := range routes() {
+		if r.inNav {
+			continue
+		}
+		if sidebar.IconButton(c, r.icon(), locales.NavGoTo(r.title())).Clicked() {
+			s.navigate(r.id)
+		}
+	}
+}
+
+// back returns from a pushed footer route to the navigation page the tabs last
+// showed; a launch that restores a footer route returns to Home.
+func (s *screen) back() {
+	if s.lastNav == "" {
+		s.lastNav = routes()[0].id
+	}
+	s.navigate(s.lastNav)
 }
 
 // compactWindow reports whether the window is narrower than the breakpoint.

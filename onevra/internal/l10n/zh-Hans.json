@@ -97,5 +97,6 @@
   "cardStackOutcome": "{label}{outcome}。",
   "cardStackRemaining": "{count, plural, =0 {已看完所有卡片。} other {还剩 # 张。}}",
   "cardStackRestored": "已恢复{label}。",
+  "goBack": "返回",
   "cardStackRestoredAll": "所有卡片都已放回。"
 }

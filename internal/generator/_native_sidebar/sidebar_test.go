@@ -188,4 +188,50 @@ func TestShellOptionsRestoreWindowStateWithSaneSizes(t *testing.T) {
 	if o.LeftMinWidth > railWidth || o.LeftWidth < railWidth || o.Left == nil || o.Content == nil || o.ContentTitle == nil || o.LeftToolbar == nil {
 		t.Fatalf("sidebar options = %+v", o)
 	}
+	if o.Tabs == nil || o.TopActions == nil || o.OnBack == nil {
+		t.Fatalf("phone navigation options = %+v", o)
+	}
+}
+
+// The phone's tab bar carries the navigation routes: their labels and icons,
+// the current one selected, and a tap navigating to it. Footer routes stay
+// off the bar.
+func TestPhoneTabsFollowRoutes(t *testing.T) {
+	s := newScreen(t, preferences{Profile: "Default"})
+	s.kept.page = pageImport
+	tabs := s.tabs(nil)
+	if len(tabs) != 2 {
+		t.Fatalf("tabs = %d, want the two navigation routes", len(tabs))
+	}
+	if tabs[0].Label != locales.NavHome() || tabs[1].Label != locales.NavImport() {
+		t.Fatalf("tab labels = %q, %q", tabs[0].Label, tabs[1].Label)
+	}
+	if tabs[0].Icon == nil || tabs[1].Icon == nil {
+		t.Fatal("a tab lacks its icon")
+	}
+	if !tabs[1].Selected || tabs[0].Selected || tabs[0].Badge != 0 {
+		t.Fatalf("selection or badge = %+v", tabs)
+	}
+	tabs[0].OnSelect()
+	if s.kept.page != pageHome {
+		t.Fatalf("a tab tap selected %q", s.kept.page)
+	}
+}
+
+// Back returns from a pushed footer route to the navigation page the tabs last
+// showed, and a launch that restores a footer route backs out to Home.
+func TestPhoneBackReturnsToLastTab(t *testing.T) {
+	s := newScreen(t, preferences{Profile: "Default"})
+	s.navigate(pageImport)
+	s.navigate(pageSettings)
+	s.back()
+	if s.kept.page != pageImport {
+		t.Fatalf("back went to %q, want %q", s.kept.page, pageImport)
+	}
+	restored := newScreen(t, preferences{Profile: "Default"})
+	restored.kept.page = pageSettings
+	restored.back()
+	if restored.kept.page != pageHome {
+		t.Fatalf("back from a restored footer route went to %q", restored.kept.page)
+	}
 }

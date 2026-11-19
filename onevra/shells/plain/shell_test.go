@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/onevra/internal/phone"
 	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -175,5 +176,72 @@ func TestShellBuildsLocalizedToasts(t *testing.T) {
 	}
 	if closed != 1 {
 		t.Fatalf("toast close button closed %d toasts", closed)
+	}
+}
+
+// onPhone has this test's shell draw the phone layout, whatever system the
+// test runs on, and restores the system afterward.
+func onPhone(t *testing.T) {
+	t.Helper()
+	phone.GOOS = "ios"
+	t.Cleanup(func() { phone.GOOS = runtime.GOOS })
+}
+
+// TestPhoneShellDropsDesktopChrome runs the phone path with a phone's insets:
+// content sits inside the safe area exactly once, and the header, its title
+// and actions, and the caption buttons are not built.
+func TestPhoneShellDropsDesktopChrome(t *testing.T) {
+	onPhone(t)
+	s := newShell(ShellOptions{
+		Title:               "Draft",
+		HeaderLeading:       func(c *ui.Context) { components.Button(c, "Note", components.ButtonToolbar) },
+		HeaderActions:       func(c *ui.Context) { components.Button(c, "Settings", components.ButtonToolbar) },
+		ContentBehindHeader: true,
+		Content:             func(c *ui.Context) { ui.Box(c).Fill().Label("Body") },
+	})
+	tt := ui.NewTester(s.view, 390, 844)
+	tt.SetInsets(47, 12, 34, 9)
+	r, ok := tt.Find("Body")
+	if !ok {
+		t.Fatal("content missing")
+	}
+	if r.X != 9 || r.Y != 47 || r.W != 369 || r.H != 763 {
+		t.Fatalf("content not inside the safe area exactly: %+v", r)
+	}
+	for _, absent := range []string{"Draft", "Note", "Settings", "Minimize window", "Maximize window", "Close window"} {
+		if tt.HasText(absent) {
+			t.Fatalf("phone drew the desktop header or caption buttons: %q shown", absent)
+		}
+	}
+}
+
+// TestPhoneToastsClearTheSafeArea checks that toasts, which draw over the
+// bars in the overlay, sit inside the safe area at the edge they stack at.
+func TestPhoneToastsClearTheSafeArea(t *testing.T) {
+	onPhone(t)
+	const w, h = 390.0, 844.0
+	for _, placement := range []components.ToastPlacement{components.ToastTop, components.ToastBottom} {
+		s := newShell(ShellOptions{Toasts: components.ToastOptions{Placement: placement}, Content: func(c *ui.Context) {
+			if components.Button(c, "Save", components.ButtonPrimary).Clicked() {
+				c.AddToast(ui.Toast{Title: "Saved", Timeout: -1})
+			}
+		}})
+		tt := ui.NewTester(s.view, 390, 844)
+		tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+		tt.SetInsets(47, 0, 34, 0)
+		if err := tt.Click("Save"); err != nil {
+			t.Fatal(err)
+		}
+		r, ok := tt.Find("Saved")
+		if !ok {
+			t.Fatalf("toast missing at %d", placement)
+		}
+		if placement.Top() {
+			if r.Y < 47 || r.X < 0 || r.X+r.W > w {
+				t.Fatalf("top toast not inside the safe area: %+v", r)
+			}
+		} else if r.Y+r.H > h-34 {
+			t.Fatalf("bottom toast not inside the safe area: %+v", r)
+		}
 	}
 }
