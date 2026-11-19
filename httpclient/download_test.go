@@ -203,15 +203,26 @@ func TestDownloadReplacesExistingAndKeepsItOnFailure(t *testing.T) {
 	assertNoLeftovers(t, dest)
 
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Retry-After", "10")
 		http.Error(w, "secret body", http.StatusInternalServerError)
 	}))
 	t.Cleanup(failing.Close)
-	bad, _ := New(Options{BaseURL: failing.URL, Logger: slog.New(slog.DiscardHandler)})
-	_, err := bad.Download(t.Context(), "t", "/f", dest, DownloadOptions{})
-	if !errors.As(err, &re) || re.StatusCode != http.StatusInternalServerError || strings.Contains(err.Error(), "secret") {
+	var responses []ResponseInfo
+	bad, err := New(Options{BaseURL: failing.URL, Logger: slog.New(slog.DiscardHandler), OnResponse: func(_ context.Context, info ResponseInfo) {
+		responses = append(responses, info)
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = bad.Download(t.Context(), "t", "/f", dest, DownloadOptions{})
+	if !errors.As(err, &re) || re.StatusCode != http.StatusInternalServerError || re.RetryAfter != 10*time.Second || strings.Contains(err.Error(), "secret") {
 		t.Fatalf("err = %v", err)
 	}
 	assertFile(t, dest, []byte("old"))
+
+	if len(responses) != 1 || responses[0].StatusCode != http.StatusInternalServerError {
+		t.Fatalf("response hook got %+v", responses)
+	}
 
 	if _, err := client.Download(t.Context(), "t", "/f", dest, DownloadOptions{}); err != nil {
 		t.Fatal(err)

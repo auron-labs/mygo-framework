@@ -111,7 +111,7 @@ func runAcceptanceCommand(t *testing.T, directory, name string, arguments ...str
 }
 
 func acceptanceCommand(ctx context.Context, directory, name string, arguments ...string) (string, error) {
-	// #nosec G204 -- this opt-in test executes fixed tools with test-owned paths and arguments.
+	// #nosec G204,G702 -- this opt-in test executes fixed tools with test-owned paths and arguments.
 	command := exec.CommandContext(ctx, name, arguments...)
 	command.Dir = directory
 	command.Env = os.Environ()

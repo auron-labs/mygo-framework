@@ -3,8 +3,8 @@ package main
 import (
 	"mygo-framework/locales"
 
+	"github.com/auron-labs/mygo-framework/onevra/components"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/components"
 )
 
 // homePage greets the user. It reads the shared state and nothing else.

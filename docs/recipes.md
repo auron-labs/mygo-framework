@@ -224,6 +224,38 @@ only with `RetryOptions`. Reads may retry; writes remain single-attempt unless
 `Writes` is explicitly true. Do not log authorization headers or response
 bodies.
 
+### Conditional polling and rate limits
+
+Send a cached validator with `ConditionalRequest`. A `304 Not Modified` is not
+an error: the call returns a nil error and `httpclient.NotModified(response)`
+is true, so keep using your cached body. On a `200`, store
+`httpclient.ValidatorFrom(response)` for next time.
+
+```go
+response, err := client.ConditionalRequest(ctx, "releases.latest", cached.Validator).
+	SetResult(&release).
+	Get("/repos/example/app/releases/latest")
+var limited *httpclient.ResponseError
+switch {
+case errors.As(err, &limited):
+	// Back off until limited.RetryAfter has passed or limited.RateLimit.Reset.
+	return limited.RetryAfter, err
+case err != nil:
+	return 0, err
+case httpclient.NotModified(response):
+	return 0, nil // unchanged
+default:
+	cached.Validator = httpclient.ValidatorFrom(response)
+}
+```
+
+`ResponseError` carries the parsed `RetryAfter` and `RateLimit` (`Limit`,
+`Remaining`, `Used`, `Reset`, `Resource`; absent values are nil or zero).
+Set `Options.OnResponse` to see the headers of every response, successful or
+not, to track the remaining allowance. The hook runs once per attempt when
+retries are enabled, must be cheap, and never receives the body. Retries do not
+yet honor `Retry-After`.
+
 ## Download a large file
 
 `Client.Download` streams a file to disk with progress, SHA-256 hashing and
@@ -311,7 +343,11 @@ go run ./cmd/appctl db up
 go run ./cmd/appctl db status
 ```
 
-Use `--data-directory PATH` before `db` for a portable test profile. `db status`
+The data directory is per app: `~/Library/Application Support/<app>` on macOS,
+`%AppData%\<app>` on Windows and `$XDG_CONFIG_HOME/<app>` (usually
+`~/.config/<app>`) on Linux; iOS and Android use MyGo's directory for the app
+inside the sandbox. Use `--data-directory PATH` before `db` for a portable test
+profile; phones have no command line and always use the default. `db status`
 does not create a missing database or apply a migration. Never rewrite an
 applied migration; add the next migration instead.
 
@@ -383,14 +419,20 @@ shares the desktop service and database.
   it, keeping a copy of what it replaced in `backups/`.
 - **Logs.** Development builds log to stderr. Packaged builds also write
   `app.log` to `~/Library/Logs/<app>` on macOS and to the `logs` folder of the
-  data directory elsewhere. The file rotates at 10 MB and keeps three compressed
-  backups for up to 28 days; change this with `logging.Options`. Attributes
-  named authorization, cookie, password, payload, request or response body,
-  secret, settings, or token are redacted, as is everything in a group with one
-  of those names.
+  data directory on Windows, Linux, iOS and Android. The file rotates at 10 MB
+  and keeps three compressed backups for up to 28 days; change this with
+  `logging.Options`. Attributes named authorization, cookie, password, payload,
+  request or response body, secret, settings, or token are redacted, as is
+  everything in a group with one of those names.
 - **Quit.** Quitting cancels the application context, then gives runtime
   shutdown up to 5 seconds before the process exits. Long-running work should
   return when that context is canceled.
+- **Suspend.** Phones may end an app in the background without a quit. When the
+  system suspends the app, it checkpoints the SQLite write-ahead log within a
+  bounded time, then sends queued error reports with their own bound. Nothing
+  is released, so requests keep working on resume. The page hands its unsaved
+  note draft to Go, which `App.OnSaveState` keeps, and the next page load puts
+  it back in the form.
 
 ## Develop, build, and test
 

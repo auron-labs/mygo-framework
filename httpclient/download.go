@@ -140,6 +140,8 @@ func (d *download) run(ctx context.Context, expected []byte) (DownloadResult, er
 		if err != nil {
 			return DownloadResult{}, err
 		}
+		// Resty skips response middleware for streamed bodies.
+		responseErr := d.client.afterResponse(d.client.download, response) //nolint:contextcheck // The request carries ctx.
 		status := response.RawResponse.StatusCode
 		body := response.RawResponse.Body
 
@@ -151,14 +153,9 @@ func (d *download) run(ctx context.Context, expected []byte) (DownloadResult, er
 			}
 			offset = 0
 			continue
-		case status >= http.StatusBadRequest:
+		case responseErr != nil:
 			_ = body.Close()
-			return DownloadResult{}, &ResponseError{
-				Operation:  d.operation,
-				Method:     http.MethodGet,
-				Host:       host(response.Request),
-				StatusCode: status,
-			}
+			return DownloadResult{}, responseErr
 		case offset > 0 && status == http.StatusPartialContent:
 			if start, total, ok := parseContentRange(response.Header().Get("Content-Range")); ok && start == offset {
 				return d.stream(ctx, response, offset, total, true, expected)
@@ -215,7 +212,6 @@ func (d *download) request(ctx context.Context, offset int64, validator string) 
 		}
 		return nil, fmt.Errorf("request: %w", err)
 	}
-	d.client.record(response.Request, response.StatusCode(), response.Time()) //nolint:contextcheck // The request carries ctx.
 	return response, nil
 }
 

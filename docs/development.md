@@ -41,6 +41,20 @@ to inspect those requirements. CI runs checks, generated-file verification,
 tests, and the frontend build on Linux; it does not launch or package a desktop
 window.
 
+Phone builds are checked by the `Phones` workflow, which generates a web and a
+native starter and builds both with `framework build`, unsigned or debug-signed:
+`-platform android` on Linux with the Android SDK, NDK and a JDK, and
+`-platform ios/simulator` on macOS with Xcode. Because the starters link the
+framework with cgo, the builds also compile `onevra` and `mygomcp` for the
+phone. The workflow runs on pull requests that touch the CLI, the generator,
+`onevra`, `mygomcp` or the Go module files, weekly on Mondays, and on demand
+from the Actions tab, so other pull requests stay fast. To run it locally with
+the toolchain installed:
+
+```sh
+mise exec -- env MYGO_PHONE_BUILD_PLATFORM=android go test -run '^TestGeneratedPhoneBuilds$' -v ./internal/generator
+```
+
 For the opt-in fresh-project acceptance flow, run:
 
 ```sh
@@ -73,6 +87,12 @@ contain every key of the plain catalog because the shared files still use them.
 Regenerate `catalog_gen.go` the same way, with the sidebar catalog in a scratch
 directory that has the starter's `mygo.json`. `examples/native` mirrors only the
 plain starter. Changes to the plain `main.go` need mirroring in the overlay's.
+
+The native starter's `_native/mise.toml` pins Go and `golangci-lint` for the
+generated CI workflow. Keep its Go version equal to the one in
+`_native/go.mod.tmpl`; a test checks this. Keep the starter's
+`_native/.golangci.yml` aligned with the shared lint rules in the repository's
+`.golangci.yml`.
 
 ## Prepare a release
 

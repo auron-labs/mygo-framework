@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/datadir"
 )
 
 // maxLogBytes bounds how much of one log file is read into the bundle.
@@ -37,12 +38,12 @@ type Options struct {
 // Write writes the bundle as a zip archive to w. Parts that cannot be read are
 // recorded in the bundle instead of failing it, since the bundle exists to
 // diagnose a broken installation. Logs are already free of secrets by
-// package logging; the home directory is replaced with ~ here as well, because
-// it carries the user's name.
+// package logging; the home directory, and on phones the application data
+// directory, are replaced here as well, because they identify the user.
 func Write(ctx context.Context, w io.Writer, options Options) (err error) {
 	archive := zip.NewWriter(w)
 	defer func() { err = errors.Join(err, archive.Close()) }()
-	redact := homeRedactor()
+	redact := datadir.Redactor()
 
 	info := fmt.Sprintf("version: %s\nos: %s/%s\ngo: %s\ncreated: %s\n",
 		options.Version, runtime.GOOS, runtime.GOARCH, runtime.Version(), time.Now().UTC().Format(time.RFC3339))
@@ -137,12 +138,4 @@ func addFile(archive *zip.Writer, name string, content io.Reader) error {
 		return fmt.Errorf("write %s to the bundle: %w", name, err)
 	}
 	return nil
-}
-
-func homeRedactor() func(string) string {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return func(text string) string { return text }
-	}
-	return func(text string) string { return strings.ReplaceAll(text, home, "~") }
 }

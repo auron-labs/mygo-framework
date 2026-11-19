@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -22,9 +23,9 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.9.2", "gorm.io/gorm v1.31.2"},
-		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.9.2"`},
-		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2"},
+		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.10.0"`, `"dev:ios": "mygo dev -platform ios"`, `"dev:android": "mygo dev -platform android"`},
+		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`, `ios: { team: "ABCDE12345"`, `android: { keystore: "upload.jks"`},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
 		"src/framework/errorReporting.ts":            {"startErrorReporting"},
 		"app/profile/profile.go":                     {`Name`, `"Acme Notes"`, `databaseFilename`},
@@ -137,19 +138,21 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                {"sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault"},
-		"sidebar.go":             {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
-		"layout.go":              {"railBreakpoint", "SetLeftWidth", "c.Size()"},
-		"pages.go":               {"homePage", "importPage", "settingsPage"},
-		"page_home.go":           {"func homePage(c *ui.Context, s *screen)"},
-		"page_import.go":         {"func importPage"},
-		"page_settings.go":       {"func settingsPage"},
-		"sidebar_test.go":        {"TestNavigationSelectsPages", "TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth"},
-		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
-		"mcp_test.go":            {"Go to Settings"},
-		"locales/en.json":        {"compactSpacing", "navHome"},
-		"locales/catalog_gen.go": {"func CompactSpacing()", "func NavHome()"},
+		"main.go":                  {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
+		"sidebar.go":               {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
+		"layout.go":                {"railBreakpoint", "SetLeftWidth", "c.Size()"},
+		"pages.go":                 {"homePage", "importPage", "settingsPage"},
+		"page_home.go":             {"func homePage(c *ui.Context, s *screen)"},
+		"page_import.go":           {"func importPage"},
+		"page_settings.go":         {"func settingsPage"},
+		"sidebar_test.go":          {"TestNavigationSelectsPages", "TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth"},
+		"mcp.go":                   {"nativeFixture", "theme.Apply(c); s.view(c)"},
+		"mcp_test.go":              {"Go to Settings"},
+		".github/workflows/ci.yml": {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
+		"locales/en.json":          {"compactSpacing", "navHome"},
+		"locales/catalog_gen.go":   {"func CompactSpacing()", "func NavHome()"},
 		// Files the variant does not replace come from the plain starter.
+		"mygo.json":      {`"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"desktop.go":     {"support-bundle"},
 		"updates.go":     {"checkForUpdates"},
 		"importjob.go":   {"sampleImport"},
@@ -203,9 +206,9 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/auron-labs/mygo-mcp v0.0.0-20261022214851-9f095775017a", "github.com/egoist/mygo v0.9.2", "github.com/oneo-me/onevra/source v0.2026.18", "tool github.com/egoist/mygo/cmd/mygo"},
-		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`},
-		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool github.com/egoist/mygo/cmd/mygo"},
+		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`, `"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/onevra/components"`, `"github.com/auron-labs/mygo-framework/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
 		"importjob.go":           {`"github.com/auron-labs/mygo-framework/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
 		"updates.go":             {"mygo.Updater.Enabled()", "checkForUpdates"},
@@ -215,6 +218,9 @@ func TestCreateNativeProject(t *testing.T) {
 		"mcp_test.go":            {"TestNativeMCP"},
 		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
 		".github/workflows/release.yml":                                {"go tool mygo build", "buildDSN"},
+		".github/workflows/ci.yml":                                     {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
+		"mise.toml":                                                    {`go = "1.27.3"`, "golangci-lint"},
+		".golangci.yml":                                                {"version: \"2\"", "gosec"},
 		"desktop.go":                                                   {"support-bundle", "diagnostics.Write"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
@@ -242,12 +248,41 @@ func TestCreateNativeProject(t *testing.T) {
 	}
 }
 
+func TestNativeToolVersionsMatchGoMod(t *testing.T) {
+	t.Parallel()
+	goMod, err := os.ReadFile("_native/go.mod.tmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	miseConfig, err := os.ReadFile("_native/mise.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := regexp.MustCompile(`(?m)^go (\S+)$`).FindSubmatch(goMod)
+	if version == nil || !strings.Contains(string(miseConfig), `go = "`+string(version[1])+`"`) {
+		t.Fatalf("_native/mise.toml does not pin the Go version of go.mod.tmpl (%q)", version)
+	}
+}
+
+func TestWebProjectHasNoNativeCI(t *testing.T) {
+	t.Parallel()
+	result, err := CreateProject(t.Context(), ProjectConfig{Dir: t.TempDir(), Name: "AcmeWeb"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{".github/workflows/ci.yml", "mise.toml", ".golangci.yml"} {
+		if _, err := os.Stat(filepath.Join(result.Path, path)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("web starter includes %s: %v", path, err)
+		}
+	}
+}
+
 func TestTemplateClientUsesBoundCalls(t *testing.T) {
 	data, err := os.ReadFile("_template/src/mygo.ts")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(data), `import { bind, event } from "mygo-runtime"`) {
-		t.Fatal("template src/mygo.ts is not generated by MyGo 0.9.x; run `bun run generate` and copy it")
+		t.Fatal("template src/mygo.ts is not generated by MyGo 0.9 or later; run `bun run generate` and copy it")
 	}
 }
