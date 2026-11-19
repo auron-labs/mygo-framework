@@ -13,14 +13,16 @@ MyGo MCP is included as a pinned dependency.
 
 ```sh
 go mod download
-framework dev
-framework doctor
-framework build
+go tool framework dev
+go tool framework doctor
+go tool framework build
 ```
 
-The framework delegates to the pinned `go tool mygo`. You can also use
+`go tool framework` runs the framework CLI pinned in `go.mod` (a globally
+installed `framework` works too, but may differ in version). It delegates to
+the pinned `go tool mygo`. You can also use
 `go run .`, `go tool mygo dev`, and `go tool mygo build` directly.
-No JavaScript runtime or frontend is required. When `framework dev` restarts
+No JavaScript runtime or frontend is required. When `go tool framework dev` restarts
 the app after a code change, it returns to the page that was showing.
 
 ```sh
@@ -82,8 +84,8 @@ or webviews. See the [MyGo MCP agent guide](https://github.com/auron-labs/mygo-f
 for tool inputs and observation rules.
 
 User-visible strings live in `locales/en.json`; views call the generated
-`locales` functions, and `go tool mygo generate` (run by `framework dev` and
-`framework build`) refreshes `locales/catalog_gen.go`. To add a language, copy
+`locales` functions, and `go tool mygo generate` (run by `go tool framework dev` and
+`go tool framework build`) refreshes `locales/catalog_gen.go`. To add a language, copy
 `en.json` to `<tag>.json` and translate it.
 
 Signed updates are off until `mygo.json` has an `updates` section (public key and
@@ -91,7 +93,7 @@ release location); then the app checks once at launch and offers **Install
 update** when a newer version exists. Keep the private signing key out of the
 repository. `profiles/` keeps one SQLite file per named profile.
 
-`framework make feature NAME` adds a native view, store, migration and test.
+`go tool framework make feature NAME` adds a native view, store, migration and test.
 
 Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
 nothing is initialised or sent. The home directory is replaced with `~` in
@@ -108,7 +110,7 @@ table. A route is a navigation id, a title, an icon, an optional count badge
 and a page view. `page_home.go`, `page_import.go` and `page_settings.go` are
 the pages; each is `func(*ui.Context, *screen)`, reads the shared state and does
 not call another page. The selected id is `screen.kept.page`, kept with
-`mygo.KeepState`, so a `framework dev` restart or a phone's relaunch returns to
+`mygo.KeepState`, so a `go tool framework dev` restart or a phone's relaunch returns to
 it. An unknown id shows Home.
 
 To add a page: add an id and a `route` in `pages.go`, a `page_NAME.go` with its
@@ -126,7 +128,7 @@ fixture use it with a stand-in for the shell's sidebar width.
 
 ### On phones
 
-Run it with `framework dev -platform ios|android`; [the mobile guide](https://github.com/auron-labs/mygo-framework/blob/main/docs/mobile.md)
+Run it with `go tool framework dev -platform ios|android`; [the mobile guide](https://github.com/auron-labs/mygo-framework/blob/main/docs/mobile.md)
 covers prerequisites, signing and publishing.
 
 The same route table drives the phone layout: `inNav` routes become a bottom tab

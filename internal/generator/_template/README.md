@@ -8,10 +8,14 @@ Requirements: Go 1.27.3, Bun 1.4.2, and Git. The checked-in manifests pin MyGo
 and the frontend toolchain. `framework new` initializes the repository so MyGo
 can attach supported VCS metadata to its generated Go build.
 
+The framework CLI is pinned as a Go tool in `go.mod`, so run it as
+`go tool framework`. A globally installed `framework` also works but may
+differ in version.
+
 ```sh
 bun install --frozen-lockfile
-framework doctor
-framework dev
+go tool framework doctor
+go tool framework dev
 ```
 
 The initial Notes feature demonstrates an embedded Goose migration, an ordinary
@@ -23,17 +27,17 @@ adapters, configured HTTP client, and framework settings migration.
 ## Add a feature
 
 ```sh
-framework make feature Bookmark
+go tool framework make feature Bookmark
 bun run generate
 ```
 
 `make feature` creates the hand-written model, request, service, provider, and
 migration, then regenerates framework-owned Go files. Run `bun run generate`
 afterward to refresh MyGo's TypeScript client. Manual changes to exposed service
-signatures or `framework:` annotations require `framework generate` before the
+signatures or `framework:` annotations require `go tool framework generate` before the
 MyGo generation step. Method-body-only edits use MyGo's normal rebuild flow.
 
-Use `framework generate --check` in CI. Do not edit files carrying the standard
+Use `go tool framework generate --check` in CI. Do not edit files carrying the standard
 generated-code header.
 
 ## Report errors
@@ -67,7 +71,7 @@ the schema.
 Run the focused project checks before committing:
 
 ```sh
-framework generate --check
+go tool framework generate --check
 go test ./...
 CGO_ENABLED=0 go test ./...
 bun run test:web
@@ -77,5 +81,5 @@ bun run typecheck
 Build the packaged desktop application through the pinned MyGo CLI:
 
 ```sh
-framework build
+go tool framework build
 ```

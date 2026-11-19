@@ -41,9 +41,14 @@ cd /path/to/projects
 framework new my-notes
 cd my-notes
 bun install --frozen-lockfile
-framework doctor
-framework dev
+go tool framework doctor
+go tool framework dev
 ```
+
+Generated projects pin the framework CLI as a Go tool in `go.mod`, so inside a
+project run `go tool framework …`. The global `framework` install is only
+needed for `framework new`. (`go tool framework` needs the framework module
+resolved, for example by `go mod tidy`.)
 
 The last command opens the Notes desktop app with MyGo's normal live-reload
 workflow. Add a note, quit the app, and start it again to see the persisted
@@ -67,7 +72,7 @@ Create a native starter with Onevra components and persisted preferences:
 framework new my-native-app --native
 cd my-native-app
 go mod download
-framework dev
+go tool framework dev
 ```
 
 Add `--shell sidebar` for a variant on Onevra's sidebar shell, with page

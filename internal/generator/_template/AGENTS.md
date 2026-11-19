@@ -3,9 +3,9 @@
 ## Use the project workflows
 
 - Install pinned frontend tools with `bun install --frozen-lockfile`.
-- Run `framework dev` for development and `framework build` for packaging.
-- Run `framework doctor` after setup or when native builds stop working.
-- Before committing, run `framework generate --check`, `go test ./...`,
+- Run `go tool framework dev` for development and `go tool framework build` for packaging.
+- Run `go tool framework doctor` after setup or when native builds stop working.
+- Before committing, run `go tool framework generate --check`, `go test ./...`,
   `CGO_ENABLED=0 go test ./...`, `bun run test:web`, and `bun run typecheck`.
 
 ## Keep feature ownership clear
@@ -29,10 +29,10 @@
 
 ## Generate only owned adapters
 
-- Prefer `framework make feature NAME` for a vertical feature. Use focused
+- Prefer `go tool framework make feature NAME` for a vertical feature. Use focused
   `make service|request|model|migration|command` commands only when needed.
 - After changing an exposed signature or `framework:` annotation, run
-  `framework generate` and then `bun run generate`.
+  `go tool framework generate` and then `bun run generate`.
 - Never hand-edit `app/bootstrap/framework_generated.go`,
   `app/desktop/framework_generated.go`, `app/mcp/framework_generated.go`,
   `framework_bindings_generated.go`, or `src/mygo.ts` by hand.
