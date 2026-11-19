@@ -160,8 +160,8 @@ func TestHeadlessMCPWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tools.Tools) != 11 {
-		t.Fatal("expected eleven tools")
+	if len(tools.Tools) != 15 {
+		t.Fatal("expected fifteen tools")
 	}
 	for _, tool := range tools.Tools {
 		b, err := json.Marshal(tool.InputSchema)

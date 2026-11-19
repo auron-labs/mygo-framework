@@ -84,15 +84,9 @@ func validateFixtures(fixtures []Fixture) ([]Fixture, error) {
 		if f.Factory == nil || f.Name == "" || !utf8.ValidString(f.Name) || len(f.Name) > 256 {
 			return nil, fmt.Errorf("fixture %d: valid name and factory required", i)
 		}
-		scale := float64(f.Scale)
-		if f.Width <= 0 || f.Height <= 0 || f.Width > maxDimension || f.Height > maxDimension || !finite(scale) || scale <= 0 || scale > 4 {
-			return nil, fmt.Errorf("fixture %d: invalid dimensions or scale", i)
-		}
-		w, h := math.Ceil(float64(f.Width)*scale), math.Ceil(float64(f.Height)*scale)
-		// NewTester renders at scale 1 before SetScale; budget both geometries.
-		pixels := math.Max(w*h, float64(f.Width)*float64(f.Height))
-		if float64(f.Width)*scale < 1 || float64(f.Height)*scale < 1 || w > maxDimension || h > maxDimension || pixels > maxPixels {
-			return nil, fmt.Errorf("fixture %d: pixel allocation exceeds limits", i)
+		pixels, err := fixturePixels(f.Width, f.Height, f.Scale)
+		if err != nil {
+			return nil, fmt.Errorf("fixture %d: %w", i, err)
 		}
 		total += pixels
 	}
@@ -100,6 +94,21 @@ func validateFixtures(fixtures []Fixture) ([]Fixture, error) {
 		return nil, errors.New("total fixture pixel allocation exceeds limits")
 	}
 	return copyFixtures, nil
+}
+
+// fixturePixels validates a geometry and returns the pixels it allocates.
+func fixturePixels(width, height int, scale32 float32) (float64, error) {
+	scale := float64(scale32)
+	if width <= 0 || height <= 0 || width > maxDimension || height > maxDimension || !finite(scale) || scale <= 0 || scale > 4 {
+		return 0, errors.New("invalid dimensions or scale")
+	}
+	w, h := math.Ceil(float64(width)*scale), math.Ceil(float64(height)*scale)
+	// NewTester renders at scale 1 before SetScale; budget both geometries.
+	pixels := math.Max(w*h, float64(width)*float64(height))
+	if float64(width)*scale < 1 || float64(height)*scale < 1 || w > maxDimension || h > maxDimension || pixels > maxPixels {
+		return 0, errors.New("pixel allocation exceeds limits")
+	}
+	return pixels, nil
 }
 
 func newService(ctx context.Context, fixtures []Fixture) (*service, error) {

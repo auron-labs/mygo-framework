@@ -95,6 +95,7 @@ The tools support:
 
 - **Discovery and inspection:** `mygo_sessions`, `mygo_inspect`, `mygo_screenshot`, `mygo_access`.
 - **Interaction:** `mygo_click_label`, `mygo_click`, `mygo_type`, `mygo_key`, `mygo_scroll`.
+- **Touch and phone layout:** `mygo_tap`, `mygo_long_press`, `mygo_drag`, `mygo_set_viewport`.
 - **Simulated time:** `mygo_advance`, `mygo_wait_text`.
 
 Screenshots contain PNG images. Label clicks use exact text or explicit MyGo
@@ -111,7 +112,7 @@ loop, observation rules, error recovery, timing, and integration details.
 
 `Run` takes a context, an explicit loopback IP and port, and 1–16 fixtures.
 Use a different port for each harness; `[::1]:8080` also works. Fixture dimensions
-are in DIPs, and `Scale` defaults to 1. Geometry stays fixed for the run.
+are in DIPs, and `Scale` defaults to 1. Geometry starts as given and changes only through `mygo_set_viewport`.
 Cancel the context to stop the server and run fixture cleanup.
 
 The endpoint has no authentication. Local processes can invoke your fixtures'
@@ -151,6 +152,10 @@ also contain SDK `ImageContent` with `image/png`, not a custom base64 envelope.
 | `mygo_click` | `observation_id` or `screenshot_id`, `x`, `y`, optional `inspect` and `screenshot` | One complete left click in the observation's image pixels |
 | `mygo_click_label` | `observation_id` or `screenshot_id`, `label`, optional `inspect` and `screenshot` | Click the center of one exact text or explicit MyGo label |
 | `mygo_scroll` | `observation_id` or `screenshot_id`, `x`, `y`, `delta_x`, `delta_y`, optional `inspect` and `screenshot` | Immediate scrolling at an image pixel point, with deltas in DIPs |
+| `mygo_tap` | `observation_id` or `screenshot_id`, `x`, `y`, optional `inspect` and `screenshot` | Touch-screen finger down and up at an image pixel point; no time passes |
+| `mygo_long_press` | as `mygo_tap`, plus integer `hold_ms` (0–1000, default 600) | Finger down, advance simulated time by `hold_ms`, finger up |
+| `mygo_drag` | as `mygo_tap`, plus `to_x`, `to_y`, integer `duration_ms` (0–1000), optional `hold_ms` and `cancel` | Finger down at `x`,`y`, moves to `to_x`,`to_y` in eight steps spread over `duration_ms`, rests `hold_ms`, then lifts (or cancels) |
+| `mygo_set_viewport` | integer `width` and `height` in DIPs, optional `scale`, `inset_top`, `inset_right`, `inset_bottom`, `inset_left` | Resize the fixture's window and set its safe-area insets; invalidates the observation |
 | `mygo_type` | `text`, optional `inspect` and `screenshot` | Commit valid UTF-8 through normal editable-focus/selection handling |
 | `mygo_key` | `key`, optional `modifiers` array, `inspect`, and `screenshot` | Complete press/release chord |
 | `mygo_advance` | integer `milliseconds` | Advance simulated time by 0–1000 ms |
@@ -210,13 +215,12 @@ and out-of-image points are rejected.
 
 Conversion uses actual PNG dimensions, including scale rounding:
 `dip_x = x * content_width / image_width` (likewise Y). Never send desktop-global
-coordinates or assume one pixel per DIP. Geometry stays fixed for the run; there
-are no resize/scale tools.
+coordinates or assume one pixel per DIP. Geometry is fixed until `mygo_set_viewport` changes it.
 
 ### Inspect after an action without a PNG
 
 In the development checkout, set `inspect: true` on `mygo_click`,
-`mygo_click_label`, `mygo_type`, `mygo_key`, or `mygo_scroll` to receive
+`mygo_click_label`, `mygo_tap`, `mygo_long_press`, `mygo_drag`, `mygo_type`, `mygo_key`, or `mygo_scroll` to receive
 the resulting labels, targets, dimensions, and a fresh `observation_id` in
 the same call, without a PNG:
 
@@ -273,6 +277,44 @@ Positive `delta_y` scrolls down; negative scrolls up. Each delta must be finite
 and between -4096 and 4096 DIPs. Scrolling uses MyGo's immediate touchpad-style
 input, so it does not require a clock advance to finish a wheel animation. It
 uses normal pointer routing; verify that the intended container scrolled.
+
+### Touch, viewport and safe area
+
+`mygo_tap`, `mygo_long_press` and `mygo_drag` deliver a touch-screen finger
+(`Tester.FingerDown`, `FingerMove`, `FingerUp`, `FingerCancel`) at observation
+image pixels, with the same observation, `inspect` and `screenshot` rules as
+`mygo_click`. A finger is not a mouse:
+
+- There is no hover before or after it.
+- A press that moves pans the scrollable content under it, where a mouse drag
+  would select or drag. Dragging up scrolls the content down.
+- A drag that lifts while still moving flings the content on; call `mygo_advance`
+  to watch it settle. Only the last 100 ms of movement set the speed, so a fling
+  needs `duration_ms` of about 1–800 and `hold_ms` 0. A `duration_ms` of 0 moves
+  instantly and does not fling; a `hold_ms` rest ends it. A move under 8 DIPs is
+  not a pan, so the press still counts as a tap.
+- Holding still for 500 ms reports a long press only to elements that handle
+  one (`LongPressed`, context menus); editable text selects a word and draggable
+  elements start a drag. Elsewhere the lift is an ordinary click.
+- `cancel: true` on `mygo_drag` ends the gesture as the system does when a
+  gesture or a call takes the finger: no lift, no click, no fling.
+- The first touch call switches the whole harness process to touch layout and
+  scrolling, so fixtures never touched also behave as on a phone afterwards.
+- Time passes only inside `hold_ms` and `duration_ms`; each is at most 1000 ms.
+
+`mygo_set_viewport` resizes the fixture's window to `width` × `height` DIPs and
+sets the DIPs the system bars, cutout and keyboard cover at each edge:
+
+```json
+{"session_id":"<session>","width":390,"height":844,"scale":3,"inset_top":47,"inset_bottom":34}
+```
+
+The width and height include the covered areas; the view lays out inside the
+insets (`Context.SafeArea`). Insets are set absolutely, so omitted edges become 0.
+Omit `scale` to keep the current one. The call invalidates the current
+observation and returns the new geometry; inspect again before acting. The size
+and scale obey the fixed limits below, including the total pixel budget across
+fixtures. Later `mygo_sessions` results report the new size and scale.
 
 ### Wait for rendered text
 
@@ -372,6 +414,11 @@ See [verification notes](VERIFICATION.md) for recorded checks.
 Maintainers can follow the [release guide](docs/RELEASING.md) to publish versions.
 // refused_by: modify_delete_guard · collision: none (no common ancestor text)
 ## Not supported
+
+`plugins/automation` is out of scope. It drives a real, running app on a
+simulator or device from another process, where this package drives isolated
+headless fixtures registered in the harness. Use `mygo-automation` directly to
+check a running phone build.
 
 No live-window discovery/control, OS automation, desktop permissions, OS menus or
 dialogs, actual window focus, system webviews or mixed native/webview rendering.

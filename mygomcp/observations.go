@@ -61,11 +61,16 @@ func pointTarget(x *session, in clickRequest) (float32, float32, error) {
 	if err := requireObservation(x, in.ScreenshotID, in.ObservationID); err != nil {
 		return 0, 0, err
 	}
-	if !finite(in.X) || !finite(in.Y) || in.X < 0 || in.Y < 0 || in.X >= float64(x.shot.width) || in.Y >= float64(x.shot.height) {
+	return imagePoint(x, in.X, in.Y)
+}
+
+// imagePoint converts an observation image pixel to window DIPs.
+func imagePoint(x *session, px, py float64) (float32, float32, error) {
+	if !finite(px) || !finite(py) || px < 0 || py < 0 || px >= float64(x.shot.width) || py >= float64(x.shot.height) {
 		return 0, 0, &targetError{Code: "out_of_bounds", Message: "coordinates must be finite and inside observation image dimensions"}
 	}
-	dipX := in.X * float64(x.fixture.Width) / float64(x.shot.width)
-	dipY := in.Y * float64(x.fixture.Height) / float64(x.shot.height)
+	dipX := px * float64(x.fixture.Width) / float64(x.shot.width)
+	dipY := py * float64(x.fixture.Height) / float64(x.shot.height)
 	// Keep valid near-edge pixels inside content after float32 rounding.
 	return min(float32(dipX), math.Nextafter32(float32(x.fixture.Width), 0)), min(float32(dipY), math.Nextafter32(float32(x.fixture.Height), 0)), nil
 }
