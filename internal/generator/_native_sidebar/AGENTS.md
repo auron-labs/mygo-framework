@@ -1,6 +1,6 @@
 # Native project guidance (sidebar shell)
 
-- Run `framework dev`, `framework build`, and `framework doctor`; these use the pinned Go MyGo tool. Bun is not required.
+- Run `go tool framework dev`, `go tool framework build`, and `go tool framework doctor`; these use the pinned Go MyGo tool. Bun is not required.
 - Run `go test ./...`, `CGO_ENABLED=0 go test ./...`, `go tool mygo vet .` and `golangci-lint run` before committing; `.github/workflows/ci.yml` runs them on Linux and Windows and checks that `go tool mygo generate` leaves no diff.
 - Create windows and Onevra shells inside `mygo.App.WhenReady` and handle `App.Run` errors.
 - Keep application state outside view callbacks. State shared with other goroutines or persisted lives in a `state.Cell` (`main.go` shows the pattern): the view reads `Get()` once per build, controls bind to local copies and commit with `OnChange` and `Update`, and `Subscribe` plus `win.Invalidate` redraws. Subscribers run on the writer's goroutine and must not block; wrap main-thread-only APIs in `mygo.RunOnMain`. Plain fields are for UI-only values. Use stable data keys for dynamic widgets and `ui.Handle` for retained widget identity.

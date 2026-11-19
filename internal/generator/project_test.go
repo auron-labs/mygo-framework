@@ -23,7 +23,7 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2"},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2", "tool (", "github.com/auron-labs/mygo-framework/cmd/framework"},
 		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.10.0"`, `"dev:ios": "mygo dev -platform ios"`, `"dev:android": "mygo dev -platform android"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`, `ios: { team: "ABCDE12345"`, `android: { keystore: "upload.jks"`},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
@@ -43,7 +43,7 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		".github/workflows/release.yml":   {"bun run build", "buildDSN"},
 		"internal/appctl/support.go":      {"support-bundle"},
 		"src/main.ts":                     {"events.notesChanged.on", "stopNoteChanges"},
-		"AGENTS.md":                       {"framework make feature NAME", "Never hand-edit"},
+		"AGENTS.md":                       {"go tool framework make feature NAME", "Never hand-edit"},
 		"framework_bindings_generated.go": {generatedHeader, `"acme-notes/app/bootstrap"`},
 		".git/HEAD":                       {"ref: refs/heads/main"},
 	}
@@ -174,6 +174,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
 		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
 		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
+		runAcceptanceCommand(t, result.Path, "go", "tool", "framework", "--version")
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
@@ -206,7 +207,7 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool github.com/egoist/mygo/cmd/mygo"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool (", "github.com/egoist/mygo/cmd/mygo", "github.com/auron-labs/mygo-framework/cmd/framework"},
 		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`, `"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/onevra/components"`, `"github.com/auron-labs/mygo-framework/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
@@ -233,6 +234,7 @@ func TestCreateNativeProject(t *testing.T) {
 	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
 		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
 		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
+		runAcceptanceCommand(t, result.Path, "go", "tool", "framework", "--version")
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "build", "-mod=readonly", "./...")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "mygo", "vet", ".")
