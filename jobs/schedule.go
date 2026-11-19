@@ -268,7 +268,7 @@ func (s *Scheduler) runDue(ctx context.Context) bool {
 		if !due {
 			continue
 		}
-		if err := s.start(t); errors.Is(err, ErrStopped) { //nolint:contextcheck // Jobs run on the manager's own lifetime context.
+		if err := s.start(t); errors.Is(err, ErrStopped) {
 			return false
 		}
 	}
