@@ -117,22 +117,36 @@ err = manager.Shutdown(shutdownCtx)
 - Only one job per name runs at a time. Starting a name that is still running
   returns `jobs.ErrRunning` and leaves the running job untouched; cancel it or
   wait for it first. A finished job's name can be started again.
+- Lanes limit concurrency. `manager.SetLane("installs", 1)` and
+  `manager.SetLane("checks", 4)` define lanes; `manager.StartIn("installs",
+  name, fn)` runs a job in one. When the lane is full the job is `Queued`, shown
+  in a view as "Waiting in queue", and starts in first-in-first-out order as
+  running jobs finish. `Queued` and `Running` are both non-terminal, and
+  `ErrRunning` applies to either. `Start` jobs belong to no lane and run at
+  once. `StartIn` with an undefined lane returns `jobs.ErrUnknownLane`; `SetLane`
+  rejects an empty name (`jobs.ErrEmptyLane`) or a limit below one.
+- `manager.List()` returns every job's latest status, including finished
+  ones, in start order, for a queue or activity view. Finished jobs stay listed
+  until their name is started again. `Cancel` works on queued jobs too.
 - A job ends as `Done` (returned nil), `Canceled` (returned an error wrapping
   `context.Canceled`), or `Failed` (any other error, or a panic, which is
   recovered and reported in `Status.Err`). A job that returns nil after being
   canceled is `Done`.
-- `Subscribe` callbacks run on the goroutine that changed the status and must
-  not block. The first event for a job is always `Running`, and the last is its
-  terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
-  native view subscribes with a callback: the starter calls `Window.Update`
-  (safe from any goroutine) to sync kept state on the main thread and redraw,
-  then reads `Status` while building the view. A web
-  page can forward the same callback to a `mygo.Event` or a bound method's
-  `*mygo.Channel`.
-- `Shutdown` rejects new jobs, cancels running ones, and waits for them within
-  its context. The native starter calls it with a five-second deadline after
-  the event loop stops and before the database closes. Jobs must return
-  promptly when their context is canceled.
+- `Subscribe` delivers events in order, one at a time. Callbacks must not
+  block and can run on any goroutine that publishes events. A job's first
+  event is `Queued` if its lane is full and `Running` otherwise. Its function
+  starts after the `Running` event is delivered, and its last event is its
+  terminal state. The native starter calls `Window.Update` from the callback
+  to sync kept state on the main thread and redraw, then reads `Status` while
+  building the view. A web app can forward the callback's status to the page
+  through a `mygo.Event` or a bound method's `*mygo.Channel`.
+- `Shutdown` rejects new jobs, cancels queued and running jobs, and waits
+  within its context for the jobs to finish and their events to be delivered.
+  Queued jobs end as `Canceled` without running when the parent context is
+  canceled or `Shutdown` is called.
+  The native starter calls it with a five-second deadline after the event
+  loop stops and before the database closes. Jobs must return promptly when
+  their context is canceled.
 
 The starter's import flow runs `sampleImport` in `importjob.go` on a folder,
 or `sampleImportFiles` on the files a phone picked from the document picker,

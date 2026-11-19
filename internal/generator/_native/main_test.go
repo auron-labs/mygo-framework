@@ -175,6 +175,7 @@ func TestPhoneImportImportsPickedFilesAndRemovesTheCopies(t *testing.T) {
 			finished := make(chan jobs.Status, 4)
 			s.jobs.Subscribe(func(st jobs.Status) {
 				switch st.State {
+				case jobs.Queued:
 				case jobs.Running:
 					select {
 					case running <- struct{}{}:
