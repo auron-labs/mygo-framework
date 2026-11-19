@@ -137,7 +137,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.page)"},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
 		"sidebar.go":             {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
 		"layout.go":              {"railBreakpoint", "SetLeftWidth", "c.Size()"},
 		"pages.go":               {"homePage", "importPage", "settingsPage"},

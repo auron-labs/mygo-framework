@@ -1,7 +1,7 @@
-import { flushErrorReports, startErrorReporting } from "./framework/errorReporting";
+import { flushErrorReports, reportError, startErrorReporting } from "./framework/errorReporting";
 import { createForm, type FormState } from "./framework/form";
 import { runRequest } from "./framework/request";
-import { ErrorReporting, Notes, events, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
+import { ErrorReporting, NoteDraft, Notes, events, type CreateNoteInput, type CreateNoteOutput, type Note } from "./mygo";
 
 void startErrorReporting(ErrorReporting.dsn);
 
@@ -25,6 +25,18 @@ const noteForm = createForm<CreateNoteInput, CreateNoteOutput>({
   initialValues: { body: "" },
   submit: (values) => runRequest(() => Notes.create({ body: values.body })),
 });
+
+// Go keeps the draft through App.OnSaveState, so a phone that ends the app in
+// the background brings the unsaved body back at the next launch.
+const saveDraft = (body: string) => {
+  void NoteDraft.set(body).catch(reportError);
+};
+
+void NoteDraft.get()
+  .then((draft) => {
+    if (draft !== "" && !noteForm.getState().dirty) noteForm.setField("body", draft);
+  })
+  .catch(reportError);
 
 const renderForm = (state: FormState<CreateNoteInput>) => {
   if (input.value !== state.values.body) input.value = state.values.body;
@@ -114,12 +126,14 @@ formElement.addEventListener("submit", async (event) => {
   }
 
   noteForm.reset();
+  saveDraft("");
   status.textContent = "Note added.";
   input.focus();
 });
 
 input.addEventListener("input", () => {
   noteForm.setField("body", input.value);
+  saveDraft(input.value);
 });
 
 window.addEventListener("pagehide", () => {

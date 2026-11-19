@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/auron-labs/mygo-framework/database"
@@ -36,6 +37,8 @@ const (
 	saveDelay = 300 * time.Millisecond
 	// saveTimeout bounds how long closing waits for unsaved preferences.
 	saveTimeout = 2 * time.Second
+	// suspendTimeout bounds how long a suspend waits for pending state.
+	suspendTimeout = 2 * time.Second
 	// logDirectory is where the rotating logs live, inside the data directory.
 	logDirectory = "logs"
 )
@@ -58,13 +61,28 @@ type screen struct {
 	dataDir string
 	// update is the newer version found at launch, if the build checks for updates.
 	update *mygo.Update
-	// The fields below are UI-only and touched on the main thread. page is the
-	// selected navigation id, host the shell's sidebar width (see layout.go).
-	page          string
+	// db is checkpointed when the system suspends the app.
+	db *database.Database
+	// onPhone cancels a running import at suspend, where the system may end the
+	// app without a quit.
+	onPhone bool
+	// The fields below are UI-only and touched on the main thread. host is the
+	// shell's sidebar width (see layout.go); kept holds the page and what a
+	// phone's system ends the app with.
+	kept          keptState
 	host          leftHost
 	version       string
 	expandedWidth float32
 	railActive    bool
+}
+
+// keptState is what MyGo restores at the next launch: the page that was
+// showing, and an import that was running.
+type keptState struct {
+	page string
+	// importRunning records an import that was running when MyGo kept state, so
+	// a launch that restores it says the import stopped.
+	importRunning bool
 }
 
 // savePreferences returns the autosave function for values. It reports each
@@ -93,6 +111,29 @@ func (s *screen) beforeClose(event *mygo.CloseEvent) {
 			s.win.Invalidate()
 		}
 	}
+}
+
+// suspend saves state the system may end the app before it can: pending
+// preferences, the SQLite write-ahead log and queued error reports. On phones,
+// which may stop an app in the background without a quit, it also cancels a
+// running import, which the view then shows as canceled. Nothing is released,
+// so the app keeps working after a resume.
+func (s *screen) suspend() {
+	flushCtx, cancelFlush := context.WithTimeout(context.Background(), saveTimeout)
+	if err := s.saver.Flush(flushCtx); err != nil && s.win != nil {
+		s.win.Invalidate()
+	}
+	cancelFlush()
+	if s.onPhone {
+		s.jobs.Cancel(importJobName)
+	}
+	checkpointCtx, cancelCheckpoint := context.WithTimeout(context.Background(), suspendTimeout)
+	defer cancelCheckpoint()
+	if err := s.db.Checkpoint(checkpointCtx); err != nil {
+		log.Print(err)
+		errorreport.Capture(err, "database.checkpoint", "runtime")
+	}
+	errorreport.Flush()
 }
 
 // watchTheme calls apply with the preferred appearance whenever it changes.
@@ -203,10 +244,12 @@ func run(dataDir string) (err error) {
 		defer cancel()
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
-	s := &screen{prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version()}
-	// Restarts under framework dev return to the page that was showing.
-	// Release builds on desktops keep nothing.
-	mygo.KeepState(&s.page)
+	s := &screen{
+		prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version(),
+		db: db, onPhone: runtime.GOOS == "ios" || runtime.GOOS == "android",
+	}
+	defer mygo.Power.OnSuspend(s.suspend)()
+	mygo.KeepState(&s.kept)
 	errorreport.SetEnabled(prefs.ErrorReports)
 	defer state.Select(cell, func(p preferences) bool { return p.ErrorReports }).Subscribe(errorreport.SetEnabled)()
 	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })
@@ -214,13 +257,14 @@ func run(dataDir string) (err error) {
 	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))
 	defer watchTheme(cell, setTheme)()
 	mygo.App.WhenReady(func() {
+		s.restoreNotice()
 		shell := sidebar.NewShell(s.shellOptions())
 		s.host = shell
 		win := shell.Window()
 		s.win = win
-		// Invalidate is safe from any goroutine; the view reads the job status and preferences itself.
+		// Update is safe from any goroutine; the view reads the job status and preferences itself.
 		jobManager.Subscribe(func(status jobs.Status) {
-			win.Invalidate()
+			win.Update(func() { s.trackImport(status) })
 			s.notifyImportDone(status)
 		})
 		mygo.App.SetMenu(s.menu())

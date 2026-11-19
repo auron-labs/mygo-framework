@@ -99,8 +99,8 @@ func TestFooterShowsAccountSettingsAndVersion(t *testing.T) {
 	if err := tt.Click(locales.NavGoTo("Settings")); err != nil {
 		t.Fatal(err)
 	}
-	if s.page != pageSettings {
-		t.Fatalf("page = %q", s.page)
+	if s.kept.page != pageSettings {
+		t.Fatalf("page = %q", s.kept.page)
 	}
 }
 
@@ -139,8 +139,8 @@ func TestSidebarBecomesARailBelowTheBreakpointAndKeepsTheDraggedWidth(t *testing
 	if err := tt.Click(locales.NavGoTo("Import")); err != nil {
 		t.Fatal(err)
 	}
-	if s.page != pageImport {
-		t.Fatalf("page = %q", s.page)
+	if s.kept.page != pageImport {
+		t.Fatalf("page = %q", s.kept.page)
 	}
 	// A drag in the rail does not widen it.
 	host.SetLeftWidth(200)

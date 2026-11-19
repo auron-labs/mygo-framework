@@ -40,12 +40,20 @@ func routes() []route {
 func (s *screen) current() route {
 	all := routes()
 	for _, r := range all {
-		if r.id == s.page {
+		if r.id == s.kept.page {
 			return r
 		}
 	}
 	return all[0]
 }
 
+// restoreNotice explains an import that was running when MyGo last kept state,
+// opening Import so the notice is visible.
+func (s *screen) restoreNotice() {
+	if s.restoreImportNotice() {
+		s.navigate(pageImport)
+	}
+}
+
 // navigate selects a page by navigation id.
-func (s *screen) navigate(id string) { s.page = id }
+func (s *screen) navigate(id string) { s.kept.page = id }

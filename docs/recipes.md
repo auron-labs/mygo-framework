@@ -366,6 +366,12 @@ shares the desktop service and database.
 - **Quit.** Quitting cancels the application context, then gives runtime
   shutdown up to 5 seconds before the process exits. Long-running work should
   return when that context is canceled.
+- **Suspend.** Phones may end an app in the background without a quit. When the
+  system suspends the app, it checkpoints the SQLite write-ahead log within a
+  bounded time, then sends queued error reports with their own bound. Nothing
+  is released, so requests keep working on resume. The page hands its unsaved
+  note draft to Go, which `App.OnSaveState` keeps, and the next page load puts
+  it back in the form.
 
 ## Develop, build, and test
 

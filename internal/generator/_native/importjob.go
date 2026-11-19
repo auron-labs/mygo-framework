@@ -139,6 +139,26 @@ func (s *screen) chooseFolder() {
 	}()
 }
 
+// trackImport keeps the kept state in step with the job. It runs on the main
+// thread, where KeepState reads.
+func (s *screen) trackImport(status jobs.Status) {
+	if status.Name != importJobName {
+		return
+	}
+	s.kept.importRunning = status.State == jobs.Running
+}
+
+// restoreImportNotice explains an import that was running when MyGo last kept
+// state, once, and reports whether it did.
+func (s *screen) restoreImportNotice() bool {
+	if !s.kept.importRunning {
+		return false
+	}
+	s.importMessage = locales.ImportInterrupted()
+	s.kept.importRunning = false
+	return true
+}
+
 // startImport remembers folder as the last import folder and imports it.
 func (s *screen) startImport(folder string) {
 	folder, err := filepath.Abs(folder)
@@ -157,6 +177,9 @@ func (s *screen) startImport(folder string) {
 		return
 	}
 	s.importMessage = ""
+	// MyGo writes kept state before suspend handlers run, so mark the import now:
+	// a phone that ends the app mid-import keeps it and explains it next time.
+	s.kept.importRunning = true
 	s.prefs.Update(func(p *preferences) { p.ImportFolder = folder })
 	if s.win != nil {
 		s.win.Invalidate()

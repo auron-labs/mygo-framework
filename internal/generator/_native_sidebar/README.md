@@ -98,8 +98,9 @@ title (`contentTitle`) and the page area (`content`). `pages.go` holds the route
 table. A route is a navigation id, a title, an icon, an optional count badge
 and a page view. `page_home.go`, `page_import.go` and `page_settings.go` are
 the pages; each is `func(*ui.Context, *screen)`, reads the shared state and does
-not call another page. The selected id is `screen.page`, a UI-only field that
-is not saved. An unknown id shows Home.
+not call another page. The selected id is `screen.kept.page`, kept with
+`mygo.KeepState`, so a `framework dev` restart or a phone's relaunch returns to
+it. An unknown id shows Home.
 
 To add a page: add an id and a `route` in `pages.go`, a `page_NAME.go` with its
 view, and its strings in `locales/en.json`. Set `inNav` to list it in the

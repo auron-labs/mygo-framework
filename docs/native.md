@@ -62,6 +62,14 @@ after the last change. Closing the window, including during application quit,
 first saves anything still pending. If a save fails, the window shows an error
 and stays open so the user can try again.
 
+Phones may end an app in the background without a quit. When the system
+suspends the app, it saves any pending preferences and checkpoints the SQLite
+write-ahead log within a bounded time, then sends queued error reports with
+their own bound. On iOS and Android it also cancels a running import, which
+shows as canceled when the user returns; if the system ended the app instead,
+the next launch says why the import stopped. Nothing is released, so the app
+keeps working on resume.
+
 ```sh
 go test ./...
 CGO_ENABLED=0 go test ./...
@@ -116,8 +124,9 @@ err = manager.Shutdown(shutdownCtx)
 - `Subscribe` callbacks run on the goroutine that changed the status and must
   not block. The first event for a job is always `Running`, and the last is its
   terminal state. MyGo's `Event` and `Channel` deliver to web pages only, so a
-  native view subscribes with a callback: the starter calls `Window.Invalidate`
-  (safe from any goroutine) and reads `Status` while building the view. A web
+  native view subscribes with a callback: the starter calls `Window.Update`
+  (safe from any goroutine) to sync kept state on the main thread and redraw,
+  then reads `Status` while building the view. A web
   page can forward the same callback to a `mygo.Event` or a bound method's
   `*mygo.Channel`.
 - `Shutdown` rejects new jobs, cancels running ones, and waits for them within

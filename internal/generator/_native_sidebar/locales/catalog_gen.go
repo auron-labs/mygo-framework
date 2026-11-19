@@ -204,6 +204,16 @@ func (msgs Messages) ImportCanceled() string {
 	return Catalog.Format(msgs.locale, "importCanceled", nil)
 }
 
+// ImportInterrupted says "The import stopped before it finished. Start it again to finish."
+// in the language the app shows.
+func ImportInterrupted() string { return In(i18n.Locale()).ImportInterrupted() }
+
+// ImportInterrupted says "The import stopped before it finished. Start it again to finish."
+// in the language of msgs.
+func (msgs Messages) ImportInterrupted() string {
+	return Catalog.Format(msgs.locale, "importInterrupted", nil)
+}
+
 // ImportFailed says "Import failed: {reason}"
 // in the language the app shows.
 func ImportFailed(reason string) string { return In(i18n.Locale()).ImportFailed(reason) }

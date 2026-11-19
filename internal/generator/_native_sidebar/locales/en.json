@@ -33,6 +33,7 @@
   "importCancel": "Cancel import",
   "importFinished": "Import finished.",
   "importCanceled": "Import canceled.",
+  "importInterrupted": "The import stopped before it finished. Start it again to finish.",
   "importFailed": "Import failed: {reason}",
   "@importFailed": {
     "placeholders": {

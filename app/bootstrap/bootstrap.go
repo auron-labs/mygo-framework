@@ -193,6 +193,28 @@ func (b *Bootstrap) resolveRequired() error {
 	return nil
 }
 
+// Suspend checkpoints the database so committed data is in the main file if
+// the system ends the app before it can shut down. It releases nothing, so the
+// app keeps working after a resume, and does nothing before startup completes
+// or after shutdown begins.
+func (b *Bootstrap) Suspend(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("suspend application runtime: context is required")
+	}
+	if b.readiness.State() != appRuntime.StateReady {
+		return nil
+	}
+	db, err := do.Invoke[*database.Database](b.injector)
+	if err != nil {
+		return fmt.Errorf("resolve runtime database for suspend: %w", err)
+	}
+	if err := db.Checkpoint(ctx); err != nil {
+		return fmt.Errorf("suspend application runtime: %w", err)
+	}
+
+	return nil
+}
+
 // Shutdown rejects new work and disposes the resolved graph once.
 func (b *Bootstrap) Shutdown(ctx context.Context) error {
 	if ctx == nil {

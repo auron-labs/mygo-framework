@@ -34,7 +34,7 @@ func newScreen(t *testing.T, initial preferences) *screen {
 // newTester shows the window wide enough for the full sidebar, on the page
 // with navigation id page ("" for the first launch's page).
 func newTester(s *screen, page string) *ui.Tester {
-	s.page = page
+	s.kept.page = page
 	s.version = "0.1.0"
 	return ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, 1000, 640)
 }
@@ -204,7 +204,20 @@ func persistentScreen(t *testing.T, dir string) (*screen, *database.Database) {
 	cell := state.NewCell(initial)
 	saver := state.Autosave(cell, time.Hour, savePreferences(values))
 	t.Cleanup(func() { _ = saver.Close(context.Background()) })
-	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context())}, db
+	return &screen{prefs: cell, saver: saver, jobs: jobs.New(t.Context()), db: db}, db
+}
+
+// walSize returns the size of the write-ahead log, or zero if it does not exist.
+func walSize(t *testing.T, path string) int64 {
+	t.Helper()
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		t.Fatalf("stat write-ahead log: %v", err)
+	}
+	return info.Size()
 }
 
 func TestPreferencesPersistWithoutClosingTheWindow(t *testing.T) {
@@ -335,6 +348,124 @@ func TestSaveFailureIsVisibleAndBlocksClose(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText(locales.PreferencesSaveFailed()) {
 		t.Fatalf("save error is not visible: %q", tt.Texts())
+	}
+}
+
+func TestSuspendSavesPreferencesAndCheckpoints(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = db.Close() })
+	tt := newTester(s, pageSettings)
+	if err := tt.Click("Compact spacing"); err != nil {
+		t.Fatal(err)
+	}
+
+	s.suspend()
+
+	if got := walSize(t, filepath.Join(dir, "app.db-wal")); got != 0 {
+		t.Fatalf("write-ahead log size after suspend = %d, want 0", got)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, reopened := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = reopened.Close() })
+	if got := restarted.prefs.Get(); !got.Compact {
+		t.Fatalf("preferences after suspend = %+v, want the change persisted", got)
+	}
+}
+
+func TestSuspendCancelsImportOnPhones(t *testing.T) {
+	s, db := persistentScreen(t, t.TempDir())
+	t.Cleanup(func() { _ = db.Close() })
+	s.onPhone = true
+	s.prefs.Update(func(p *preferences) { p.ImportFolder = t.TempDir() })
+	reported := make(chan struct{})
+	s.work = func(string) jobs.Func {
+		return func(ctx context.Context, report jobs.Report) error {
+			report(1, 4, "Imported 1 of 4 items")
+			close(reported)
+			<-ctx.Done()
+			return ctx.Err()
+		}
+	}
+	finished := make(chan jobs.Status, 8)
+	s.jobs.Subscribe(func(st jobs.Status) {
+		if st.State != jobs.Running {
+			finished <- st
+		}
+	})
+	tt := newTester(s, pageImport)
+	if err := tt.Click("Start import"); err != nil {
+		t.Fatal(err)
+	}
+	<-reported
+	if !s.kept.importRunning {
+		t.Fatal("running import was not kept")
+	}
+
+	s.suspend()
+
+	if st := <-finished; st.State != jobs.Canceled {
+		t.Fatalf("final = %+v", st)
+	}
+	tt.Frame()
+	if !tt.HasText(locales.ImportCanceled()) || tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after suspend = %q", tt.Texts())
+	}
+}
+
+func TestRestoredImportNoticeExplainsInterruptedImport(t *testing.T) {
+	s := newScreen(t, preferences{})
+	tt := newTester(s, pageSettings)
+	s.kept.importRunning = true
+	s.restoreNotice()
+	if s.kept.page != pageImport {
+		t.Fatalf("restored page = %q, want %q", s.kept.page, pageImport)
+	}
+	if s.kept.importRunning {
+		t.Fatal("restored notice left importRunning set")
+	}
+	tt.Frame()
+	if !tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after restore = %q", tt.Texts())
+	}
+}
+
+func TestFinishedImportClearsRunningState(t *testing.T) {
+	s := newScreen(t, preferences{})
+	s.trackImport(jobs.Status{Name: importJobName, State: jobs.Running})
+	if !s.kept.importRunning {
+		t.Fatal("running import was not kept")
+	}
+	s.trackImport(jobs.Status{Name: importJobName, State: jobs.Done})
+	s.restoreImportNotice()
+	if s.kept.importRunning {
+		t.Fatal("finished import stayed kept as running")
+	}
+	tt := newTester(s, pageImport)
+	tt.Frame()
+	if tt.HasText(locales.ImportInterrupted()) {
+		t.Fatalf("view after finished import = %q", tt.Texts())
+	}
+}
+
+func TestPreferencesSaveAfterSuspend(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = db.Close() })
+	s.suspend()
+	s.prefs.Update(func(p *preferences) { p.Units = unitsImperial })
+	if err := s.saver.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, reopened := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = reopened.Close() })
+	if got := restarted.prefs.Get(); got.Units != unitsImperial {
+		t.Fatalf("preferences after suspend and save = %+v, want imperial", got)
 	}
 }
 
