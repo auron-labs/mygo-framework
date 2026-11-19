@@ -9,6 +9,8 @@
   --accent: #315c42;
   --accent-hover: #244b34;
   --danger: #a12a2a;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg);
   color: var(--text);
 }
@@ -34,6 +36,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
 }
@@ -175,8 +178,10 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  button:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 }
 
 button:disabled {
