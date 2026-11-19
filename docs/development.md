@@ -41,6 +41,20 @@ to inspect those requirements. CI runs checks, generated-file verification,
 tests, and the frontend build on Linux; it does not launch or package a desktop
 window.
 
+Phone builds are checked by the `Phones` workflow, which generates a web and a
+native starter and builds both with `framework build`, unsigned or debug-signed:
+`-platform android` on Linux with the Android SDK, NDK and a JDK, and
+`-platform ios/simulator` on macOS with Xcode. Because the starters link the
+framework with cgo, the builds also compile `onevra` and `mygomcp` for the
+phone. The workflow runs on pull requests that touch the CLI, the generator,
+`onevra`, `mygomcp` or the Go module files, weekly on Mondays, and on demand
+from the Actions tab, so other pull requests stay fast. To run it locally with
+the toolchain installed:
+
+```sh
+mise exec -- env MYGO_PHONE_BUILD_PLATFORM=android go test -run '^TestGeneratedPhoneBuilds$' -v ./internal/generator
+```
+
 For the opt-in fresh-project acceptance flow, run:
 
 ```sh

@@ -47,6 +47,75 @@ func TestStartEagerlyConstructsRequiredGraph(t *testing.T) {
 	}
 }
 
+func TestSuspendCheckpointsWALAndKeepsData(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "notes.db")
+	bootstrap := New()
+	if err := bootstrap.Start(t.Context(), Options{Development: true, DatabasePath: path}); err != nil {
+		t.Fatalf("start runtime: %v", err)
+	}
+	notes, err := do.Invoke[*services.Notes](bootstrap.injector)
+	if err != nil {
+		t.Fatalf("resolve notes service: %v", err)
+	}
+	created, err := notes.Create(t.Context(), requests.CreateNoteInput{Body: "survives suspend"})
+	if err != nil {
+		t.Fatalf("create note: %v", err)
+	}
+
+	if err := bootstrap.Suspend(t.Context()); err != nil {
+		t.Fatalf("suspend runtime: %v", err)
+	}
+
+	if got := walSize(t, path+"-wal"); got != 0 {
+		t.Fatalf("write-ahead log size after suspend = %d, want 0", got)
+	}
+	if got := bootstrap.Readiness().State(); got != appRuntime.StateReady {
+		t.Fatalf("readiness state after suspend = %d, want ready", got)
+	}
+	listed, err := notes.List(t.Context(), requests.ListNotesInput{})
+	if err != nil {
+		t.Fatalf("list notes after suspend: %v", err)
+	}
+	if len(listed.Notes) != 1 || listed.Notes[0].Body != created.Note.Body {
+		t.Fatalf("notes after suspend = %#v, want %#v", listed.Notes, created.Note)
+	}
+
+	if err := bootstrap.Shutdown(t.Context()); err != nil {
+		t.Fatalf("shutdown runtime: %v", err)
+	}
+	if err := bootstrap.Suspend(t.Context()); err != nil {
+		t.Fatalf("suspend after shutdown: %v", err)
+	}
+}
+
+func TestSuspendBeforeStartDoesNothing(t *testing.T) {
+	t.Parallel()
+
+	bootstrap := New()
+	before := bootstrap.Readiness().State()
+	if err := bootstrap.Suspend(t.Context()); err != nil {
+		t.Fatalf("suspend before start: %v", err)
+	}
+	if got := bootstrap.Readiness().State(); got != before {
+		t.Fatalf("readiness state after suspend before start = %d, want %d", got, before)
+	}
+}
+
+// walSize returns the size of the write-ahead log, or zero if it does not exist.
+func walSize(t *testing.T, path string) int64 {
+	t.Helper()
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0
+	}
+	if err != nil {
+		t.Fatalf("stat write-ahead log: %v", err)
+	}
+	return info.Size()
+}
+
 func TestResolveRequiredReportsMissingRegistration(t *testing.T) {
 	t.Parallel()
 

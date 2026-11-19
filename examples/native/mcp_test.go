@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	mygomcp "github.com/auron-labs/mygo-mcp"
+	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	"github.com/egoist/mygo/ui"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -94,7 +94,7 @@ func TestNativeMCP(t *testing.T) {
 		return 0
 	}
 	callNativeTool(ctx, t, session, "mygo_inspect", map[string]any{"session_id": id}, &observation)
-	if !slices.Contains(observation.Labels, "Compact spacing") || observation.ID == "" {
+	if !slices.Contains(observation.Labels, "Compact spacing") || !slices.Contains(observation.Labels, "Save support bundle...") || observation.ID == "" {
 		t.Fatalf("native view not inspectable: %+v", observation)
 	}
 	beforeY := checkboxY()

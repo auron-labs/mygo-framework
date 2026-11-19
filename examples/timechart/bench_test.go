@@ -6,8 +6,8 @@ import (
 
 	"github.com/auron-labs/mygo-framework/timechart"
 
+	"github.com/auron-labs/mygo-framework/onevra/theme"
 	"github.com/egoist/mygo/ui"
-	"github.com/oneo-me/onevra/source/theme"
 )
 
 // BenchmarkFrame builds, lays out and paints (CPU renderer) the three

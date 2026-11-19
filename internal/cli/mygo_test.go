@@ -17,12 +17,15 @@ import (
 func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name  string
-		check bool
+		name      string
+		check     bool
+		generates bool
 	}{
-		{name: "dev"},
-		{name: "build"},
-		{name: "doctor", check: true},
+		{name: "dev", generates: true},
+		{name: "build", generates: true},
+		{name: "doctor", check: true, generates: true},
+		{name: "publish", generates: true},
+		{name: "devices"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -35,6 +38,10 @@ func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {
 					t.Fatalf("generate config = %+v, context matches = %t", config, ctx == t.Context())
 				}
 				return generator.GenerateResult{}, nil
+			}
+			var generateArg frameworkGenerator
+			if test.generates {
+				generateArg = generate
 			}
 			run := func(ctx context.Context, directory string, _ io.Reader, stdout, stderr io.Writer, args ...string) error {
 				runCalls++
@@ -49,7 +56,7 @@ func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {
 				return nil
 			}
 
-			command := newMyGoCommand(test.name, test.check, generate, run)
+			command := newMyGoCommand(test.name, test.check, generateArg, run)
 			root := New("test", command)
 			var stderr strings.Builder
 			root.SetErr(&stderr)
@@ -59,7 +66,11 @@ func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {
 			if err := root.ExecuteContext(t.Context()); err != nil {
 				t.Fatal(err)
 			}
-			if generateCalls != 1 || runCalls != 1 {
+			wantGenerateCalls := 0
+			if test.generates {
+				wantGenerateCalls = 1
+			}
+			if generateCalls != wantGenerateCalls || runCalls != 1 {
 				t.Fatalf("calls = generate %d, run %d", generateCalls, runCalls)
 			}
 			if stdout.String() != "delegated stdout\n" || stderr.String() != "delegated stderr\n" {
