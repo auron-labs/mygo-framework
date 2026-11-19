@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.0.0](https://github.com/auron-labs/mygo-framework/compare/v1.0.1...v2.0.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Update framework imports, Go tool directives, and the Sentry linker symbol to use github.com/auron-labs/mygo-framework/v2.
+
+### Features
+
+* **datadir:** keep app data in the app sandbox on phones ([7bc9b8b](https://github.com/auron-labs/mygo-framework/commit/7bc9b8bc8859842d3172d46e0290d01537935d94))
+* **generator:** pin framework CLI as a Go tool in generated projects ([df831b4](https://github.com/auron-labs/mygo-framework/commit/df831b4a6bcc88321b5223a308dbe1457bcbc961))
+* **httpclient:** add conditional requests, response hook, and rate-limit details on errors ([56f9bce](https://github.com/auron-labs/mygo-framework/commit/56f9bced90d39dce52c4f4e8260c0e2a8d0b1041)), closes [#15](https://github.com/auron-labs/mygo-framework/issues/15)
+* **httpclient:** add resumable file download with progress and SHA-256 verification ([ef89188](https://github.com/auron-labs/mygo-framework/commit/ef89188646034e174f7ff923cfd75686df70afe4))
+* **jobs:** add named lanes with concurrency limits, Queued status and List ([7553ce2](https://github.com/auron-labs/mygo-framework/commit/7553ce2eaa75395a5d4dfa93680b44cc52dffb1c))
+* **jobs:** add periodic task scheduler with persisted last run and catch-up ([88fb5c7](https://github.com/auron-labs/mygo-framework/commit/88fb5c7ed8f8d64c9292557bcc44f6ec8e78e13f))
+* migrate the Go module to v2 ([#34](https://github.com/auron-labs/mygo-framework/issues/34)) ([eab544a](https://github.com/auron-labs/mygo-framework/commit/eab544a5cfb43e7d072946d3a39c6f1998b2d4b9))
+* **mobile:** add phone settings to the starters and framework devices and publish ([1a21b1e](https://github.com/auron-labs/mygo-framework/commit/1a21b1ef9e82faa2fb2f3cc3b292a72ec132bbbd))
+* **mobile:** fit the web starter's page to phone screens and touch ([4b13f99](https://github.com/auron-labs/mygo-framework/commit/4b13f99a849e61a73bf762fb8ec680be4d5debe5))
+* **mobile:** reach starter actions on phones without menus or desktop dialogs ([31049e5](https://github.com/auron-labs/mygo-framework/commit/31049e565fe6be4b1e4633041f2ff46200170439))
+* **mobile:** save state on suspend and restore it after the system ends the app ([37fd259](https://github.com/auron-labs/mygo-framework/commit/37fd2591021dee8bdb710e25937f589a7735923e))
+* **mygomcp:** drive touch input and phone viewports from the headless harness ([268ac0a](https://github.com/auron-labs/mygo-framework/commit/268ac0a103c0b5bd1fcd7685aaea063cc29191c7))
+* **mygomcp:** import mygo-mcp as a framework package ([b051235](https://github.com/auron-labs/mygo-framework/commit/b051235c39dddb5eb8d4c6b5d850f1521fa062b4))
+* **mygomcp:** import mygo-mcp as a framework package ([e788e33](https://github.com/auron-labs/mygo-framework/commit/e788e337bd83d6b347dbb074ba30bd4a1b86dcba))
+* **native:** add CI workflow, mise.toml and golangci config to the starter ([d1e8e00](https://github.com/auron-labs/mygo-framework/commit/d1e8e00d237dafc60445b5f7ab43ae7250cab0c4))
+* **native:** add sidebar-shell starter variant with page routing and icon rail ([#22](https://github.com/auron-labs/mygo-framework/issues/22)) ([aacd35a](https://github.com/auron-labs/mygo-framework/commit/aacd35a2f14983671d9ec68969e479767b2abe86))
+* **native:** return to the same sidebar page after framework dev restarts ([f22ad66](https://github.com/auron-labs/mygo-framework/commit/f22ad66cbc44fcdce007c0abee92c92d55a9edf3))
+* **native:** run the native starters on phones ([97b1b0e](https://github.com/auron-labs/mygo-framework/commit/97b1b0eedd7df7948dd327165a17c60cf8cd80a3))
+* **onevra:** maintain native UI packages in the framework ([10233e0](https://github.com/auron-labs/mygo-framework/commit/10233e05bc445d39e07d5c52e7576953dfc72b69))
+* **onevra:** make components and shells work by touch on phones ([8884cb8](https://github.com/auron-labs/mygo-framework/commit/8884cb8e81639cdfa9327923a517a95a6d5f1270))
+* **onevra:** scroll menus longer than the window ([1bc71d6](https://github.com/auron-labs/mygo-framework/commit/1bc71d6f1f249317ac18ee6f56cd22453692f25c))
+
+
+### Bug Fixes
+
+* **ci:** remove unused scheduler lint suppression ([5299fcc](https://github.com/auron-labs/mygo-framework/commit/5299fcc49e49d24bcb33873bb9f53ec4d70abfcd))
+* **ci:** remove unused scheduler lint suppression ([f5a5c6a](https://github.com/auron-labs/mygo-framework/commit/f5a5c6a4842c833cfdc106559c76b48d87fa4a69))
+* **generator:** make scaffolded native feature test pass golangci-lint ([3e547ba](https://github.com/auron-labs/mygo-framework/commit/3e547bab8d180ab71d7d37d450169b6f0dacc60f))
+* **jobs:** deliver events before Shutdown returns, cancel queued jobs on parent cancel ([c0df61c](https://github.com/auron-labs/mygo-framework/commit/c0df61c43067c6fa8843d1b00452c0c6af66a9fb))
+* **jobs:** publish job events in order, add ErrEmptyLane ([14eb363](https://github.com/auron-labs/mygo-framework/commit/14eb363b2d66b8d2bfb431c32f1f965eaf7b20dd))
+* stabilize Windows UI and path tests ([3feddd8](https://github.com/auron-labs/mygo-framework/commit/3feddd84c76fcd6a96fc047a77c9f9297f16cada))
+* stabilize Windows UI and path tests ([285fe80](https://github.com/auron-labs/mygo-framework/commit/285fe80c87d15e92a2a13adfb58628bf0afb07e1))
+
 ## [1.0.1](https://github.com/auron-labs/mygo-framework/compare/v1.0.0...v1.0.1) (2026-11-16)
 
 
