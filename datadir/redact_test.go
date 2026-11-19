@@ -2,18 +2,18 @@ package datadir
 
 import (
 	"errors"
-	"path/filepath"
+	"path"
 	"testing"
 )
 
 func TestRedactorOnAPhoneReplacesTheDataDirectoryAndHome(t *testing.T) {
 	home := "/var/mobile/Containers/Data/Application/ABC"
-	data := filepath.Join(home, "Library", "Application Support", "Notes")
+	data := path.Join(home, "Library", "Application Support", "Notes")
 	redact := redactor("ios",
 		func() (string, error) { return data, nil },
 		func() (string, error) { return home, nil })
 
-	text := "open " + filepath.Join(data, "notes.db") + " then " + filepath.Join(home, "other.txt") + " failed"
+	text := "open " + path.Join(data, "notes.db") + " then " + path.Join(home, "other.txt") + " failed"
 	want := "open <app data>/notes.db then ~/other.txt failed"
 	if got := redact(text); got != want {
 		t.Fatalf("redacted text = %q, want %q", got, want)

@@ -86,8 +86,13 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 	// fits: 7 cells and the gaps come to about 311 of its 390 DIPs.
 	_, line := c.MeasureText(0, ui.Span{Text: "88"})
 	touch := TouchMin(c)
-	cellW, cellH := max(t.Space(8), line, touch), max(t.Space(7), line, touch)
-	out := &CalendarControl{Element: ui.Column(c).MinWidth(cellW * 7).MinHeight(t.Space(62)).AlignSelf(ui.Start).Shrink(0).Gap(t.Space(.5)).Focusable().Role(ui.RoleTable)}
+	_, titleLine := c.MeasureText(0, ui.Span{Text: "August 2006", Weight: 700})
+	cellW, cellH := max(t.Space(8), line, touch), max(t.Space(7), line+2, touch)
+	headerH, weekdayH := max(t.Space(8), titleLine+2, touch), max(t.Space(4), line)
+	gap, sectionMargin := t.Space(.5), t.Space(2)
+	// Reserve the day grid's full height in all three views.
+	height := max(t.Space(62), headerH+weekdayH+6*cellH+7*gap+2*sectionMargin)
+	out := &CalendarControl{Element: ui.Column(c).MinWidth(cellW * 7).Height(height).AlignSelf(ui.Start).Shrink(0).Gap(gap).Focusable().Role(ui.RoleTable)}
 	st := ui.Local(out.Element, "calendar", func() calendarState { return calendarState{cursor: calendarDay(*value), last: *value} })
 	if st.last != *value {
 		st.cursor, st.last, st.view = calendarDay(*value), *value, calendarDays
@@ -144,7 +149,7 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 		}
 	}
 	out.Children(func() {
-		ui.Row(c).FillWidth().MinHeight(t.Space(8)).Margin(0, 0, t.Space(2), 0).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Height(headerH).Margin(0, 0, sectionMargin, 0).AlignItems(ui.Center).Children(func() {
 			title := words.date(st.cursor, "January 2006")
 			titleLabel := words.ChooseMonth
 			previous, next := words.PreviousMonth, words.NextMonth
@@ -191,10 +196,10 @@ func Calendar(c *ui.Context, value *time.Time) *CalendarControl {
 		}
 		month := time.Date(st.cursor.Year(), st.cursor.Month(), 1, 0, 0, 0, 0, time.UTC)
 		out.Label(words.date(month, "January 2006")).Value(words.date(st.cursor, "January 2, 2006"))
-		ui.Row(c).MinHeight(t.Space(4)).Margin(0, 0, t.Space(2), 0).Children(func() {
+		ui.Row(c).Height(weekdayH).Margin(0, 0, sectionMargin, 0).Children(func() {
 			for col := range 7 {
 				label := words.Weekdays[(int(words.firstWeekday())+col)%7]
-				Text(c, label).Width(cellW).TextAlign(ui.Center).TextColor(t.TextMuted).Role(ui.RoleColumnHeader)
+				Text(c, label).Width(cellW).SingleLine().TextAlign(ui.Center).TextColor(t.TextMuted).Role(ui.RoleColumnHeader)
 			}
 		})
 		start := month.AddDate(0, 0, -((int(month.Weekday()) - int(words.firstWeekday()) + 7) % 7))

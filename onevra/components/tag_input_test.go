@@ -78,8 +78,14 @@ func TestTagInput(t *testing.T) {
 		}
 		// The ring settles on the picked tag.
 		tt.Advance(time.Second)
-		chip, _ := tt.Find("Remove a")
-		left, right := accentSpan(tt, theme.Palette(dark).Accent, chip.Y+chip.H/2)
+		label, labelFound := tt.Find("a")
+		chip, buttonFound := tt.Find("Remove a")
+		if !labelFound || !buttonFound {
+			t.Fatal("picked tag is missing")
+		}
+		// Limit the scan to the chip so a text caret on the same row cannot
+		// be mistaken for the ring.
+		left, right := accentSpan(tt, theme.Palette(dark).Accent, chip.Y+chip.H/2, int(label.X)-12, int(chip.X+chip.W)+8)
 		if left < chip.X-40 || left > chip.X-10 || right < chip.X+chip.W || right > chip.X+chip.W+8 {
 			t.Fatalf("ring spans %v-%v around the picked tag's button %v", left, right, chip)
 		}
@@ -167,12 +173,11 @@ func TestTagInputHeight(t *testing.T) {
 
 // accentSpan returns the outermost columns on row y drawn close to accent,
 // where the pick ring's border crosses it.
-func accentSpan(tt *ui.Tester, accent ui.Color, y float32) (left, right float32) {
+func accentSpan(tt *ui.Tester, accent ui.Color, y float32, start, end int) (left, right float32) {
 	img := tt.Image()
 	left, right = -1, -1
 	r, g, b := accent.R, accent.G, accent.B
-	// The 300-wide field at x 8 has a focused accent border; look inside it.
-	for x := 10; x < 305; x++ {
+	for x := start; x < end; x++ {
 		p := img.RGBAAt(x, int(y))
 		d := func(a, b uint8) int { return max(int(a)-int(b), int(b)-int(a)) }
 		if d(p.R, r)+d(p.G, g)+d(p.B, b) < 60 {
