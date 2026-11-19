@@ -21,6 +21,7 @@ func TestCalendarViewNavigation(t *testing.T) {
 			}
 		}, 400, 400)
 		tt.SetDark(dark)
+		tt.SetPreferences(ui.Preferences{TextScale: 1.25})
 		initial := bounds
 		click := func(label string) {
 			t.Helper()

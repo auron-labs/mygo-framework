@@ -32,7 +32,7 @@ func TestOverlayGlassTint(t *testing.T) {
 					case "Dialog":
 						Dialog(c, &open, DialogOptions{}, style)
 					case "Popover":
-						anchor := Button(c, "Anchor", ButtonSecondary).Absolute().Left(100).Top(160)
+						anchor := Button(c, "Anchor", ButtonSecondary).Absolute().Left(100).Top(160).Size(100, 32)
 						style(Popover(c, anchor, &open, nil))
 					case "Tooltip":
 						tint = c.Theme().Text

@@ -61,14 +61,21 @@ func TestScaledTabsUnderline(t *testing.T) {
 		}
 		tt.Move(490, 120)
 		tt.Frame()
-		r, _ := tt.Find("Appearance")
-		p := tt.Image().RGBAAt(int(r.X+r.W/2), int(list.Y+list.H-2))
-		accent := theme.LightPalette().Accent
-		if dark {
-			accent = theme.DarkPalette().Accent
+		r, ok := tt.Find("Appearance")
+		if !ok {
+			t.Fatal("selected tab is missing")
 		}
-		if p.R != accent.R || p.G != accent.G || p.B != accent.B {
-			t.Fatalf("underline does not follow transformed tab: %v, want %v", p, accent)
+		accent := theme.Palette(dark).Accent
+		img := tt.Image()
+		x, bottom := int(r.X+r.W/2), int(list.Y+list.H)
+		// The three-pixel underline can start between pixel rows.
+		found := false
+		for y := bottom - 3; y <= bottom; y++ {
+			p := img.RGBAAt(x, y)
+			found = found || p.R == accent.R && p.G == accent.G && p.B == accent.B
+		}
+		if !found {
+			t.Fatalf("no accent underline below transformed tab at x=%d, y=%d", x, bottom)
 		}
 	}
 }
