@@ -23,7 +23,7 @@ func TestCreateProjectWritesPinnedSupportedTemplate(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	checks := map[string][]string{
-		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2", "tool (", "github.com/auron-labs/mygo-framework/cmd/framework"},
+		"go.mod":                                     {"module acme-notes", "github.com/egoist/mygo v0.10.0", "gorm.io/gorm v1.31.2", "tool (", "github.com/auron-labs/mygo-framework/v2/cmd/framework"},
 		"package.json":                               {`"name": "acme-notes"`, `"packageManager": "bun@1.4.2"`, `"mygo-cli": "0.10.0"`, `"dev:ios": "mygo dev -platform ios"`, `"dev:android": "mygo dev -platform android"`},
 		"mygo.config.ts":                             {`name: "Acme Notes"`, `identifier: "com.example.acmenotes"`, `ios: { team: "ABCDE12345"`, `android: { keystore: "upload.jks"`},
 		"app/desktop/error_reporting.go":             {"func (*ErrorReporting) DSN"},
@@ -138,7 +138,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                  {`"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
+		"main.go":                  {`"github.com/auron-labs/mygo-framework/v2/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
 		"sidebar.go":               {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
 		"layout.go":                {"railBreakpoint", "SetLeftWidth", "c.Size()"},
 		"pages.go":                 {"homePage", "importPage", "settingsPage"},
@@ -172,7 +172,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Errorf("sidebar starter includes package.json: %v", err)
 	}
 	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
-		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
+		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v2.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
 		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "framework", "--version")
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")
@@ -207,11 +207,11 @@ func TestCreateNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool (", "github.com/egoist/mygo/cmd/mygo", "github.com/auron-labs/mygo-framework/cmd/framework"},
+		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool (", "github.com/egoist/mygo/cmd/mygo", "github.com/auron-labs/mygo-framework/v2/cmd/framework"},
 		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`, `"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
-		"main.go":                {`"github.com/auron-labs/mygo-framework/database"`, `"github.com/auron-labs/mygo-framework/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/onevra/components"`, `"github.com/auron-labs/mygo-framework/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/v2/database"`, `"github.com/auron-labs/mygo-framework/v2/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/v2/onevra/components"`, `"github.com/auron-labs/mygo-framework/v2/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
 		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
-		"importjob.go":           {`"github.com/auron-labs/mygo-framework/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
+		"importjob.go":           {`"github.com/auron-labs/mygo-framework/v2/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
 		"updates.go":             {"mygo.Updater.Enabled()", "checkForUpdates"},
 		"locales/en.json":        {"compactSpacing"},
 		"locales/catalog_gen.go": {"func CompactSpacing()"},
@@ -232,7 +232,7 @@ func TestCreateNativeProject(t *testing.T) {
 		}
 	}
 	if os.Getenv(generatorAcceptanceEnvironment) == "1" {
-		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v0.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
+		runAcceptanceCommand(t, result.Path, "go", "mod", "edit", "-require="+FrameworkModule+"@v2.0.0", "-replace="+FrameworkModule+"="+repositoryRoot(t))
 		runAcceptanceCommand(t, result.Path, "go", "mod", "tidy")
 		runAcceptanceCommand(t, result.Path, "go", "tool", "framework", "--version")
 		runAcceptanceCommand(t, result.Path, "go", "test", "-mod=readonly", "./...")

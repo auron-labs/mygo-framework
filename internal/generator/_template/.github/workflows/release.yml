@@ -57,5 +57,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
-          MYGO_LDFLAGS: -X github.com/auron-labs/mygo-framework/errorreport.buildDSN=${{ secrets.SENTRY_DSN }}
+          MYGO_LDFLAGS: -X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=${{ secrets.SENTRY_DSN }}
         run: bun run build -- -platform "${{ matrix.platform }}" -upload

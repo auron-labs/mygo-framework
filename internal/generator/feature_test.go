@@ -172,12 +172,12 @@ func featureFixture(t *testing.T) string {
 go 1.27.3
 
 require (
-	github.com/auron-labs/mygo-framework v0.0.0
+	github.com/auron-labs/mygo-framework/v2 v2.0.0
 	gorm.io/gorm v0.0.0
 )
 
 replace (
-	github.com/auron-labs/mygo-framework => ./stubs/framework
+	github.com/auron-labs/mygo-framework/v2 => ./stubs/framework
 	gorm.io/gorm => ./stubs/gorm
 )
 `

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/app/models"
-	"github.com/auron-labs/mygo-framework/app/requests"
-	"github.com/auron-labs/mygo-framework/validation"
+	"github.com/auron-labs/mygo-framework/v2/app/models"
+	"github.com/auron-labs/mygo-framework/v2/app/requests"
+	"github.com/auron-labs/mygo-framework/v2/validation"
 
 	"gorm.io/gorm"
 )

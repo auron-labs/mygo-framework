@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/logging"
-	"github.com/auron-labs/mygo-framework/problem"
+	"github.com/auron-labs/mygo-framework/v2/logging"
+	"github.com/auron-labs/mygo-framework/v2/problem"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"

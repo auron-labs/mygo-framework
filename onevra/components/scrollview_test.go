@@ -3,7 +3,7 @@ package components
 import (
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

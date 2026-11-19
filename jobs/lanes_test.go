@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 )
 
 func newLanes(t *testing.T, limits map[string]int) *jobs.Manager {

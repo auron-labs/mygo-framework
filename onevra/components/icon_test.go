@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
-	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/icons/lucide"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

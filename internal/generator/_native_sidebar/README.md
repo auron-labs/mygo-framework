@@ -4,7 +4,7 @@ A native MyGo application on Onevra's sidebar shell, with page routing, an
 icon-only rail for narrow windows and typed SQLite preferences.
 
 Onevra is maintained in the framework module and uses its release version.
-Import UI packages from `github.com/auron-labs/mygo-framework/onevra/...`; see
+Import UI packages from `github.com/auron-labs/mygo-framework/v2/onevra/...`; see
 [the Onevra guide](https://github.com/auron-labs/mygo-framework/blob/main/onevra/README.md).
 
 Requires Go 1.27.3 and the native libraries required by MyGo for your platform.

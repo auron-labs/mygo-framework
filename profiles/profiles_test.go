@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/database/migrations"
-	"github.com/auron-labs/mygo-framework/profiles"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/profiles"
 )
 
 func TestValidateRejectsNamesThatCouldEscapeTheDataDirectory(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/v2/database"
 )
 
 func readBundle(t *testing.T, data []byte) map[string]string {

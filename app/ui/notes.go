@@ -5,9 +5,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/auron-labs/mygo-framework/app/models"
-	"github.com/auron-labs/mygo-framework/app/services"
-	"github.com/auron-labs/mygo-framework/logging"
+	"github.com/auron-labs/mygo-framework/v2/app/models"
+	"github.com/auron-labs/mygo-framework/v2/app/services"
+	"github.com/auron-labs/mygo-framework/v2/logging"
 
 	"github.com/egoist/mygo"
 )

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/secrets"
+	"github.com/auron-labs/mygo-framework/v2/secrets"
 
 	mygoplatform "github.com/egoist/mygo"
 )

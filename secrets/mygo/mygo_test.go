@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/internal/secretstest"
-	"github.com/auron-labs/mygo-framework/secrets"
+	"github.com/auron-labs/mygo-framework/v2/internal/secretstest"
+	"github.com/auron-labs/mygo-framework/v2/secrets"
 
 	mygoplatform "github.com/egoist/mygo"
 )

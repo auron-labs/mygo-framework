@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 )
 
 const (

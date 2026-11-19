@@ -3,9 +3,9 @@ package main
 import (
 	"mygo-framework/locales"
 
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
 	"github.com/egoist/mygo/ui"
 )
 

@@ -3,8 +3,8 @@ package chart_test
 import (
 	"fmt"
 
-	"github.com/auron-labs/mygo-framework/onevra/components/chart"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components/chart"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

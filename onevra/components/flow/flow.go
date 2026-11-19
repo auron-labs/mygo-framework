@@ -12,7 +12,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
 	"github.com/egoist/mygo/ui"
 )
 

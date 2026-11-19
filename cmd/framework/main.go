@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/auron-labs/mygo-framework/internal/cli"
+	"github.com/auron-labs/mygo-framework/v2/internal/cli"
 )
 
 var version = "dev"

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/errorreport"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 )
 
 const (

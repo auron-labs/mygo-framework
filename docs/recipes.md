@@ -2,7 +2,7 @@
 
 These task guides use the reference application in this repository. Run the Go
 commands from the repository root. Framework packages are imported from
-`github.com/auron-labs/mygo-framework`; application packages start with the
+`github.com/auron-labs/mygo-framework/v2`; application packages start with the
 `module` value from `go.mod`. After importing a framework package for the first
 time, run `go mod tidy` to add its dependencies.
 
@@ -61,7 +61,7 @@ for the DSN at startup, so no DSN is compiled into the frontend. Call
 `errorreport.Flush()` before any new exit path.
 
 A packaged build has no launch environment: compile the DSN in with
-`MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=<dsn>"`.
+`MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=<dsn>"`.
 `SENTRY_DSN` still overrides it. Call `errorreport.SetEnabled(false)` when the
 user turns reporting off; `errorreport.Configured()` tells a settings screen
 whether there is anything to turn off.
@@ -80,9 +80,9 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/settings"
-	settingssqlite "github.com/auron-labs/mygo-framework/settings/sqlite"
+	"github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/settings"
+	settingssqlite "github.com/auron-labs/mygo-framework/v2/settings/sqlite"
 
 	"github.com/samber/do/v2"
 )
@@ -136,7 +136,7 @@ and the key's default, in that order. Overrides are never saved: `Set` and
 force.
 
 To keep settings in their own file rather than the application database, use
-`settingsbbolt.Open(path)` from `github.com/auron-labs/mygo-framework/settings/bbolt` as the store and
+`settingsbbolt.Open(path)` from `github.com/auron-labs/mygo-framework/v2/settings/bbolt` as the store and
 close it on shutdown. It fails after one second if another process holds the
 file.
 
@@ -168,9 +168,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/auron-labs/mygo-framework/app/profile"
-	"github.com/auron-labs/mygo-framework/secrets"
-	mygosecrets "github.com/auron-labs/mygo-framework/secrets/mygo"
+	"github.com/auron-labs/mygo-framework/v2/app/profile"
+	"github.com/auron-labs/mygo-framework/v2/secrets"
+	mygosecrets "github.com/auron-labs/mygo-framework/v2/secrets/mygo"
 )
 ```
 
@@ -215,7 +215,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/httpclient"
+	"github.com/auron-labs/mygo-framework/v2/httpclient"
 )
 ```
 

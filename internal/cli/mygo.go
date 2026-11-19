@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/internal/generator"
+	"github.com/auron-labs/mygo-framework/v2/internal/generator"
 
 	"github.com/spf13/cobra"
 )

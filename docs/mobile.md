@@ -120,7 +120,7 @@ Phones have no launch environment to read `SENTRY_DSN` from, so compile the
 DSN into a packaged build with `MYGO_LDFLAGS`; MyGo appends it to phone builds.
 
 ```sh
-MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=https://<key>@<host>/<project>" framework build -platform ios
+MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=https://<key>@<host>/<project>" framework build -platform ios
 ```
 
 The variable, the release workflow and how reporting is enabled are in

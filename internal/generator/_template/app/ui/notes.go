@@ -7,7 +7,7 @@ import (
 	"mygo-framework/app/models"
 	"mygo-framework/app/services"
 
-	"github.com/auron-labs/mygo-framework/logging"
+	"github.com/auron-labs/mygo-framework/v2/logging"
 
 	"github.com/egoist/mygo"
 )

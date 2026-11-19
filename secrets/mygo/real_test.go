@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/secrets"
+	"github.com/auron-labs/mygo-framework/v2/secrets"
 )
 
 const realSecretTestEnvironment = "MYGO_REAL_SECRET_TEST"

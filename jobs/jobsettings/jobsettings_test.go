@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/jobs/jobsettings"
-	"github.com/auron-labs/mygo-framework/settings/bbolt"
+	"github.com/auron-labs/mygo-framework/v2/jobs/jobsettings"
+	"github.com/auron-labs/mygo-framework/v2/settings/bbolt"
 )
 
 func TestRoundTrip(t *testing.T) {

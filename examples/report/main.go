@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/auron-labs/mygo-framework/pdfreport"
+	"github.com/auron-labs/mygo-framework/v2/pdfreport"
 )
 
 type night struct {

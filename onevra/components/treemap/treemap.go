@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
 )

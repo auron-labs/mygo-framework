@@ -4,12 +4,12 @@ import (
 	"mygo-framework/locales"
 	"strconv"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
-	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
-	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/icons/lucide"
+	"github.com/auron-labs/mygo-framework/v2/onevra/shells/sidebar"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo/ui"
 )
 

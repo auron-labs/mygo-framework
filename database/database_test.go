@@ -10,8 +10,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/auron-labs/mygo-framework/app/models"
-	"github.com/auron-labs/mygo-framework/database/migrations"
+	"github.com/auron-labs/mygo-framework/v2/app/models"
+	"github.com/auron-labs/mygo-framework/v2/database/migrations"
 )
 
 func TestDataSourceNameKeepsPathsIntact(t *testing.T) {

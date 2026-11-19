@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 )
 
 // Open constructs a store at location and returns its sole cleanup function.

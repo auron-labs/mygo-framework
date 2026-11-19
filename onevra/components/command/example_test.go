@@ -3,8 +3,8 @@ package command_test
 import (
 	"runtime"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
-	"github.com/auron-labs/mygo-framework/onevra/components/command"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components/command"
 	"github.com/egoist/mygo/ui"
 )
 

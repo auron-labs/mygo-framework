@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/jobs"
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 )
 
 // DefaultPrefix is the key prefix used by New when prefix is empty.

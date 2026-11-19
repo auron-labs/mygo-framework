@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/timechart"
+	"github.com/auron-labs/mygo-framework/v2/timechart"
 
-	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
-	"github.com/auron-labs/mygo-framework/onevra/components"
-	"github.com/auron-labs/mygo-framework/onevra/shells/plain"
-	"github.com/auron-labs/mygo-framework/onevra/theme"
+	mygomcp "github.com/auron-labs/mygo-framework/v2/mygomcp"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/shells/plain"
+	"github.com/auron-labs/mygo-framework/v2/onevra/theme"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )

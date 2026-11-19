@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/internal/settingstest"
-	"github.com/auron-labs/mygo-framework/settings"
+	"github.com/auron-labs/mygo-framework/v2/internal/settingstest"
+	"github.com/auron-labs/mygo-framework/v2/settings"
 
 	bolt "go.etcd.io/bbolt"
 	berrors "go.etcd.io/bbolt/errors"

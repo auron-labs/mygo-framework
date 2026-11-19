@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/mygomcp/internal/demo"
+	"github.com/auron-labs/mygo-framework/v2/mygomcp/internal/demo"
 	"github.com/egoist/mygo/ui"
 )
 

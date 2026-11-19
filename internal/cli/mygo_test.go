@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/internal/generator"
+	"github.com/auron-labs/mygo-framework/v2/internal/generator"
 )
 
 func TestMyGoCommandsGenerateOnceAndDelegateArguments(t *testing.T) {

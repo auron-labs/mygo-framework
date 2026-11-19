@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/auron-labs/mygo-framework/app/profile"
-	appdb "github.com/auron-labs/mygo-framework/database"
-	"github.com/auron-labs/mygo-framework/logging"
+	"github.com/auron-labs/mygo-framework/v2/app/profile"
+	appdb "github.com/auron-labs/mygo-framework/v2/database"
+	"github.com/auron-labs/mygo-framework/v2/logging"
 
 	"github.com/spf13/cobra"
 )

@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/auron-labs/mygo-framework/database"
+	"github.com/auron-labs/mygo-framework/v2/database"
 )
 
 const (

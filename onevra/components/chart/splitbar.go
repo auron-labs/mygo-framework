@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/onevra/components"
-	"github.com/auron-labs/mygo-framework/onevra/internal/l10n"
+	"github.com/auron-labs/mygo-framework/v2/onevra/components"
+	"github.com/auron-labs/mygo-framework/v2/onevra/internal/l10n"
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 )

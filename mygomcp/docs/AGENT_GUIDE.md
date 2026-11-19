@@ -71,14 +71,14 @@ port forward in front of this endpoint.
 Add the library to your Go module:
 
 ```sh
-go get github.com/auron-labs/mygo-framework@latest
+go get github.com/auron-labs/mygo-framework/v2@latest
 ```
 
 If using a private copy, configure Git authentication and include this module in
 your existing `GOPRIVATE` setting before installation and updates. Import it as:
 
 ```go
-import mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
+import mygomcp "github.com/auron-labs/mygo-framework/v2/mygomcp"
 ```
 
 Put the harness in a separate entry point, or behind a development build tag,

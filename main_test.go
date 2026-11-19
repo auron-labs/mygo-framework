@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	appMCP "github.com/auron-labs/mygo-framework/app/mcp"
+	appMCP "github.com/auron-labs/mygo-framework/v2/app/mcp"
 )
 
 func TestMCPOptionsFromEnvironment(t *testing.T) {

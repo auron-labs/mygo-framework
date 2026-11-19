@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auron-labs/mygo-framework/jobs"
+	"github.com/auron-labs/mygo-framework/v2/jobs"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"

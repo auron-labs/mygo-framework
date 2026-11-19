@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/auron-labs/mygo-framework/problem"
+	"github.com/auron-labs/mygo-framework/v2/problem"
 
 	"github.com/go-playground/validator/v10"
 )

@@ -36,7 +36,7 @@ restores scroll offsets on its own. Its headless tests and MCP fixture cover
 navigation and the rail. The rest of the starter (preferences, jobs, updates, menu) is the plain starter's.
 
 The starter pins MyGo v0.10.0 and imports the maintained Onevra packages from
-`github.com/auron-labs/mygo-framework/onevra`, versioned with the framework.
+`github.com/auron-labs/mygo-framework/v2/onevra`, versioned with the framework.
 See [Onevra installation and migration](../onevra/README.md) for use in existing
 applications. The plain starter includes a Onevra plain shell, retained Go view
 state, and typed settings in SQLite.
@@ -97,7 +97,7 @@ use MyGo's directory for the app inside the sandbox.
 
 ## Background jobs
 
-`github.com/auron-labs/mygo-framework/jobs` runs named, cancellable jobs with
+`github.com/auron-labs/mygo-framework/v2/jobs` runs named, cancellable jobs with
 progress. It has no UI dependency, so the web starter can import it too.
 
 ```go
@@ -242,7 +242,7 @@ In tests, `ui.Tester.DropFiles` delivers the same events as a real drop.
 ## PDF reports
 
 A native `ui.View` cannot be exported to PDF: `Page.PrintToPDF` only prints web
-pages. `github.com/auron-labs/mygo-framework/pdfreport` lays out report PDFs directly instead. It is
+pages. `github.com/auron-labs/mygo-framework/v2/pdfreport` lays out report PDFs directly instead. It is
 pure Go (builds with `CGO_ENABLED=0`), wraps
 [`signintech/gopdf`](https://github.com/signintech/gopdf), and is imported by
 native projects only. Its embedded Go fonts cover Latin scripts; embed another
@@ -281,7 +281,7 @@ on screen, so the cost of a frame does not grow with the number of rows. Run
 
 ## Time-series charts
 
-`github.com/auron-labs/mygo-framework/timechart` draws continuous time series: a clock-aligned time
+`github.com/auron-labs/mygo-framework/v2/timechart` draws continuous time series: a clock-aligned time
 (or plain numeric) x-axis, line, step and min/max band series, point and
 interval event markers, and a hover crosshair with a readout. Wheel or pinch
 zooms around the cursor, dragging pans, and a double click resets; with the
@@ -392,7 +392,7 @@ cannot write is left to MyGo, which reports it as a failed install.
 
 ## Profiles
 
-`github.com/auron-labs/mygo-framework/profiles` gives each named profile its own SQLite file,
+`github.com/auron-labs/mygo-framework/v2/profiles` gives each named profile its own SQLite file,
 `<data dir>/profiles/<name>.db`, opened with the same `database.Open` and
 migrations as the preferences database. The helper is not wired into the
 starter's window.
@@ -423,7 +423,7 @@ The Go side reports unexpected errors and panics to Sentry when a DSN is
 configured: `SENTRY_DSN` in the environment the app is launched from, or a DSN
 compiled into a packaged build. With no DSN the SDK is not initialised and
 nothing is sent. Only errors are reported: no tracing, profiling, session
-replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
+replay or breadcrumbs. `github.com/auron-labs/mygo-framework/v2/errorreport` wraps
 `sentry-go` and is shared with the web starter.
 
 ```sh
@@ -434,7 +434,7 @@ Compile the DSN in with `MYGO_LDFLAGS`; the release workflow does this from a
 `SENTRY_DSN` repository secret. `SENTRY_DSN` still overrides it at run time.
 
 ```sh
-MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=https://<key>@<host>/<project>" go tool mygo build
+MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=https://<key>@<host>/<project>" go tool mygo build
 ```
 
 When a DSN is configured, the native starter shows **Send error reports** in the
@@ -485,7 +485,7 @@ checks locally with `golangci-lint run` and `go tool mygo generate`.
 
 ## Reactive state
 
-`github.com/auron-labs/mygo-framework/state` holds values that views, background goroutines and
+`github.com/auron-labs/mygo-framework/v2/state` holds values that views, background goroutines and
 storage share, and tells subscribers when they change. Both starters include
 it, and the native starter keeps its preferences in a cell. It uses only the
 standard library.
@@ -650,11 +650,11 @@ web project (no `mygo.json`) still gets the web feature scaffold.
 ## Reusing the packages in a separate application
 
 Generated applications import the framework packages from
-`github.com/auron-labs/mygo-framework`, so they are versioned with Go modules
+`github.com/auron-labs/mygo-framework/v2`, so they are versioned with Go modules
 and update with `go get`:
 
 ```sh
-go get github.com/auron-labs/mygo-framework@latest
+go get github.com/auron-labs/mygo-framework/v2@latest
 go mod tidy
 ```
 
