@@ -114,6 +114,17 @@ off := manager.Subscribe(func(s jobs.Status) { /* every change, including the fi
 err = manager.Shutdown(shutdownCtx)
 ```
 
+`httpclient.JobProgress` adapts a download's progress to `jobs.Report`; an
+unknown size shows as an indeterminate bar:
+
+```go
+err := manager.Start("update", func(ctx context.Context, report jobs.Report) error {
+	_, err := client.Download(ctx, "update.download", url, dest,
+		httpclient.DownloadOptions{Progress: httpclient.JobProgress(report, "Downloading")})
+	return err
+})
+```
+
 - Only one job per name runs at a time. Starting a name that is still running
   returns `jobs.ErrRunning` and leaves the running job untouched; cancel it or
   wait for it first. A finished job's name can be started again.
