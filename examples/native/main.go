@@ -92,44 +92,51 @@ func (s *screen) view(c *ui.Context) {
 	if p.Compact {
 		gap = 8
 	}
-	ui.Column(c).Fill().Padding(24).Gap(gap).Children(func() {
-		components.Text(c, appName).FontSize(22).Bold()
-		s.updateView(c)
-		compact := p.Compact
-		components.Checkbox(c, &compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel()).OnChange(func() {
-			s.prefs.Update(func(p *preferences) { p.Compact = compact })
-		})
-		units := p.Units
-		ui.RadioGroup(c, func() {
-			for _, option := range []struct{ value, label string }{{unitsMetric, locales.UnitsMetric()}, {unitsImperial, locales.UnitsImperial()}} {
-				components.Radio(c, &units, option.value, option.label).OnChange(func() {
-					s.prefs.Update(func(p *preferences) { p.Units = units })
-				})
-			}
-		}).Label(locales.UnitsLabel())
-		appearance := p.Theme
-		ui.RadioGroup(c, func() {
-			for _, option := range []struct{ value, label string }{{themeSystem, locales.ThemeSystem()}, {themeLight, locales.ThemeLight()}, {themeDark, locales.ThemeDark()}} {
-				components.Radio(c, &appearance, option.value, option.label).OnChange(func() {
-					s.prefs.Update(func(p *preferences) { p.Theme = appearance })
-				})
-			}
-		}).Label(locales.ThemeLabel())
-		if errorreport.Configured() {
-			reports := p.ErrorReports
-			components.Checkbox(c, &reports, locales.ErrorReports()).Label(locales.ErrorReportsLabel()).OnChange(func() {
-				s.prefs.Update(func(p *preferences) { p.ErrorReports = reports })
+	// The page scrolls: a phone's window is short, and larger text makes it
+	// shorter still.
+	ui.Scroll(c).Fill().Children(func() {
+		ui.Column(c).FillWidth().Padding(24).Gap(gap).Children(func() { s.controls(c, p) })
+	})
+}
+
+// controls lists the preferences, the import and the support bundle.
+func (s *screen) controls(c *ui.Context, p preferences) {
+	components.Text(c, appName).FontSize(22).Bold()
+	s.updateView(c)
+	compact := p.Compact
+	components.Checkbox(c, &compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel()).OnChange(func() {
+		s.prefs.Update(func(p *preferences) { p.Compact = compact })
+	})
+	units := p.Units
+	ui.RadioGroup(c, func() {
+		for _, option := range []struct{ value, label string }{{unitsMetric, locales.UnitsMetric()}, {unitsImperial, locales.UnitsImperial()}} {
+			components.Radio(c, &units, option.value, option.label).OnChange(func() {
+				s.prefs.Update(func(p *preferences) { p.Units = units })
 			})
 		}
-		components.Text(c, locales.PreferencesSavedAutomatically()).Wrap()
-		if s.saver.Err().Get() != nil {
-			components.Text(c, locales.PreferencesSaveFailed()).Wrap()
+	}).Label(locales.UnitsLabel())
+	appearance := p.Theme
+	ui.RadioGroup(c, func() {
+		for _, option := range []struct{ value, label string }{{themeSystem, locales.ThemeSystem()}, {themeLight, locales.ThemeLight()}, {themeDark, locales.ThemeDark()}} {
+			components.Radio(c, &appearance, option.value, option.label).OnChange(func() {
+				s.prefs.Update(func(p *preferences) { p.Theme = appearance })
+			})
 		}
-		s.importView(c)
-		if components.Button(c, locales.SaveSupportBundle(), components.ButtonSecondary).Clicked() {
-			s.saveSupportBundle()
-		}
-	})
+	}).Label(locales.ThemeLabel())
+	if errorreport.Configured() {
+		reports := p.ErrorReports
+		components.Checkbox(c, &reports, locales.ErrorReports()).Label(locales.ErrorReportsLabel()).OnChange(func() {
+			s.prefs.Update(func(p *preferences) { p.ErrorReports = reports })
+		})
+	}
+	components.Text(c, locales.PreferencesSavedAutomatically()).Wrap()
+	if s.saver.Err().Get() != nil {
+		components.Text(c, locales.PreferencesSaveFailed()).Wrap()
+	}
+	s.importView(c)
+	if components.Button(c, locales.SaveSupportBundle(), components.ButtonSecondary).Clicked() {
+		s.saveSupportBundle()
+	}
 }
 
 // savePreferences returns the autosave function for values. It reports each

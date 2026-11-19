@@ -714,3 +714,81 @@ func TestFoundUpdateOffersInstallAndReportsFailure(t *testing.T) {
 		t.Fatalf("failed view = %q", tt.Texts())
 	}
 }
+
+// phoneTester shows the starter in a phone-sized window with an iPhone's safe
+// area.
+func phoneTester(s *screen, width, height int) *ui.Tester {
+	s.onPhone = true
+	tt := ui.NewTester(func(c *ui.Context) { theme.Apply(c); s.view(c) }, width, height)
+	tt.SetInsets(47, 12, 34, 9)
+	tt.Frame()
+	return tt
+}
+
+// A finger changes a preference, and a finger drag scrolls to the controls
+// below the fold of a short window.
+func TestPhoneFingerReachesEveryControl(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.dataDir = t.TempDir()
+	offered := make(chan struct{}, 1)
+	s.saveCopy = func(string, string) (string, error) { offered <- struct{}{}; return "", nil }
+	tt := phoneTester(s, 844, 390)
+	r, ok := tt.Find(locales.CompactSpacing())
+	if !ok {
+		t.Fatalf("missing %q: %q", locales.CompactSpacing(), tt.Texts())
+	}
+	tt.FingerDown(r.X+r.W/2, r.Y+r.H/2)
+	tt.FingerUp(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if !s.prefs.Get().Compact {
+		t.Fatal("a tap did not change the preference")
+	}
+	// The support bundle button starts below the window; a finger drag up
+	// brings it into view.
+	for range 6 {
+		if b, ok := tt.Find(locales.SaveSupportBundle()); ok && b.Y+b.H <= 390-34 {
+			break
+		}
+		tt.FingerDown(400, 300)
+		tt.FingerMove(400, 250)
+		tt.FingerMove(400, 150)
+		tt.FingerUp(400, 150)
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+	b, ok := tt.Find(locales.SaveSupportBundle())
+	if !ok || b.Y+b.H > 390-34 {
+		t.Fatalf("the support bundle button is out of reach: %+v %v", b, ok)
+	}
+	tt.FingerDown(b.X+b.W/2, b.Y+b.H/2)
+	tt.FingerUp(b.X+b.W/2, b.Y+b.H/2)
+	select {
+	case <-offered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("tapping the button did not save a copy")
+	}
+}
+
+// Every control on the main screen has an accessible name and a role.
+func TestPhoneControlsHaveNamesAndRoles(t *testing.T) {
+	named := []ui.Role{
+		ui.RoleButton, ui.RoleLink, ui.RoleCheckBox, ui.RoleRadio, ui.RoleSwitch, ui.RoleTab,
+		ui.RoleTextField, ui.RoleComboBox, ui.RolePopUpButton, ui.RoleToggleButton, ui.RoleSlider,
+	}
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	s.update = &mygo.Update{Version: "2.0.0"}
+	tt := phoneTester(s, 390, 1600)
+	controls := 0
+	for _, a := range tt.AccessAll() {
+		if !slices.Contains(named, a.Role) {
+			continue
+		}
+		controls++
+		if a.Name == "" {
+			t.Errorf("a %v at %+v has no accessible name", a.Role, a.Bounds)
+		}
+	}
+	if controls < 5 {
+		t.Fatalf("found %d controls: %q", controls, tt.Texts())
+	}
+}

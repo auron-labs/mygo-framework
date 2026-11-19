@@ -5,10 +5,12 @@ import (
 	"mygo-framework/locales"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/auron-labs/mygo-framework/jobs"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
 )
 
 func TestNavigationSelectsPages(t *testing.T) {
@@ -218,20 +220,129 @@ func TestPhoneTabsFollowRoutes(t *testing.T) {
 	}
 }
 
-// Back returns from a pushed footer route to the navigation page the tabs last
-// showed, and a launch that restores a footer route backs out to Home.
-func TestPhoneBackReturnsToLastTab(t *testing.T) {
+// phoneTester shows the phone layout in a phone-sized window with an iPhone's
+// safe area, on the page with navigation id page.
+func phoneTester(s *screen, page string) *ui.Tester {
+	s.onPhone = true
+	s.kept.page = page
+	s.version = "0.1.0"
+	tt := ui.NewTester(s.view, 390, 844)
+	tt.SetInsets(47, 12, 34, 9)
+	tt.Frame()
+	return tt
+}
+
+// tap touches a control by its label, as a finger does.
+func tap(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	r, ok := tt.Find(label)
+	if !ok {
+		t.Fatalf("missing %q to tap: %q", label, tt.Texts())
+	}
+	x, y := r.X+r.W/2, r.Y+r.H/2
+	tt.FingerDown(x, y)
+	tt.FingerUp(x, y)
+	tt.Frame()
+}
+
+// Back returns from a pushed footer route to the page before it, and a launch
+// that restores a footer route has none and backs out to Home.
+func TestPhoneBackReturnsToThePageBefore(t *testing.T) {
 	s := newScreen(t, preferences{Profile: "Default"})
+	s.onPhone = true
 	s.navigate(pageImport)
 	s.navigate(pageSettings)
 	s.back()
-	if s.kept.page != pageImport {
-		t.Fatalf("back went to %q, want %q", s.kept.page, pageImport)
+	if s.current().id != pageImport {
+		t.Fatalf("back went to %q, want %q", s.current().id, pageImport)
 	}
 	restored := newScreen(t, preferences{Profile: "Default"})
+	restored.onPhone = true
 	restored.kept.page = pageSettings
 	restored.back()
-	if restored.kept.page != pageHome {
-		t.Fatalf("back from a restored footer route went to %q", restored.kept.page)
+	if restored.current().id != pageHome {
+		t.Fatalf("back from a restored footer route went to %q", restored.current().id)
+	}
+}
+
+// The system's back key and the top bar's back button each take one page off
+// the router's history, and a finger drives the tabs and the top bar inside a
+// phone's safe area.
+func TestPhoneNavigationByFingerAndBack(t *testing.T) {
+	s := newScreen(t, preferences{Profile: "Default"})
+	tt := phoneTester(s, pageHome)
+	if !tt.HasText(locales.HomeWelcome(appName)) {
+		t.Fatalf("first page = %q", tt.Texts())
+	}
+	tap(t, tt, locales.NavImport())
+	if s.current().id != pageImport || !tt.HasText(locales.ChooseFiles()) {
+		t.Fatalf("Import tab shows %q", tt.Texts())
+	}
+	// Settings opens as a pushed screen: no tab bar, a back button.
+	tap(t, tt, locales.NavGoTo(locales.NavSettings()))
+	if s.current().id != pageSettings {
+		t.Fatalf("page = %q", s.current().id)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTab, locales.NavImport()); ok {
+		t.Fatal("the tab bar shows on a pushed screen")
+	}
+	// The system's back key returns to the tab before Settings, once.
+	tt.Key(0, ui.KeyBack)
+	tt.Frame()
+	tt.Advance(time.Second)
+	if s.current().id != pageImport {
+		t.Fatalf("back key went to %q, want %q", s.current().id, pageImport)
+	}
+	tap(t, tt, locales.NavGoTo(locales.NavSettings()))
+	tap(t, tt, "Back")
+	tt.Advance(time.Second)
+	if s.current().id != pageImport {
+		t.Fatalf("back button went to %q, want %q", s.current().id, pageImport)
+	}
+}
+
+// The page MyGo keeps follows the router, so the system's back is what a later
+// launch restores too.
+func TestPhoneKeptPageFollowsTheRouter(t *testing.T) {
+	s := newScreen(t, preferences{Profile: "Default"})
+	tt := phoneTester(s, pageImport)
+	tap(t, tt, locales.NavGoTo(locales.NavSettings()))
+	if s.kept.page != pageSettings {
+		t.Fatalf("kept page = %q", s.kept.page)
+	}
+	tt.Key(0, ui.KeyBack)
+	tt.Frame()
+	tt.Advance(time.Second)
+	if s.kept.page != pageImport {
+		t.Fatalf("kept page after back = %q", s.kept.page)
+	}
+}
+
+// Every control on the phone's screens has an accessible name and a role.
+func TestPhoneControlsHaveNamesAndRoles(t *testing.T) {
+	named := []ui.Role{
+		ui.RoleButton, ui.RoleLink, ui.RoleCheckBox, ui.RoleRadio, ui.RoleSwitch, ui.RoleTab,
+		ui.RoleTextField, ui.RoleComboBox, ui.RolePopUpButton, ui.RoleToggleButton, ui.RoleSlider,
+	}
+	s := newScreen(t, preferences{Profile: "Default"})
+	s.update = &mygo.Update{Version: "2.0.0"}
+	for _, page := range []string{pageHome, pageImport, pageSettings} {
+		tt := phoneTester(s, page)
+		controls := 0
+		for _, a := range tt.AccessAll() {
+			if !slices.Contains(named, a.Role) {
+				continue
+			}
+			controls++
+			if a.Name == "" {
+				t.Errorf("%s: a %v at %+v has no accessible name", page, a.Role, a.Bounds)
+			}
+		}
+		if controls == 0 {
+			t.Errorf("%s: no controls found", page)
+		}
+		if _, ok := tt.AccessByRole(ui.RoleTab, locales.NavHome()); !ok && page != pageSettings {
+			t.Errorf("%s: the tab bar has no Home tab", page)
+		}
 	}
 }

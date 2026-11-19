@@ -28,6 +28,7 @@ import (
 	mygomcp "github.com/auron-labs/mygo-framework/mygomcp"
 	"github.com/auron-labs/mygo-framework/onevra/shells/sidebar"
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
 )
 
 const (
@@ -74,14 +75,15 @@ type screen struct {
 	onPhone bool
 	// The fields below are UI-only and touched on the main thread. host is the
 	// shell's sidebar width (see layout.go); kept holds the page and what a
-	// phone's system ends the app with; lastNav is the navigation page a
-	// phone's back returns to.
+	// phone's system ends the app with; router is the phone's page history
+	// and phoneUI its layout, both created when first drawn.
 	kept          keptState
 	host          leftHost
 	version       string
 	expandedWidth float32
 	railActive    bool
-	lastNav       string
+	router        *ui.Router
+	phoneUI       func(*ui.Context)
 }
 
 // keptState is what MyGo restores at the next launch: the page that was

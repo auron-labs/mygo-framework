@@ -92,6 +92,8 @@ repository. `profiles/` keeps one SQLite file per named profile.
 Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
 nothing is initialised or sent. The home directory is replaced with `~` in
 error text; on iOS and Android the app data directory becomes `<app data>`.
+Phones have no environment, so compile the DSN into phone builds with
+`MYGO_LDFLAGS`, as the mobile guide describes.
 
 ## Pages, sidebar and rail
 
@@ -117,6 +119,20 @@ The window minimum is narrower than the breakpoint so the rail is reachable.
 
 `screen.view` lays out the same regions without a window; the tests and the MCP
 fixture use it with a stand-in for the shell's sidebar width.
+
+### On phones
+
+Run it with `framework dev -platform ios|android`; [the mobile guide](https://github.com/auron-labs/mygo-framework/blob/main/docs/mobile.md)
+covers prerequisites, signing and publishing.
+
+The same route table drives the phone layout: `inNav` routes become a bottom tab
+bar, and the other routes (Settings) open as pushed screens from a top-bar
+button, with a back button. The sidebar, rail and its update prompt and account
+card are desktop-only. Pages move through a `ui.Router` (`screen.router`):
+`navigate` replaces the page for a tab and pushes any other route, so Android's
+back and iOS's swipe from the left edge return to the page before. The router's
+page is the one MyGo keeps. Tests run the phone layout with `screen.onPhone` and
+`Tester.SetInsets`; see `TestPhoneNavigationByFingerAndBack`.
 
 Compose Onevra components in the page views. Keep disk and network work
 outside builders. Web/MCP adapter generation is

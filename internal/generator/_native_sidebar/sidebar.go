@@ -28,8 +28,16 @@ func (s *screen) shellOptions() sidebar.ShellOptions {
 }
 
 // view lays out the same regions without a window, for the headless tests and
-// the MCP fixture. The sidebar width comes from s.host, as in the window.
+// the MCP fixture: the phone layout on a phone, otherwise the sidebar, whose
+// width comes from s.host, as in the window.
 func (s *screen) view(c *ui.Context) {
+	if s.onPhone {
+		if s.phoneUI == nil {
+			s.phoneUI = sidebar.PhoneView(s.shellOptions())
+		}
+		s.phoneUI(c)
+		return
+	}
 	if s.host == nil {
 		s.host = &staticLeft{width: defaultLeftWidth}
 	}
@@ -208,13 +216,15 @@ func (s *screen) topActions(c *ui.Context) {
 	}
 }
 
-// back returns from a pushed footer route to the navigation page the tabs last
-// showed; a launch that restores a footer route returns to Home.
+// back returns from a pushed footer route to the page before it. A launch that
+// restores a footer route has no page before, and returns to Home.
 func (s *screen) back() {
-	if s.lastNav == "" {
-		s.lastNav = routes()[0].id
+	s.syncPhoneRouter()
+	if s.router.CanGoBack() {
+		s.router.Back()
+		return
 	}
-	s.navigate(s.lastNav)
+	s.navigate(routes()[0].id)
 }
 
 // compactWindow reports whether the window is narrower than the breakpoint.
@@ -228,13 +238,32 @@ func (s *screen) contentTitle(c *ui.Context) {
 	components.Text(c, s.current().title()).Bold().SingleLine()
 }
 
-// content builds the selected page below the top bar.
+// content builds the selected page below the top bar. On a phone the router
+// moves between pages, so a slide shows two of them at once.
 func (s *screen) content(c *ui.Context) {
+	if !s.onPhone {
+		s.page(c, s.current())
+		return
+	}
+	s.syncPhoneRouter()
+	s.router.View(c, func(r *ui.Route) {
+		page := routes()[0]
+		for _, candidate := range routes() {
+			if r.Match("/" + candidate.id) {
+				page = candidate
+			}
+		}
+		r.Title(page.title())
+		s.page(c, page)
+	})
+}
+
+// page builds the page r in a scrolling column.
+func (s *screen) page(c *ui.Context, r route) {
 	gap := float32(24)
 	if s.prefs.Get().Compact {
 		gap = 8
 	}
-	r := s.current()
 	ui.Scroll(c).Fill().Children(func() {
 		ui.Column(c).FillWidth().Padding(sidebar.HeaderHeight(c)+16, 24, 24, 24).Gap(gap).Children(func() { r.view(c, s) })
 	})

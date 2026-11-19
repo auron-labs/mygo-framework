@@ -85,9 +85,15 @@ repository. `profiles/` keeps one SQLite file per named profile.
 
 `framework make feature NAME` adds a native view, store, migration and test.
 
+On a phone the window is one scrolling page inside the system's bars. Run it
+with `framework dev -platform ios|android`; [the mobile guide](https://github.com/auron-labs/mygo-framework/blob/main/docs/mobile.md)
+covers prerequisites, signing and publishing.
+
 Set `SENTRY_DSN` to send unexpected errors and panics to Sentry; without it
 nothing is initialised or sent. The home directory is replaced with `~` in
 error text; on iOS and Android the app data directory becomes `<app data>`.
+Phones have no environment, so compile the DSN into phone builds with
+`MYGO_LDFLAGS`, as the mobile guide describes.
 
 Extend the retained screen state and compose Onevra components in its view.
 Keep disk and network work outside builders. Web/MCP adapter generation is

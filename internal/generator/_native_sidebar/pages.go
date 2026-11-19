@@ -2,6 +2,7 @@ package main
 
 import (
 	"mygo-framework/locales"
+	"strings"
 
 	"github.com/auron-labs/mygo-framework/onevra/icons/lucide"
 	"github.com/egoist/mygo/ui"
@@ -38,9 +39,13 @@ func routes() []route {
 
 // current returns the selected route; an unknown id selects Home.
 func (s *screen) current() route {
+	id := s.kept.page
+	if s.onPhone {
+		id = s.syncPhoneRouter()
+	}
 	all := routes()
 	for _, r := range all {
-		if r.id == s.kept.page {
+		if r.id == id {
 			return r
 		}
 	}
@@ -55,13 +60,35 @@ func (s *screen) restoreNotice() {
 	}
 }
 
-// navigate selects a page by navigation id, remembering the navigation page
-// shown, which a phone's pushed footer route returns to.
+// navigate selects a page by navigation id. On a phone the pages are a
+// ui.Router's history: a navigation route replaces the page, as a tab does, and
+// any other route is pushed above it, so the system's back and an iOS edge
+// swipe return to the page before.
 func (s *screen) navigate(id string) {
+	s.kept.page = id
+	if !s.onPhone {
+		return
+	}
+	s.syncPhoneRouter()
 	for _, r := range routes() {
-		if r.id == id && r.inNav {
-			s.lastNav = id
+		if r.id != id {
+			continue
+		}
+		if r.inNav {
+			s.router.Replace("/" + id)
+		} else {
+			s.router.Push("/" + id)
 		}
 	}
-	s.kept.page = id
+}
+
+// syncPhoneRouter returns the id of the page the phone's router shows, and
+// records it as the page MyGo keeps. A launch that restores a page starts the
+// router there; the system's back moves the router without calling navigate.
+func (s *screen) syncPhoneRouter() string {
+	if s.router == nil {
+		s.router = ui.NewRouter("/" + s.kept.page)
+	}
+	s.kept.page = strings.TrimPrefix(s.router.Path(), "/")
+	return s.kept.page
 }

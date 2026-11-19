@@ -68,6 +68,19 @@ func (s *Shell) phoneView(c *ui.Context) {
 	components.Toasts(c, phone.ToastOptions(c, s.options.Toasts))
 }
 
+// PhoneView returns the phone layout of a shell with options, without a
+// window, for headless tests of an application's phone screens. It draws the
+// phone layout on every system.
+func PhoneView(options ShellOptions) func(*ui.Context) {
+	s := newShell(options)
+	return func(c *ui.Context) {
+		if s.options.Theme != nil {
+			c.SetTheme(s.options.Theme(c))
+		}
+		s.phoneView(c)
+	}
+}
+
 // phoneTabs reads the destinations of the frame, nil without the option.
 func (s *Shell) phoneTabs(c *ui.Context) []Tab {
 	if s.options.Tabs == nil {
