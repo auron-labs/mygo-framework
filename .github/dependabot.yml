@@ -8,6 +8,14 @@ multi-ecosystem-groups:
       prefix: chore(deps)
 
 updates:
+  - package-ecosystem: gomod
+    directory: /
+    multi-ecosystem-group: dependencies
+    patterns: ["*"]
+  - package-ecosystem: bun
+    directories: ["/", "/internal/generator/_template"]
+    multi-ecosystem-group: dependencies
+    patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     multi-ecosystem-group: dependencies
