@@ -71,7 +71,7 @@ func TestSaveSupportBundleCopyRemovesTheTemporaryFile(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var path, name string
-			err := saveSupportBundleCopy(t.TempDir(), func(p, n string) (string, error) {
+			err := saveSupportBundleCopy(t.TempDir(), t.TempDir(), func(p, n string) (string, error) {
 				path, name = p, n
 				readableSupportBundle(t, p)
 				return tc.saved, tc.err

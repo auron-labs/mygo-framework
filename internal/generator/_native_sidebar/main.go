@@ -40,7 +40,7 @@ const (
 	saveTimeout = 2 * time.Second
 	// suspendTimeout bounds how long a suspend waits for pending state.
 	suspendTimeout = 2 * time.Second
-	// logDirectory is where the rotating logs live, inside the data directory.
+	// logDirectory is where the rotating logs live, inside an explicit data directory.
 	logDirectory = "logs"
 )
 
@@ -58,8 +58,9 @@ type screen struct {
 	// win is set once the window exists; the folder picker reports through it.
 	win           *mygo.Window
 	importMessage string
-	// dataDir holds the database and logs, which the support bundle reads.
+	// dataDir holds the database; logDir holds the logs. The support bundle reads both.
 	dataDir string
+	logDir  string
 	// update is the newer version found at launch, if the build checks for updates.
 	update *mygo.Update
 	// db is checkpointed when the system suspends the app.
@@ -223,7 +224,15 @@ func run(dataDir string) (err error) {
 	if useDefaultDir && !mygo.App.RequestSingleInstanceLock() {
 		return nil
 	}
-	logger, closeLogs, err := logging.New(logging.DefaultOptions(mygo.IsDev(), filepath.Join(dataDir, logDirectory)))
+	logDir := filepath.Join(dataDir, logDirectory)
+	if useDefaultDir {
+		defaultLogDir, err := datadir.Logs(profileName)
+		if err != nil {
+			return fmt.Errorf("locate log directory: %w", err)
+		}
+		logDir = defaultLogDir
+	}
+	logger, closeLogs, err := logging.New(logging.DefaultOptions(mygo.IsDev(), logDir))
 	if err != nil {
 		return fmt.Errorf("open logs: %w", err)
 	}
@@ -255,7 +264,7 @@ func run(dataDir string) (err error) {
 		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
 	}()
 	s := &screen{
-		prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, version: mygo.App.Version(),
+		prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, logDir: logDir, version: mygo.App.Version(),
 		db: db, onPhone: runtime.GOOS == "ios" || runtime.GOOS == "android",
 	}
 	defer mygo.Power.OnSuspend(s.suspend)()

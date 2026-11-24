@@ -2,6 +2,7 @@
 package logging
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,20 +16,32 @@ import (
 
 const logFilename = "app.log"
 
-// Options controls the application's log destinations and file retention.
+// LevelSuccess marks an operation that finished as intended. It ranks between
+// slog.LevelInfo and slog.LevelWarn, so it is written whenever info is.
+const LevelSuccess = slog.LevelInfo + 2
+
+// Options controls the application's log destinations, level and file retention.
 type Options struct {
 	Development bool
-	Directory   string
-	MaxSizeMB   int
-	MaxBackups  int
-	MaxAgeDays  int
-	Compress    bool
+	// Level is the lowest level written: debug, info, success, warn or error.
+	Level      slog.Level
+	Directory  string
+	MaxSizeMB  int
+	MaxBackups int
+	MaxAgeDays int
+	Compress   bool
 }
 
-// DefaultOptions returns the initial file-retention policy.
+// DefaultOptions returns the initial level and file-retention policy: debug
+// and above in development, info and above otherwise.
 func DefaultOptions(development bool, directory string) Options {
+	level := slog.LevelInfo
+	if development {
+		level = slog.LevelDebug
+	}
 	return Options{
 		Development: development,
+		Level:       level,
 		Directory:   directory,
 		MaxSizeMB:   10,
 		MaxBackups:  3,
@@ -44,7 +57,7 @@ func New(options Options) (*slog.Logger, io.Closer, error) {
 }
 
 func newLogger(options Options, stderr io.Writer) (*slog.Logger, io.Closer, error) {
-	handlerOptions := &slog.HandlerOptions{ReplaceAttr: redactSensitive}
+	handlerOptions := &slog.HandlerOptions{Level: options.Level, ReplaceAttr: replaceAttr}
 	if options.Development {
 		return slog.New(slog.NewTextHandler(stderr, handlerOptions)), nopCloser{}, nil
 	}
@@ -68,6 +81,21 @@ func newLogger(options Options, stderr io.Writer) (*slog.Logger, io.Closer, erro
 	handler := slog.NewTextHandler(io.MultiWriter(stderr, file), handlerOptions)
 
 	return slog.New(handler), file, nil
+}
+
+// Success logs that an operation finished as intended.
+func Success(ctx context.Context, logger *slog.Logger, message string, attrs ...slog.Attr) {
+	logger.LogAttrs(ctx, LevelSuccess, message, attrs...)
+}
+
+// replaceAttr names the success level and redacts sensitive values.
+func replaceAttr(groups []string, attr slog.Attr) slog.Attr {
+	if len(groups) == 0 && attr.Key == slog.LevelKey {
+		if level, ok := attr.Value.Any().(slog.Level); ok && level == LevelSuccess {
+			return slog.String(slog.LevelKey, "SUCCESS")
+		}
+	}
+	return redactSensitive(groups, attr)
 }
 
 func redactSensitive(groups []string, attr slog.Attr) slog.Attr {

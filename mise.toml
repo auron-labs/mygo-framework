@@ -51,8 +51,8 @@ description = "Check framework-owned generated files"
 run = "go run ./cmd/framework generate --check"
 
 [tasks.build]
-description = "Package the reference desktop application with MyGo"
-run = "bun run build"
+description = "Package the reference desktop application with MyGo; compiles in SENTRY_DSN when it is set"
+run = 'MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=${SENTRY_DSN:-}" bun run build'
 
 [tasks."build:web"]
 description = "Typecheck and build frontend assets"

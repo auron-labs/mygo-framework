@@ -118,7 +118,7 @@ func (s *screen) saveSupportBundle() {
 			if saveCopy == nil {
 				saveCopy = mygo.Dialog.SaveCopy
 			}
-			err = saveSupportBundleCopy(s.dataDir, saveCopy)
+			err = saveSupportBundleCopy(s.dataDir, s.logDir, saveCopy)
 		} else {
 			path, saveErr := mygo.Dialog.Save(mygo.SaveDialogOptions{
 				Parent: s.win, Title: locales.SaveSupportBundleTitle(), DefaultPath: supportBundleName,
@@ -130,7 +130,7 @@ func (s *screen) saveSupportBundle() {
 				}
 				return
 			}
-			err = writeSupportBundle(path, s.dataDir)
+			err = writeSupportBundle(path, s.dataDir, s.logDir)
 		}
 		if err != nil {
 			log.Print(err)
@@ -142,7 +142,7 @@ func (s *screen) saveSupportBundle() {
 // saveSupportBundleCopy writes the support bundle to a temporary file and hands
 // it to save, which copies it where the user chose. The temporary file is
 // removed afterwards, whether the user saved, canceled or the copy failed.
-func saveSupportBundleCopy(dataDir string, save func(path, name string) (string, error)) error {
+func saveSupportBundleCopy(dataDir, logDir string, save func(path, name string) (string, error)) error {
 	file, err := os.CreateTemp("", "support-bundle-*.zip")
 	if err != nil {
 		return fmt.Errorf("create support bundle: %w", err)
@@ -152,7 +152,7 @@ func saveSupportBundleCopy(dataDir string, save func(path, name string) (string,
 	if err := file.Close(); err != nil {
 		return fmt.Errorf("close support bundle: %w", err)
 	}
-	if err := writeSupportBundle(path, dataDir); err != nil {
+	if err := writeSupportBundle(path, dataDir, logDir); err != nil {
 		return err
 	}
 	_, err = save(path, supportBundleName)
@@ -167,7 +167,7 @@ func removeSupportBundleCopy(path string) {
 	}
 }
 
-func writeSupportBundle(path, dataDir string) (err error) {
+func writeSupportBundle(path, dataDir, logDir string) (err error) {
 	file, err := os.Create(path) // #nosec G304 -- the user chose this file in the save dialog.
 	if err != nil {
 		return fmt.Errorf("create support bundle: %w", err)
@@ -175,7 +175,7 @@ func writeSupportBundle(path, dataDir string) (err error) {
 	defer func() { err = errors.Join(err, file.Close()) }()
 	if err := diagnostics.Write(context.Background(), file, diagnostics.Options{
 		Version:      mygo.App.Version(),
-		LogDirectory: filepath.Join(dataDir, logDirectory),
+		LogDirectory: logDir,
 		DatabasePath: filepath.Join(dataDir, "app.db"),
 		Migrations:   migrations.FS(),
 	}); err != nil {

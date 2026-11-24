@@ -3,9 +3,7 @@ package profile
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/auron-labs/mygo-framework/v2/datadir"
 )
@@ -34,12 +32,9 @@ func Resolve(dataDirectory string) (Paths, error) {
 		}
 		dataDirectory = resolved
 
-		if runtime.GOOS == "darwin" {
-			homeDirectory, err := os.UserHomeDir()
-			if err != nil {
-				return Paths{}, fmt.Errorf("resolve user home directory: %w", err)
-			}
-			logDirectory = filepath.Join(homeDirectory, "Library", "Logs", Name)
+		logDirectory, err = datadir.Logs(Name)
+		if err != nil {
+			return Paths{}, fmt.Errorf("resolve default log directory: %w", err)
 		}
 	}
 

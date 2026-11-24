@@ -137,3 +137,44 @@ func TestPackagedLoggerRejectsInvalidOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestLevelsAreFilteredAndSuccessIsNamed(t *testing.T) {
+	t.Parallel()
+
+	write := func(development bool) string {
+		var output bytes.Buffer
+		directory := ""
+		if !development {
+			directory = t.TempDir()
+		}
+		logger, closer, err := newLogger(DefaultOptions(development, directory), &output)
+		if err != nil {
+			t.Fatalf("create logger: %v", err)
+		}
+		logger.Debug("debug line")
+		logger.Info("info line")
+		Success(t.Context(), logger, "success line", slog.String("operation", "import"))
+		logger.Warn("warn line")
+		logger.Error("error line")
+		if err := closer.Close(); err != nil {
+			t.Fatalf("close logger: %v", err)
+		}
+		return output.String()
+	}
+
+	development := write(true)
+	for _, want := range []string{"level=DEBUG", "level=INFO", "level=SUCCESS", "level=WARN", "level=ERROR", "operation=import"} {
+		if !strings.Contains(development, want) {
+			t.Errorf("development output %q does not contain %q", development, want)
+		}
+	}
+	packaged := write(false)
+	if strings.Contains(packaged, "debug line") {
+		t.Errorf("packaged output %q contains a debug record", packaged)
+	}
+	for _, want := range []string{"info line", "level=SUCCESS", "warn line", "error line"} {
+		if !strings.Contains(packaged, want) {
+			t.Errorf("packaged output %q does not contain %q", packaged, want)
+		}
+	}
+}

@@ -1,7 +1,8 @@
-// Package errorreport sends unexpected errors and panics to Sentry. Nothing is
-// initialised or sent unless a DSN is configured: SENTRY_DSN in the process
-// environment, or a DSN compiled in with
-// -ldflags "-X github.com/auron-labs/mygo-framework/v2/errorreport.buildDSN=...".
+// Package errorreport sends unexpected errors and panics, with stack traces,
+// to Sentry. Nothing is initialised or sent unless a DSN is configured: a DSN
+// compiled in with
+// -ldflags "-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=...",
+// which always wins, or else SENTRY_DSN in the process environment.
 package errorreport
 
 import (
@@ -21,8 +22,8 @@ const (
 	flushTimeout   = 2 * time.Second
 )
 
-// buildDSN is set at build time for packaged applications, which have no
-// environment to read the DSN from. SENTRY_DSN overrides it.
+// buildDSN is set at build time. A build that has one reports to it whatever
+// the environment says, so a packaged application cannot be redirected.
 var buildDSN string
 
 // dsn is the DSN the client was initialised with; empty while reporting is off.
@@ -39,9 +40,9 @@ var redactor = sync.OnceValue(datadir.Redactor)
 // nothing without one, and leaves reporting off with an error when the DSN is
 // invalid.
 func Init(release string) error {
-	value := os.Getenv(dsnEnvironment)
+	value := buildDSN
 	if value == "" {
-		value = buildDSN
+		value = os.Getenv(dsnEnvironment)
 	}
 	if value == "" {
 		return nil
@@ -52,6 +53,9 @@ func Init(release string) error {
 		// The SDK defaults to sending the machine's host name, which identifies the user's computer.
 		ServerName: "desktop",
 		BeforeSend: redactPaths,
+		// Errors get a stack trace from the SDK; this adds one to panics with a
+		// string or other non-error value, which are sent as messages.
+		AttachStacktrace: true,
 	})
 	if err != nil {
 		return fmt.Errorf("start error reporting: %w", err)
