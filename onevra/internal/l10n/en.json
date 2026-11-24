@@ -262,5 +262,38 @@
     }
   },
   "goBack": "Back",
-  "cardStackRestoredAll": "All cards are back in the stack."
+  "cardStackRestoredAll": "All cards are back in the stack.",
+  "chatNewConversation": "New conversation",
+  "chatConversations": "Conversations",
+  "chatHistory": "Conversation history",
+  "chatNoConversations": "No conversations yet.",
+  "chatDeleteConversation": "Delete {label}",
+  "@chatDeleteConversation": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "chatJumpToLatest": "Jump to latest",
+  "chatMessage": "Message",
+  "chatPlaceholder": "Ask anything…",
+  "chatSend": "Send",
+  "chatStop": "Stop",
+  "chatModel": "Model",
+  "chatSearchModels": "Search models",
+  "chatEffort": "Reasoning effort",
+  "chatChooseAgent": "Choose agent",
+  "chatSearchAgents": "Search agents",
+  "chatNoMatches": "No matches",
+  "chatRefreshAgents": "Refresh agents",
+  "chatNeedsApproval": "Needs your approval",
+  "chatMoreWaiting": "{count, plural, one {# more request waiting} other {# more requests waiting}}",
+  "@chatMoreWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

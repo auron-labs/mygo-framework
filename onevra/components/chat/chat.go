@@ -2,6 +2,8 @@
 // MyGo primitives. Applications own messages, stable IDs, localized labels,
 // parsed documents and asynchronous work. Builders run on the UI thread and
 // must not start work. Retain state per conversation and turn, not per frame.
+// Sidebar assembles these views into an assistant panel and names its own
+// controls from Onevra's catalog.
 package chat
 
 import (
@@ -448,6 +450,12 @@ const ContentWidth = 720
 // scroll state and yields when the user scrolls up. The button is overlaid so
 // its appearance cannot change viewport height.
 func Conversation(c *ui.Context, state *ConversationState, jumpLabel string, content View) ui.Element {
+	return transcript(c, state, jumpLabel, 22, 20, 48, content)
+}
+
+// transcript is Conversation with its content padding and the gap between
+// turns, which narrow hosts such as Sidebar tighten.
+func transcript(c *ui.Context, state *ConversationState, jumpLabel string, padY, padX, gap float32, content View) ui.Element {
 	if state.paused && state.Scroll.Y != state.pauseY && state.AtLatest() {
 		state.paused = false
 	}
@@ -459,8 +467,8 @@ func Conversation(c *ui.Context, state *ConversationState, jumpLabel string, con
 	return ui.Column(c).FillWidth().Grow(1).MinHeight(0).MinWidth(0).Children(func() {
 		viewport := components.ScrollView(c, components.ScrollViewOptions{}).Key("viewport").FillWidth().Grow(1).MinHeight(0).TrackScroll(&state.Scroll)
 		viewport.Children(func() {
-			ui.Column(c).FillWidth().MinWidth(0).Shrink(0).AlignItems(ui.Center).Padding(22, 20).Children(func() {
-				ui.Column(c).FillWidth().MaxWidth(ContentWidth).MinWidth(0).Gap(48).Children(func() {
+			ui.Column(c).FillWidth().MinWidth(0).Shrink(0).AlignItems(ui.Center).Padding(padY, padX).Children(func() {
+				ui.Column(c).FillWidth().MaxWidth(ContentWidth).MinWidth(0).Gap(gap).Children(func() {
 					slot := conversationSlot(c)
 					saved := *slot
 					*slot = conversationScope{state: state, previousY: previousY, reading: !follow}
