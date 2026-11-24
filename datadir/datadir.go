@@ -5,6 +5,7 @@ package datadir
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 
@@ -74,8 +75,10 @@ func desktopLogs(goos, name string, getenv func(string) string, home, localData 
 		}
 		return filepath.Join(directory, "Library", "Logs", name), nil
 	default:
-		// The XDG specification ignores a relative XDG_STATE_HOME.
-		if state := getenv("XDG_STATE_HOME"); filepath.IsAbs(state) {
+		// The XDG specification ignores a relative XDG_STATE_HOME. path.IsAbs
+		// applies Unix rules wherever this runs; filepath.IsAbs would reject
+		// "/var/state" on Windows.
+		if state := getenv("XDG_STATE_HOME"); path.IsAbs(state) {
 			return filepath.Join(state, name), nil
 		}
 		directory, err := home()
