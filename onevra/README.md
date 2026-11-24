@@ -59,7 +59,7 @@ MyGo primitives; MyGo owns rendering, input, and native integration.
 | --- | --- |
 | [`components`](components/doc.go) | Themed controls, lists, tables, menus, and dialogs |
 | `components/chart`, `components/graph`, `components/treemap` | Data visualizations |
-| `components/chat`, `components/command`, `components/flow` | Chat, command palette, and flow views |
+| `components/chat`, `components/command`, `components/flow` | Chat views and an [assistant sidebar](../docs/native.md#assistant-sidebar), command palette, and flow views |
 | `components/gesture`, `components/shaders` | Gesture handling and visual effects |
 | [`theme`](theme/doc.go) | Optional Onevra palettes and frame theme setup |
 | `shells/plain`, `shells/sidebar` | Native window shells |

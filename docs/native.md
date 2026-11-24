@@ -343,6 +343,78 @@ flow.Close()
 `go test -bench . ./examples/timechart` measures a full frame and the provider
 work done off the UI thread.
 
+## Assistant sidebar
+
+`chat.Sidebar` from `onevra/components/chat` is a complete panel for talking
+to an LLM or a local agent: a header with the conversation's title, History
+and New; the transcript, or an empty state with suggestions; a card for the
+permission a running turn waits on; and a composer with agent, model and
+reasoning pickers. It renders application data and reports what the user did.
+Finding agents, running turns and keeping conversations are the application's
+work.
+
+```go
+// In the sidebar shell's Right builder:
+r := chat.Sidebar(c, &a.sidebar, chat.SidebarOptions{
+	TopInset:      sidebar.HeaderHeight(c),
+	Conversation:  a.current.ID,
+	Title:         a.current.Title,
+	Turns:         a.current.Turns(), // []chat.TurnOptions
+	Running:       a.cancel != nil,
+	Permissions:   a.pending,
+	Conversations: a.history(), // []chat.Option; nil hides History
+	Agents:        a.agents, Agent: a.prefs.Agent,
+	Models:        a.models, Model: a.prefs.Model,
+	EmptyTitle:    "Ask about this project",
+	Suggestions:   []chat.Suggestion{{Label: "Summarize the open file"}},
+})
+switch {
+case r.Composer.Send:
+	a.send(strings.TrimSpace(a.sidebar.Draft)) // starts the turn off the UI thread
+	a.sidebar.Draft = ""
+case r.Composer.Stop:
+	a.cancel()
+case r.New:
+	a.newConversation()
+case r.Open != "":
+	a.open(r.Open)
+case r.Answer.Permission != "":
+	a.answer(r.Answer)
+case r.Agent != "":
+	a.prefs.Agent = r.Agent
+}
+```
+
+- **State.** Keep one `chat.SidebarState` per sidebar. It holds the draft and
+  the presentation: scroll, open pickers, whether History shows, and each
+  turn's folding. Changing `Conversation` resets the scroll and folding.
+- **Turns.** Give each request one `chat.TurnOptions` with a stable `ID`.
+  `Prompt` and `Final` are views, so render text with
+  `github.com/egoist/mygo/ui/markdown` or anything else. The sidebar keeps
+  step groups and expanded activities open across frames, keyed by their IDs,
+  so turns can be rebuilt from application data every frame.
+- **Running.** Run the agent off the UI thread and apply its events with
+  `win.Update(func() { ... })`. While `Running` is set the composer shows
+  Stop, and New, History and the pickers are disabled. A permission the turn
+  waits on goes in `Permissions`; its card scrolls into view when it arrives,
+  and `r.Answer` names the chosen option. Remove the permission once it is
+  answered.
+- **Customizing.** `Composer` passes options to the composer: add an attach
+  button in `Accessory`, attachment chips in `Attachments`, file drops with
+  `AcceptFiles`, and status in `Footer`; the sidebar adds its pickers next to
+  yours. `HeaderActions` adds header buttons, `Top` adds content under the
+  header, `Notice` shows status above the composer, and `Empty` replaces the
+  empty state. `Transcript` replaces the turn list with your own content;
+  build its turns with `SidebarState.Turn` to keep their folding.
+- **Labels.** The sidebar names its own controls (Send, Stop, New
+  conversation, History) from Onevra's catalog in the window's language.
+  Override them with `onevra.chat…` keys in your catalogs, or set the
+  composer's labels in `Composer`.
+- **Local agents.** To list the agent CLIs installed on the user's machine,
+  convert [harness-detect](https://github.com/auron-labs/harness-detect)
+  results, such as `harnessdetect.DetectInstalledACPLaunches`, into
+  `chat.Option` values for `Agents`.
+
 ## Translations
 
 User-visible strings come from MyGo i18n catalogs, so a language can be added
