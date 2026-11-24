@@ -118,13 +118,49 @@ func TestBuildDSNIsUsedWhenTheEnvironmentHasNone(t *testing.T) {
 	if DSN() != buildDSN {
 		t.Fatalf("DSN = %q, want the build-time DSN", DSN())
 	}
+}
 
+func TestBuildDSNWinsOverTheEnvironment(t *testing.T) {
+	reset(t)
 	t.Setenv(dsnEnvironment, "http://public@127.0.0.1:1/8")
+	buildDSN = "http://public@127.0.0.1:1/7"
+
 	if err := Init("1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	if DSN() != "http://public@127.0.0.1:1/8" {
-		t.Fatalf("DSN = %q, want the environment to override the build-time DSN", DSN())
+	if DSN() != buildDSN {
+		t.Fatalf("DSN = %q, want the build-time DSN to win over the environment", DSN())
+	}
+}
+
+func TestDeliveredErrorsAndPanicsCarryStackTraces(t *testing.T) {
+	reset(t)
+	events := &collector{}
+	server := httptest.NewServer(events)
+	t.Cleanup(server.Close)
+	t.Setenv(dsnEnvironment, fmt.Sprintf("http://public@%s/42", server.Listener.Addr()))
+	if err := Init("1.2.3"); err != nil {
+		t.Fatal(err)
+	}
+
+	Capture(fmt.Errorf("wrapped: %w", errors.New("plain failure")), "op", "component")
+	CapturePanic("string panic", "op", "component")
+	Flush()
+
+	sent := events.all()
+	for _, message := range []string{"plain failure", "string panic"} {
+		var event string
+		for _, body := range strings.Split(sent, "\n") {
+			if strings.Contains(body, message) {
+				event = body
+			}
+		}
+		if event == "" {
+			t.Fatalf("no event delivered for %q:\n%s", message, sent)
+		}
+		if !strings.Contains(event, `"stacktrace"`) || !strings.Contains(event, "TestDeliveredErrorsAndPanicsCarryStackTraces") {
+			t.Errorf("event for %q has no stack trace through the test function:\n%s", message, event)
+		}
 	}
 }
 

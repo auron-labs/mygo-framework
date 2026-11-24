@@ -363,10 +363,10 @@ rebuilt.
 ## Reporting errors
 
 The Go side reports unexpected errors and panics to Sentry when a DSN is
-configured: `SENTRY_DSN` in the environment the app is launched from, or a DSN
-compiled into a packaged build. With no DSN the SDK is not initialised and
-nothing is sent. Only errors are reported: no tracing, profiling, session
-replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
+configured: a DSN compiled into the build, or else `SENTRY_DSN` in the
+environment the app is launched from. With no DSN the SDK is not initialised
+and nothing is sent. Only errors are reported, with stack traces: no tracing,
+profiling, session replay or breadcrumbs. `github.com/auron-labs/mygo-framework/errorreport` wraps
 `sentry-go` and is shared with the web starter.
 
 ```sh
@@ -374,7 +374,8 @@ SENTRY_DSN=https://<key>@<host>/<project> go run .
 ```
 
 Compile the DSN in with `MYGO_LDFLAGS`; the release workflow does this from a
-`SENTRY_DSN` repository secret. `SENTRY_DSN` still overrides it at run time.
+`SENTRY_DSN` repository secret. A build with a compiled-in DSN always reports
+to it, whatever `SENTRY_DSN` says at run time.
 
 ```sh
 MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=https://<key>@<host>/<project>" go tool mygo build
@@ -393,8 +394,12 @@ text; on iOS and Android the app data directory becomes `<app data>`.
 
 ## Logs and support bundles
 
-The native starter writes its logs to `logs/app.log` in the data directory,
-rotating at 10 MB with three compressed backups kept for up to 28 days; the
+The native starter writes its logs to `app.log` in the operating system's log
+location: `~/Library/Logs/<app>` on macOS, `%LocalAppData%\<app>\Logs` on
+Windows, `$XDG_STATE_HOME/<app>` (default `~/.local/state/<app>`) on Linux and
+the `logs` folder of the app data directory on iOS and Android. With
+`-data-dir` they go to `logs/` inside that directory instead. The file rotates
+at 10 MB with three compressed backups kept for up to 28 days; the
 standard `log` package writes there too. **Save support bundle...** is a button
 in the window, and also an item in the desktop **Help** menu. It writes a zip
 with the app version, operating system, migration status and those logs, with

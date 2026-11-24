@@ -62,7 +62,9 @@ for the DSN at startup, so no DSN is compiled into the frontend. Call
 
 A packaged build has no launch environment: compile the DSN in with
 `MYGO_LDFLAGS="-X github.com/auron-labs/mygo-framework/errorreport.buildDSN=<dsn>"`.
-`SENTRY_DSN` still overrides it. Call `errorreport.SetEnabled(false)` when the
+A build with a compiled-in DSN always reports to it, whatever `SENTRY_DSN`
+says; `mise run build` compiles in the `SENTRY_DSN` it is run with. Errors,
+and panics with any value, are sent with stack traces. Call `errorreport.SetEnabled(false)` when the
 user turns reporting off; `errorreport.Configured()` tells a settings screen
 whether there is anything to turn off.
 
@@ -356,13 +358,17 @@ shares the desktop service and database.
   `database.ErrSchemaNewer` instead of running against tables it does not know.
   `appctl db backup FILE` exports the data and `appctl db restore FILE` replaces
   it, keeping a copy of what it replaced in `backups/`.
-- **Logs.** Development builds log to stderr. Packaged builds also write
-  `app.log` to `~/Library/Logs/<app>` on macOS and to the `logs` folder of the
-  data directory on Windows, Linux, iOS and Android. The file rotates at 10 MB
-  and keeps three compressed backups for up to 28 days; change this with
-  `logging.Options`. Attributes named authorization, cookie, password, payload,
-  request or response body, secret, settings, or token are redacted, as is
-  everything in a group with one of those names.
+- **Logs.** Development builds log to stderr at debug level and above.
+  Packaged builds also write `app.log`, at info level and above, to
+  `~/Library/Logs/<app>` on macOS, `%LocalAppData%\<app>\Logs` on Windows,
+  `$XDG_STATE_HOME/<app>` (default `~/.local/state/<app>`) on Linux, and the
+  `logs` folder of the data directory on iOS and Android. The levels are
+  debug, info, success, warn and error; `logging.Success` writes the success
+  level, which ranks between info and warn. The file rotates at 10 MB and
+  keeps three compressed backups for up to 28 days; change the level and
+  retention with `logging.Options`. Attributes named authorization, cookie,
+  password, payload, request or response body, secret, settings, or token are
+  redacted, as is everything in a group with one of those names.
 - **Quit.** Quitting cancels the application context, then gives runtime
   shutdown up to 5 seconds before the process exits. Long-running work should
   return when that context is canceled.
