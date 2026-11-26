@@ -17,6 +17,12 @@ func settingsPage(c *ui.Context, s *screen) {
 	components.Checkbox(c, &compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel()).OnChange(func() {
 		s.prefs.Update(func(p *preferences) { p.Compact = compact })
 	})
+	if !s.onPhone {
+		closeToTray := p.CloseToTray
+		components.Checkbox(c, &closeToTray, locales.CloseToTray()).Label(locales.CloseToTrayLabel()).OnChange(func() {
+			s.prefs.Update(func(p *preferences) { p.CloseToTray = closeToTray })
+		})
+	}
 	units := p.Units
 	ui.RadioGroup(c, func() {
 		for _, option := range []struct{ value, label string }{{unitsMetric, locales.UnitsMetric()}, {unitsImperial, locales.UnitsImperial()}} {

@@ -52,6 +52,46 @@ func (msgs Messages) CompactSpacingLabel() string {
 	return Catalog.Format(msgs.locale, "compactSpacingLabel", nil)
 }
 
+// CloseToTray says "Close to tray"
+// in the language the app shows.
+func CloseToTray() string { return In(i18n.Locale()).CloseToTray() }
+
+// CloseToTray says "Close to tray"
+// in the language of msgs.
+func (msgs Messages) CloseToTray() string {
+	return Catalog.Format(msgs.locale, "closeToTray", nil)
+}
+
+// CloseToTrayLabel says "Toggle closing the window to the system tray"
+// in the language the app shows.
+func CloseToTrayLabel() string { return In(i18n.Locale()).CloseToTrayLabel() }
+
+// CloseToTrayLabel says "Toggle closing the window to the system tray"
+// in the language of msgs.
+func (msgs Messages) CloseToTrayLabel() string {
+	return Catalog.Format(msgs.locale, "closeToTrayLabel", nil)
+}
+
+// Open says "Open"
+// in the language the app shows.
+func Open() string { return In(i18n.Locale()).Open() }
+
+// Open says "Open"
+// in the language of msgs.
+func (msgs Messages) Open() string {
+	return Catalog.Format(msgs.locale, "open", nil)
+}
+
+// OpenAtLogin says "Open at login"
+// in the language the app shows.
+func OpenAtLogin() string { return In(i18n.Locale()).OpenAtLogin() }
+
+// OpenAtLogin says "Open at login"
+// in the language of msgs.
+func (msgs Messages) OpenAtLogin() string {
+	return Catalog.Format(msgs.locale, "openAtLogin", nil)
+}
+
 // UnitsLabel says "Units"
 // in the language the app shows.
 func UnitsLabel() string { return In(i18n.Locale()).UnitsLabel() }

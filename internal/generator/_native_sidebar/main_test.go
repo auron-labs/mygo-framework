@@ -337,13 +337,16 @@ func TestPreferenceControlsUpdateTheCell(t *testing.T) {
 	if err := tt.Click("Compact spacing"); err != nil {
 		t.Fatal(err)
 	}
+	if err := tt.Click("Close to tray"); err != nil {
+		t.Fatal(err)
+	}
 	if err := tt.Click("Imperial"); err != nil {
 		t.Fatal(err)
 	}
 	if err := tt.Click("Dark"); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.prefs.Get(); !got.Compact || got.Units != unitsImperial || got.Theme != themeDark {
+	if got := s.prefs.Get(); !got.Compact || !got.CloseToTray || got.Units != unitsImperial || got.Theme != themeDark {
 		t.Fatalf("preferences = %+v", got)
 	}
 }
@@ -385,6 +388,9 @@ func TestPreferencesPersistWithoutClosingTheWindow(t *testing.T) {
 	if err := tt.Click("Compact spacing"); err != nil {
 		t.Fatal(err)
 	}
+	if err := tt.Click("Close to tray"); err != nil {
+		t.Fatal(err)
+	}
 	if err := tt.Click("Imperial"); err != nil {
 		t.Fatal(err)
 	}
@@ -397,8 +403,49 @@ func TestPreferencesPersistWithoutClosingTheWindow(t *testing.T) {
 
 	restarted, db := persistentScreen(t, dir)
 	t.Cleanup(func() { _ = db.Close() })
-	if got := restarted.prefs.Get(); !got.Compact || got.Units != unitsImperial {
+	if got := restarted.prefs.Get(); !got.Compact || !got.CloseToTray || got.Units != unitsImperial {
 		t.Fatalf("restarted preferences = %+v", got)
+	}
+}
+
+func TestCloseToTrayPreferenceUpdatesAndPersists(t *testing.T) {
+	dir := t.TempDir()
+	s, db := persistentScreen(t, dir)
+	tt := newTester(s, pageSettings)
+	if err := tt.Click(locales.CloseToTray()); err != nil {
+		t.Fatal(err)
+	}
+	if !s.prefs.Get().CloseToTray {
+		t.Fatal("the close-to-tray checkbox did not update the preference cell")
+	}
+	if err := s.saver.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted, reopened := persistentScreen(t, dir)
+	t.Cleanup(func() { _ = reopened.Close() })
+	if !restarted.prefs.Get().CloseToTray {
+		t.Fatalf("restarted preferences = %+v, want close-to-tray enabled", restarted.prefs.Get())
+	}
+}
+
+func TestPhoneHidesDesktopLifecycleControls(t *testing.T) {
+	s := newScreen(t, preferences{Units: unitsMetric, Theme: themeSystem})
+	tt := phoneTester(s, pageSettings)
+	if tt.HasText(locales.CloseToTray()) {
+		t.Fatalf("phone settings show the desktop close-to-tray control: %q", tt.Texts())
+	}
+}
+
+func TestLoginLaunchShowDecision(t *testing.T) {
+	if shouldShowAtLaunch(func() bool { return true }) {
+		t.Fatal("a login launch must stay hidden")
+	}
+	if !shouldShowAtLaunch(func() bool { return false }) {
+		t.Fatal("an ordinary launch must show the window")
 	}
 }
 
@@ -437,7 +484,7 @@ func TestOpenPreferencesMigratesAndPersists(t *testing.T) {
 	if defaults != (preferences{Timezone: "UTC", Units: unitsMetric, Theme: themeSystem, Profile: "Default", ErrorReports: true}) {
 		t.Fatalf("defaults = %+v", defaults)
 	}
-	want := preferences{Compact: true, Timezone: "Australia/Sydney", Units: unitsImperial, Theme: themeDark, Profile: "Work", ImportFolder: t.TempDir(), ErrorReports: false}
+	want := preferences{Compact: true, CloseToTray: true, Timezone: "Australia/Sydney", Units: unitsImperial, Theme: themeDark, Profile: "Work", ImportFolder: t.TempDir(), ErrorReports: false}
 	if err := want.save(ctx, values); err != nil {
 		t.Fatal(err)
 	}

@@ -17,6 +17,7 @@ import (
 
 var (
 	compactKey      = settings.NewKey("native.compact", false, nil)
+	closeToTrayKey  = settings.NewKey("native.close_to_tray", false, nil)
 	timezoneKey     = settings.NewKey("native.timezone", "UTC", validateTimezone)
 	unitsKey        = settings.NewKey("native.units", unitsMetric, oneOf(unitsMetric, unitsImperial))
 	themeKey        = settings.NewKey("native.theme", themeSystem, oneOf(themeSystem, themeLight, themeDark))
@@ -37,6 +38,7 @@ const (
 // preferences is the typed set of values persisted by the application.
 type preferences struct {
 	Compact      bool
+	CloseToTray  bool
 	Timezone     string
 	Units        string
 	Theme        string
@@ -47,20 +49,22 @@ type preferences struct {
 
 func loadPreferences(ctx context.Context, values *settings.Values) (preferences, error) {
 	var p preferences
-	var errs [7]error
+	var errs [8]error
 	p.Compact, errs[0] = settings.Get(ctx, values, compactKey)
-	p.Timezone, errs[1] = settings.Get(ctx, values, timezoneKey)
-	p.Units, errs[2] = settings.Get(ctx, values, unitsKey)
-	p.Theme, errs[3] = settings.Get(ctx, values, themeKey)
-	p.Profile, errs[4] = settings.Get(ctx, values, profileKey)
-	p.ImportFolder, errs[5] = settings.Get(ctx, values, importFolderKey)
-	p.ErrorReports, errs[6] = settings.Get(ctx, values, errorReportsKey)
+	p.CloseToTray, errs[1] = settings.Get(ctx, values, closeToTrayKey)
+	p.Timezone, errs[2] = settings.Get(ctx, values, timezoneKey)
+	p.Units, errs[3] = settings.Get(ctx, values, unitsKey)
+	p.Theme, errs[4] = settings.Get(ctx, values, themeKey)
+	p.Profile, errs[5] = settings.Get(ctx, values, profileKey)
+	p.ImportFolder, errs[6] = settings.Get(ctx, values, importFolderKey)
+	p.ErrorReports, errs[7] = settings.Get(ctx, values, errorReportsKey)
 	return p, errors.Join(errs[:]...)
 }
 
 func (p preferences) save(ctx context.Context, values *settings.Values) error {
 	return errors.Join(
 		settings.Set(ctx, values, compactKey, p.Compact),
+		settings.Set(ctx, values, closeToTrayKey, p.CloseToTray),
 		settings.Set(ctx, values, timezoneKey, p.Timezone),
 		settings.Set(ctx, values, unitsKey, p.Units),
 		settings.Set(ctx, values, themeKey, p.Theme),

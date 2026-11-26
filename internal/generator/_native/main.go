@@ -49,7 +49,14 @@ const (
 const (
 	appName     = "__PROJECT_TITLE__"
 	profileName = "__PROJECT_SLUG__"
+	// pageImport is the deterministic notification target. It is inert in the
+	// plain starter, whose single page already contains the import.
+	pageImport = "import"
 )
+
+// navigate is the plain starter's page hook: it has one page, so notification
+// and open routes only show its window.
+func (s *screen) navigate(string) {}
 
 type screen struct {
 	prefs *state.Cell[preferences]
@@ -108,6 +115,12 @@ func (s *screen) controls(c *ui.Context, p preferences) {
 	components.Checkbox(c, &compact, locales.CompactSpacing()).Label(locales.CompactSpacingLabel()).OnChange(func() {
 		s.prefs.Update(func(p *preferences) { p.Compact = compact })
 	})
+	if !s.onPhone {
+		closeToTray := p.CloseToTray
+		components.Checkbox(c, &closeToTray, locales.CloseToTray()).Label(locales.CloseToTrayLabel()).OnChange(func() {
+			s.prefs.Update(func(p *preferences) { p.CloseToTray = closeToTray })
+		})
+	}
 	units := p.Units
 	ui.RadioGroup(c, func() {
 		for _, option := range []struct{ value, label string }{{unitsMetric, locales.UnitsMetric()}, {unitsImperial, locales.UnitsImperial()}} {
@@ -216,7 +229,7 @@ func openPreferences(ctx context.Context, dir string) (*database.Database, *sett
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("open preferences: %w", err), db.Close())
 	}
-	values, err := settings.New(store, compactKey, timezoneKey, unitsKey, themeKey, profileKey, importFolderKey, errorReportsKey)
+	values, err := settings.New(store, compactKey, closeToTrayKey, timezoneKey, unitsKey, themeKey, profileKey, importFolderKey, errorReportsKey)
 	if err != nil {
 		return nil, nil, errors.Join(fmt.Errorf("register preferences: %w", err), db.Close())
 	}
@@ -289,33 +302,33 @@ func run(dataDir string) (err error) {
 	if err != nil {
 		return err
 	}
-	defer func() { err = errors.Join(err, db.Close()) }()
 	prefs, err := loadPreferences(ctx, values)
 	if err != nil {
-		return fmt.Errorf("load preferences: %w", err)
+		return errors.Join(fmt.Errorf("load preferences: %w", err), db.Close())
 	}
 	cell := state.NewCell(prefs)
 	saver := state.Autosave(cell, saveDelay, savePreferences(values))
-	defer func() {
-		closeCtx, cancel := context.WithTimeout(context.Background(), saveTimeout)
-		defer cancel()
-		err = errors.Join(err, saver.Close(closeCtx))
-	}()
 	jobManager := jobs.New(ctx)
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer cancel()
-		err = errors.Join(err, jobManager.Shutdown(shutdownCtx))
-	}()
+	shutdown := newShutdownOwner(jobManager, saver, db)
+	defer func() { err = errors.Join(err, shutdown(context.Background())) }()
 	s := &screen{
 		prefs: cell, saver: saver, jobs: jobManager, work: sampleImport, dataDir: dataDir, logDir: logDir,
 		db: db, onPhone: runtime.GOOS == "ios" || runtime.GOOS == "android",
+	}
+	lifecycleHelper, err := s.newLifecycleHelper(shutdown)
+	if err != nil {
+		return err
 	}
 	mygo.KeepState(&s.kept)
 	defer mygo.Power.OnSuspend(s.suspend)()
 	errorreport.SetEnabled(prefs.ErrorReports)
 	defer state.Select(cell, func(p preferences) bool { return p.ErrorReports }).Subscribe(errorreport.SetEnabled)()
-	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow() })
+	mygo.App.OnSecondInstance(func([]string, string) { s.showWindow("") })
+	mygo.App.OnActivate(func(hasVisibleWindows bool) {
+		if !hasVisibleWindows {
+			s.showWindow("")
+		}
+	})
 	mygo.App.SetName(appName)
 	mygo.Theme.SetSource(mygo.ThemeSource(prefs.Theme))
 	defer watchTheme(cell, setTheme)()
@@ -339,9 +352,15 @@ func run(dataDir string) (err error) {
 		win.OnClosed(cell.Subscribe(func(preferences) { win.Invalidate() }))
 		win.OnClosed(saver.Err().Subscribe(func(error) { win.Invalidate() }))
 		// MyGo also calls OnClose during application quit, before destroying the window.
+		// The saver flush runs first; only a close it allows can become a hide.
 		win.OnClose(s.beforeClose)
+		lifecycleHelper.AttachWindow(win)
 		win.OnClosed(func() { mygo.App.Quit() })
-		win.OnReadyToShow(win.Show)
+		win.OnReadyToShow(func() {
+			if shouldShowAtLaunch(mygo.App.WasOpenedAtLogin) {
+				win.Show()
+			}
+		})
 		s.checkForUpdates()
 	})
 	// Registered after the window so a link that launched the app finds it.
