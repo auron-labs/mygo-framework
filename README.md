@@ -83,7 +83,10 @@ go tool framework dev
 ```
 
 Add `--shell sidebar` for a variant on Onevra's sidebar shell, with page
-routing, a footer and an icon rail in narrow windows.
+routing, a footer and an icon rail in narrow windows. Both native starters
+include a tray, optional close-to-tray, hidden login launches, deterministic
+notification routing, and synchronous bounded shutdown through the public
+`lifecycle` package.
 
 Native projects use the pinned Go MyGo tool for development, diagnostics, and
 packaging. They also include [MyGo MCP](mygomcp/README.md)

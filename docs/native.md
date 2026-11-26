@@ -54,7 +54,7 @@ MyGo's directory for the app inside the sandbox. Pass
 opens the database and applies pending migrations from `database/migrations`
 before the window is created. When an existing database has pending
 migrations, the starter first copies it to `backups/` beside it and keeps the
-newest five copies. Add your own migrations there, numbered after `00001`. The database is closed after the event loop stops.
+newest five copies. Add your own migrations there, numbered after `00001`. The database is closed by the synchronous lifecycle shutdown owner.
 
 The typed keys in `preferences.go` cover compact spacing, time zone, units,
 theme, profile name, and last import folder. The window edits compact spacing,
@@ -72,6 +72,79 @@ their own bound. On iOS and Android it also cancels a running import, which
 shows as canceled when the user returns; if the system ended the app instead,
 the next launch says why the import stopped. Nothing is released, so the app
 keeps working on resume.
+
+## Background lifecycle
+
+`github.com/auron-labs/mygo-framework/v2/lifecycle` adds the desktop
+background behavior used by both native starters. Construct it before
+`App.Run` with an options struct, then attach the app's main window:
+
+```go
+helper := lifecycle.New(mygo.App, lifecycle.Options{
+	TrayID:            "main",
+	TrayIcon:          trayIconPNG(),
+	TrayIconIsTemplate: true,
+	TrayTooltip:       appName,
+	OpenLabel:         locales.Open(),
+	OpenAtLoginLabel:  locales.OpenAtLogin(),
+	CloseToTray:       func() bool { return prefs.Get().CloseToTray },
+	Open:              showWindow,
+	Shutdown:          shutdownOwner.Do,
+	ReportError:       reportLifecycleError,
+	NotificationRoutes: lifecycle.NotificationRoutes{
+		importJobName: pageImport,
+	},
+})
+helper.AttachWindow(win)
+```
+
+The helper owns orchestration only. The app keeps ownership of the window,
+saver, jobs, database, strings and the shutdown implementation. In `WhenReady`
+it creates the tray menu (**Open**, an **Open at Login** checkbox backed by
+MyGo's OS login-item state, and MyGo's quit role). Because login-item state can
+be changed in system settings, the helper asks the OS rather than duplicating it
+in SQLite. If updating it fails, the checkbox is reverted and the error is
+reported.
+
+Closing the window first runs the app's existing close handlers. If one of
+those prevents the close, the helper leaves it prevented. Otherwise, when the
+desktop **Close to tray** setting is enabled, the tray exists, and the app is
+not already quitting, the helper prevents the close and hides the window. A
+disabled setting, an unavailable tray, or an application quit lets the close
+proceed, preserving `OnClosed(App.Quit)`. **Open** and notification routes call
+the supplied `Open(page)` callback on MyGo's main thread; use it to navigate,
+restore, show and focus the window. The plain starter's page ids are inert
+because it has one page; the sidebar starter uses `pageImport` to select Import.
+
+MyGo close events do not say whether they belong to an application quit, so the
+helper tracks `OnBeforeQuit` and clears that state in `OnQuitCanceled`. It runs
+the bounded shutdown callback once, synchronously, in `OnQuit`. Do not move this
+work to a goroutine: operating-system logout may end the process as soon as the
+quit listeners return. The starter's shutdown owner uses `sync.Once` and keeps
+the existing order — stop jobs within five seconds, close and flush the saver
+within two seconds, close the database, then flush queued error reports — while
+the startup defers call the same owner as an idempotent fallback.
+
+Notifications do not have action buttons in MyGo, only clicks. Register
+deterministic notification-id to page-id routes at startup instead of relying
+on a notification object's click callback, because a click can arrive after a
+process restart. A route id must be stable and non-empty. The import
+notification uses `importJobName` as its deterministic id.
+
+The helper does not change `ActivationPolicy`; the app remains a normal windowed
+desktop app with a tray. When launched by the operating system at login, the
+starter still creates its window, jobs and update check, but `OnReadyToShow`
+does not present the window. Reopening it from the tray, a notification, a
+second instance, or Dock activation shows the existing window rather than
+creating another one.
+
+Tray support depends on the desktop. On Linux it requires the AppIndicator
+service/library used by MyGo; when tray creation fails, the error is reported
+and close-to-tray is treated as unavailable so the window cannot become hidden
+with no reopen path. Phones do not render the desktop lifecycle controls. The
+final quit path still flushes state and stops jobs in the same order whether it
+came from the window close, tray menu, application quit, or operating-system
+shutdown.
 
 ```sh
 go test ./...
@@ -639,8 +712,8 @@ on the next change or `Flush`. `Err()` holds the latest failure, or nil after a
 successful save, and can be subscribed to like a cell. `Flush(ctx)` saves now
 and waits; if `ctx` ends first, the save keeps running. `Close(ctx)` saves
 anything pending and stops the saver; if `ctx` ends first, it cancels the save.
-Call it after the event loop stops and before closing the storage that `save`
-writes to.
+Close it before closing the storage that `save` writes to; in the starters the
+lifecycle shutdown owner does this synchronously during application quit.
 
 ## Desktop integration
 
