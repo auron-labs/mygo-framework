@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0](https://github.com/auron-labs/mygo-framework/compare/v2.0.0...v2.1.0) (2026-11-26)
+
+
+### Features
+
+* **examples:** mirror native lifecycle integration ([88c60ee](https://github.com/auron-labs/mygo-framework/commit/88c60ee519c02ecab78aaf596115459499ef699e))
+* **generator:** add lifecycle support to native starters ([2a151e0](https://github.com/auron-labs/mygo-framework/commit/2a151e0f67d481a340070f751e22eff6429c4669))
+* **lifecycle:** add desktop background lifecycle helper ([c6eae52](https://github.com/auron-labs/mygo-framework/commit/c6eae529f67f4ace2a36a136421406124a704bc5))
+* **onevra:** add an assistant sidebar to the chat components ([d3e65c7](https://github.com/auron-labs/mygo-framework/commit/d3e65c77696d290f7f73099455d420f140e80e44))
+* **onevra:** add ShellOptions.LeftToggleTrailing to the sidebar shell ([61716b1](https://github.com/auron-labs/mygo-framework/commit/61716b1261e117d81fb0ab3da5d8ebec17d98662))
+* use platform log directories and add a success log level ([87e3441](https://github.com/auron-labs/mygo-framework/commit/87e344123aa958a34bb2c4e49e35dd2a9f181c5e))
+
+
+### Bug Fixes
+
+* **datadir:** read XDG_STATE_HOME with Unix path rules ([adfe328](https://github.com/auron-labs/mygo-framework/commit/adfe32818fcb68177a7a7eb1558db39d99792792))
+
 ## [2.0.0](https://github.com/auron-labs/mygo-framework/compare/v1.0.1...v2.0.0) (2026-11-19)
 
 
