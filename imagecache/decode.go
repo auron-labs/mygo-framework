@@ -13,8 +13,10 @@ const (
 	// reads, and readDiskFiles enforces it again because disk is untrusted.
 	maxImageBytes = 64 << 20
 	// maxImagePixels bounds the dimensions a raster decoder may expand before
-	// MaxSide shrinking; decoding itself allocates the full raster once.
-	maxImagePixels = 64 << 20
+	// MaxSide shrinking; decoding itself allocates the full raster once. This is
+	// deliberately modest for an avatar/icon cache, and Cache further limits the
+	// number of full-size decodes running at once.
+	maxImagePixels = 16 << 20
 )
 
 var (

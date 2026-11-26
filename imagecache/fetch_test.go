@@ -7,6 +7,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"image/color"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/auron-labs/mygo-framework/v2/httpclient"
 )
 
 func expireDiskMetadata(t *testing.T, dir, rawURL string) {
@@ -196,6 +199,44 @@ func TestCaptivePortalDoesNotReplaceUsableStaleDiskCopy(t *testing.T) {
 	}
 }
 
+func TestTransportErrorAfterHeadersUsesStaleDiskCopy(t *testing.T) {
+	t.Parallel()
+
+	picture := testPNG(t, 16, 16, color.NRGBA{R: 110, A: 255})
+	dir := t.TempDir()
+	rawURL := "https://images.example.test/interrupted.png"
+	if err := writeDiskFiles(dir, rawURL, picture, diskMetadata{
+		ETag:       `"v1"`,
+		FreshUntil: time.Now().Add(-time.Hour),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	transport := imagecacheRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Header:     http.Header{"Cache-Control": {"max-age=3600"}},
+			Body:       &errorAfterByteReader{},
+			Request:    request,
+		}, nil
+	})
+	client, err := httpclient.New(httpclient.Options{
+		Timeout:   2 * time.Second,
+		Logger:    slog.New(slog.DiscardHandler),
+		Transport: transport,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := newTestCache(t, dir, Options{Client: client})
+
+	_, _ = cache.Load(nil, rawURL, LoadOptions{MaxSide: 16})
+	waitFor(t, "stale fallback after interrupted body", func() bool { return hasDecoded(cache, rawURL, 16) })
+	if !bytes.Equal(readCachedBody(t, dir, rawURL), picture) {
+		t.Fatal("interrupted response replaced the usable disk image")
+	}
+}
+
 func TestNoStoreResponseRemovesDiskCopy(t *testing.T) {
 	t.Parallel()
 
@@ -318,7 +359,7 @@ func TestDecodeSafetyCapsAndSVG(t *testing.T) {
 func TestOversizedPixelDimensionsRejectedBeforeDecode(t *testing.T) {
 	t.Parallel()
 
-	data := pngHeaderOnly(8192, 8193) // 67,125,248 pixels, over the 64 Mi pixel cap.
+	data := pngHeaderOnly(8192, 8193) // 67,125,248 pixels, over the 16 Mi pixel cap.
 	if _, _, err := decodeSafely(data, 32); !errors.Is(err, errImageTooManyPixels) {
 		t.Fatalf("oversized dimensions error = %v", err)
 	}
@@ -354,6 +395,32 @@ func appendUint32(out *bytes.Buffer, value uint32) {
 	var raw [4]byte
 	binary.BigEndian.PutUint32(raw[:], value)
 	out.Write(raw[:])
+}
+
+type imagecacheRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn imagecacheRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
+}
+
+type errorAfterByteReader struct {
+	done bool
+}
+
+func (reader *errorAfterByteReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	if reader.done {
+		return 0, errors.New("imagecache test: interrupted response body")
+	}
+	reader.done = true
+	p[0] = 'x'
+	return 1, nil
+}
+
+func (reader *errorAfterByteReader) Close() error {
+	return nil
 }
 
 func TestInvalidRemoteURLs(t *testing.T) {

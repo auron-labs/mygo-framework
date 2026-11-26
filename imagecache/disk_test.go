@@ -124,6 +124,75 @@ func TestPruneRemovesOldestAndCacheArtifactsOnly(t *testing.T) {
 	}
 }
 
+func TestDiskHitProtectsFrequentlyUsedEntryFromPrune(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	oldURL := "https://example.test/frequently-shown.png"
+	middleURL := "https://example.test/unused.png"
+	newURL := "https://example.test/new.png"
+	freshUntil := time.Now().Add(time.Hour).Truncate(time.Second)
+	for _, rawURL := range []string{oldURL, middleURL} {
+		if err := writeDiskFiles(dir, rawURL, []byte("1234567890"), diskMetadata{FreshUntil: freshUntil}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i, rawURL := range []string{oldURL, middleURL} {
+		body, meta := diskPaths(dir, rawURL)
+		at := time.Now().Add(time.Duration(i-2) * time.Hour)
+		for _, path := range []string{body, meta} {
+			if err := os.Chtimes(path, at, at); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	body, meta := diskPaths(dir, oldURL)
+	bodyInfo, err := os.Stat(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metaInfo, err := os.Stat(meta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pairSize := bodyInfo.Size() + metaInfo.Size()
+	cache := newTestCache(t, dir, Options{DiskBytes: 2*pairSize + 1})
+
+	// A disk hit is use, even though the body bytes do not change. The write of
+	// a third entry must prune the untouched middle entry rather than this one.
+	// Scan first so the hit must update the live in-memory index, not only the
+	// filesystem mtimes observed by a later scan.
+	cache.diskMu.Lock()
+	cache.ensureDiskIndexLocked()
+	cache.diskMu.Unlock()
+	cache.touchDiskFiles(oldURL, cache.diskToken(oldURL))
+	time.Sleep(20 * time.Millisecond)
+	key := cacheKey{url: newURL, maxSide: 8}
+	e := &entry{key: key}
+	cache.mu.Lock()
+	cache.entries[key] = e
+	cache.mu.Unlock()
+	cache.storeIfCurrent(e, fetched{
+		url:      newURL,
+		data:     []byte("1234567890"),
+		metadata: diskMetadata{FreshUntil: freshUntil},
+		token:    cache.diskToken(newURL),
+	})
+
+	oldBody, _ := diskPaths(dir, oldURL)
+	if _, err := os.Stat(oldBody); err != nil {
+		t.Fatalf("recently used body was pruned: %v", err)
+	}
+	middleBody, _ := diskPaths(dir, middleURL)
+	if _, err := os.Stat(middleBody); !os.IsNotExist(err) {
+		t.Fatalf("untouched middle body remains or stat failed: %v", err)
+	}
+	newBody, _ := diskPaths(dir, newURL)
+	if _, err := os.Stat(newBody); err != nil {
+		t.Fatalf("newly written body was pruned: %v", err)
+	}
+}
+
 func TestPruneRemovesCorruptSidecarButKeepsBody(t *testing.T) {
 	t.Parallel()
 

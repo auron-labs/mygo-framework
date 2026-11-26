@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	workerCount         = 6
-	abandonedAfter      = 2 * time.Second
-	recentUseProtection = 2 * time.Second
-	failureRetryAfter   = 10 * time.Second
-	maxTrackedEntries   = 2048
+	workerCount          = 6
+	maxConcurrentDecodes = 2
+	abandonedAfter       = 2 * time.Second
+	recentUseProtection  = 2 * time.Second
+	failureRetryAfter    = 10 * time.Second
+	maxTrackedEntries    = 2048
 )
 
 // cacheKey identifies one decoded representation. Different MaxSide values of
@@ -71,8 +72,15 @@ type Cache struct {
 
 	// diskMu serializes files written or removed by cache workers with Forget
 	// and Clear. Cache mutex state is checked again while diskMu is held so a
-	// privacy deletion cannot be followed by a stale in-flight write.
-	diskMu sync.Mutex
+	// privacy deletion cannot be followed by a stale in-flight write. diskIndex
+	// is valid only while diskMu is held.
+	diskMu    sync.Mutex
+	diskIndex diskIndex
+
+	// decodeSlots bounds simultaneous full-size raster decodes. Compressed
+	// input and pixel caps still apply to every image; this limit prevents six
+	// workers from multiplying the transient decode memory spike.
+	decodeSlots chan struct{}
 
 	mu          sync.Mutex
 	queueCond   *sync.Cond
@@ -83,6 +91,8 @@ type Cache struct {
 	memoryBytes int64
 	clearEpoch  uint64
 	urlEpochs   map[string]uint64
+	retryTimer  *time.Timer
+	retryAt     time.Time
 
 	// These durations are fields rather than constants so focused tests can
 	// shorten them before the first request.
@@ -106,6 +116,7 @@ func newCacheState(parent context.Context, client *httpclient.Client, dir string
 		entries:          map[cacheKey]*entry{},
 		lruList:          list.New(),
 		urlEpochs:        map[string]uint64{},
+		decodeSlots:      make(chan struct{}, maxConcurrentDecodes),
 		abandonAfter:     abandonedAfter,
 		protectFor:       recentUseProtection,
 		retryAfter:       failureRetryAfter,
@@ -148,13 +159,13 @@ func (c *Cache) load(uiContext *ui.Context, rawURL string, maxSide int) (ui.Imag
 		c.mu.Unlock()
 		return source, nil
 	}
+	if uiContext != nil && !slices.Contains(e.waiters, uiContext) {
+		e.waiters = append(e.waiters, uiContext)
+	}
 	if e.err != nil && now.Sub(e.failed) < c.retryAfter {
 		err := e.err
 		c.mu.Unlock()
 		return nil, err
-	}
-	if uiContext != nil && !slices.Contains(e.waiters, uiContext) {
-		e.waiters = append(e.waiters, uiContext)
 	}
 	if !e.loading {
 		e.err = nil
@@ -241,9 +252,9 @@ func (c *Cache) process(e *entry) {
 	var source ui.ImageSource
 	var memoryBytes int64
 	if err == nil {
-		source, memoryBytes, err = decodeSafely(result.data, e.key.maxSide)
+		source, memoryBytes, err = c.decodeSafely(result.data, e.key.maxSide)
 		if err != nil && result.fallback != nil {
-			if fallbackSource, fallbackBytes, fallbackErr := decodeSafely(result.fallback, e.key.maxSide); fallbackErr == nil {
+			if fallbackSource, fallbackBytes, fallbackErr := c.decodeSafely(result.fallback, e.key.maxSide); fallbackErr == nil {
 				// A captive portal or application error body must not replace a
 				// decodable stale disk copy, and must never be written over it.
 				source, memoryBytes = fallbackSource, fallbackBytes
@@ -257,13 +268,17 @@ func (c *Cache) process(e *entry) {
 			c.removeDiskFiles(result)
 			result, err = c.fetchBytes(c.ctx, e, true)
 			if err == nil {
-				source, memoryBytes, err = decodeSafely(result.data, e.key.maxSide)
+				source, memoryBytes, err = c.decodeSafely(result.data, e.key.maxSide)
 			}
 		}
 	}
 
 	if err == nil && result.store {
-		c.storeIfCurrent(e, result)
+		if result.shared != nil {
+			result.shared.storeOnce.Do(func() { c.storeIfCurrent(e, result) })
+		} else {
+			c.storeIfCurrent(e, result)
+		}
 	}
 
 	c.mu.Lock()
@@ -275,6 +290,7 @@ func (c *Cache) process(e *entry) {
 		if err != nil {
 			e.err = err
 			e.failed = now
+			c.scheduleRetryInvalidationLocked(e)
 		} else {
 			e.source = source
 			e.err = nil
@@ -298,6 +314,67 @@ func (c *Cache) process(e *entry) {
 	invalidateAll(waiters)
 }
 
+// scheduleRetryInvalidationLocked wakes views whose visible images are in the
+// negative-cache backoff. One cache-level timer avoids a timer per broken
+// avatar in a large list. The timer does not retry by itself; the rebuild it
+// causes observes that retryAfter has elapsed and queues the retry normally.
+func (c *Cache) scheduleRetryInvalidationLocked(e *entry) {
+	if c.stopped || c.retryAfter <= 0 {
+		return
+	}
+	expires := e.failed.Add(c.retryAfter)
+	if !c.retryAt.IsZero() && !expires.Before(c.retryAt) {
+		return
+	}
+	c.retryAt = expires
+	delay := expires.Sub(c.now())
+	if c.retryTimer == nil {
+		c.retryTimer = time.AfterFunc(delay, c.retryBackoffExpired)
+		return
+	}
+	c.retryTimer.Reset(delay)
+}
+
+func (c *Cache) retryBackoffExpired() {
+	c.mu.Lock()
+	if c.stopped {
+		c.retryAt = time.Time{}
+		c.mu.Unlock()
+		return
+	}
+	now := c.now()
+	var waiters []*ui.Context
+	seen := map[*ui.Context]bool{}
+	var next time.Time
+	for _, e := range c.entries {
+		if e.err == nil || e.loading {
+			continue
+		}
+		expires := e.failed.Add(c.retryAfter)
+		if expires.After(now) {
+			if next.IsZero() || expires.Before(next) {
+				next = expires
+			}
+			continue
+		}
+		for _, waiter := range e.waiters {
+			if !seen[waiter] {
+				seen[waiter] = true
+				waiters = append(waiters, waiter)
+			}
+		}
+		e.waiters = nil
+	}
+	if next.IsZero() {
+		c.retryAt = time.Time{}
+	} else {
+		c.retryAt = next
+		c.retryTimer.Reset(next.Sub(now))
+	}
+	c.mu.Unlock()
+	invalidateAll(waiters)
+}
+
 // insertLRULocked inserts a completed entry in request-recency order. Workers
 // finish out of order, so completion order alone is not LRU order.
 func (c *Cache) insertLRULocked(e *entry) {
@@ -314,6 +391,16 @@ func (c *Cache) insertLRULocked(e *entry) {
 func invalidateAll(waiters []*ui.Context) {
 	for _, waiter := range waiters {
 		waiter.Invalidate()
+	}
+}
+
+func (c *Cache) decodeSafely(data []byte, maxSide int) (ui.ImageSource, int64, error) {
+	select {
+	case c.decodeSlots <- struct{}{}:
+		defer func() { <-c.decodeSlots }()
+		return decodeSafely(data, maxSide)
+	case <-c.ctx.Done():
+		return nil, 0, c.ctx.Err() //nolint:wrapcheck // The cache context's cancellation is the precise worker state.
 	}
 }
 
@@ -422,7 +509,11 @@ func (c *Cache) Forget(rawURL string) error {
 
 	c.diskMu.Lock()
 	defer c.diskMu.Unlock()
-	return removeDiskFiles(c.dir, rawURL)
+	err := removeDiskFiles(c.dir, rawURL)
+	if err == nil {
+		c.noteDiskRemoveLocked(rawURL)
+	}
+	return err
 }
 
 // Clear removes every decoded entry and every cache-owned disk file. It does
@@ -440,5 +531,9 @@ func (c *Cache) Clear() error {
 
 	c.diskMu.Lock()
 	defer c.diskMu.Unlock()
-	return clearDiskFiles(c.dir)
+	err := clearDiskFiles(c.dir)
+	// Even when a removal failed, the next mutation must inspect the real
+	// directory again rather than trusting entries deleted before the failure.
+	c.diskIndex = diskIndex{}
+	return err
 }

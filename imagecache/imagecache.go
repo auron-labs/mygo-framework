@@ -168,6 +168,10 @@ func (c *Cache) Shutdown(ctx context.Context) error {
 	c.shutdownOnce.Do(func() {
 		c.mu.Lock()
 		c.stopped = true
+		if c.retryTimer != nil {
+			c.retryTimer.Stop()
+		}
+		c.retryAt = time.Time{}
 		c.mu.Unlock()
 		c.cancel()
 	})

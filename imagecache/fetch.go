@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/auron-labs/mygo-framework/v2/httpclient"
@@ -28,6 +29,13 @@ type fetched struct {
 	store    bool
 	metadata diskMetadata
 	token    diskToken
+	shared   *sharedFetch
+}
+
+// sharedFetch deduplicates the disk write between the size-specific entries
+// that joined one singleflight byte fetch.
+type sharedFetch struct {
+	storeOnce sync.Once
 }
 
 // fetchBytes deduplicates byte fetches by URL across concurrent entries that
@@ -55,6 +63,7 @@ func (c *Cache) fetchBytesOnce(ctx context.Context, rawURL string, ignoreDisk bo
 	if !ignoreDisk {
 		if data, meta, ok := readDiskFiles(c.dir, rawURL, maxImageBytes); ok {
 			cached, cachedMeta = data, meta
+			c.touchDiskFiles(rawURL, token)
 			if c.now().Before(meta.FreshUntil) {
 				return fetched{url: rawURL, data: data, fromDisk: true, token: token}, nil
 			}
@@ -86,6 +95,17 @@ func (c *Cache) fetchBytesOnce(ctx context.Context, rawURL string, ignoreDisk bo
 
 		case status == http.StatusOK:
 			if requestErr != nil {
+				if cacheNoStore(response.Header()) {
+					c.removeDiskFilesIfCurrent(rawURL, token)
+					return fetched{}, sanitizeFetchError(requestErr)
+				}
+				if len(cached) > 0 {
+					// A response can fail after successful headers, most often
+					// because the body exceeded the configured limit. That is a
+					// server/transport failure like any other and must not discard
+					// a usable stale copy the user already has.
+					return fetched{url: rawURL, data: cached, fromDisk: true, token: token}, nil
+				}
 				return fetched{}, sanitizeFetchError(requestErr)
 			}
 			data := response.Body()
@@ -109,6 +129,7 @@ func (c *Cache) fetchBytesOnce(ctx context.Context, rawURL string, ignoreDisk bo
 				store:    true,
 				metadata: metadataFromHeaders(response.Header(), c.defaultFreshness, c.now()),
 				token:    token,
+				shared:   &sharedFetch{},
 			}, nil
 
 		case status >= http.StatusInternalServerError && len(cached) > 0:

@@ -308,6 +308,14 @@ if err != nil {
 err = images.Shutdown(shutdownCtx)
 ```
 
+The cache intentionally uses the application-provided `httpclient` so same-origin
+image requests keep the app's logging, retry, and authentication behavior. That
+also means client-wide headers are sent to every image URL: if
+`httpclient.Options.Headers` contains `Authorization`, API keys, or other
+credentials, do not use that client for third-party CDN, Gravatar, or user-supplied
+image origins. Create a dedicated `httpclient.Client` without those headers for
+the image cache, or limit it to trusted same-origin images.
+
 `Load` is for custom drawing, including avatars. It returns `nil` while the
 image is loading or after a failure; Onevra's avatar then keeps showing the
 person's initials. The view is rebuilt automatically when the image arrives:
@@ -337,8 +345,9 @@ decoded entries but share one network fetch while they are in flight. Fresh
 disk entries are used without a request; stale entries are revalidated with
 ETag/Last-Modified when available, and stale bytes are used when the network is
 unreachable or the server returns a 5xx response. Responses larger than 64 MiB,
-rasters over 64 million pixels, and undecodable bodies are rejected rather than
-cached.
+rasters over 16 million pixels, and undecodable bodies are rejected rather than
+cached. At most two full-size raster decodes run concurrently, bounding the
+transient memory spike before images are scaled down.
 
 The cache key does not include an account or tenant. On logout or account
 switching, call `images.Clear()`; call `images.Forget(url)` for individual

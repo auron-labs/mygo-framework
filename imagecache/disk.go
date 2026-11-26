@@ -83,6 +83,14 @@ func readDiskMetadata(path string) (diskMetadata, bool) {
 // writeDiskFiles writes body and sidecar atomically. Both files are private;
 // temporary files are removed on every failure path.
 func writeDiskFiles(dir, rawURL string, data []byte, meta diskMetadata) error {
+	raw, err := json.Marshal(meta)
+	if err != nil {
+		return fmt.Errorf("encode disk cache metadata: %w", err)
+	}
+	return writeDiskFilesRaw(dir, rawURL, data, raw)
+}
+
+func writeDiskFilesRaw(dir, rawURL string, data, rawMeta []byte) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create image cache directory: %w", err)
 	}
@@ -90,12 +98,7 @@ func writeDiskFiles(dir, rawURL string, data []byte, meta diskMetadata) error {
 	if err := writeFileAtomic(bodyPath, data); err != nil {
 		return fmt.Errorf("write disk cache body: %w", err)
 	}
-	raw, err := json.Marshal(meta)
-	if err != nil {
-		_ = os.Remove(bodyPath)
-		return fmt.Errorf("encode disk cache metadata: %w", err)
-	}
-	if err := writeFileAtomic(metaPath, raw); err != nil {
+	if err := writeFileAtomic(metaPath, rawMeta); err != nil {
 		_ = os.Remove(bodyPath)
 		return fmt.Errorf("write disk cache metadata: %w", err)
 	}
@@ -134,9 +137,18 @@ func writeDiskMetadataIfCurrent(cache *Cache, rawURL string, token diskToken, me
 	if !cache.diskTokenCurrent(rawURL, token) {
 		return
 	}
+	index := cache.ensureDiskIndexLocked()
+	raw, err := json.Marshal(meta)
+	if err != nil {
+		return
+	}
 	_, metaPath := diskPaths(cache.dir, rawURL)
-	if raw, err := json.Marshal(meta); err == nil {
-		_ = writeFileAtomic(metaPath, raw)
+	if err := writeFileAtomic(metaPath, raw); err != nil {
+		return
+	}
+	cache.noteDiskMetadataWriteLocked(rawURL, int64(len(raw)))
+	if index.total > cache.diskByteLimit {
+		_ = pruneDiskIndex(cache.dir, index, cache.diskByteLimit)
 	}
 }
 
@@ -201,16 +213,38 @@ type diskFileInfo struct {
 	modTime time.Time
 }
 
-// pruneDiskFiles removes cache temporaries, corrupt sidecars, impossible
-// bodies, orphan sidecars, and then oldest bodies until cache-owned files fit
-// limit. Foreign file names are neither counted nor removed.
-func pruneDiskFiles(dir string, limit int64) error {
+type diskIndexEntry struct {
+	bodySize int64
+	metaSize int64
+	modTime  time.Time
+}
+
+func (entry diskIndexEntry) size() int64 {
+	return entry.bodySize + entry.metaSize
+}
+
+// diskIndex is the cache's in-memory view of cache-owned disk files. It is
+// scanned at most once per Cache instance and afterwards maintained by the
+// serialized writers, so storing one image never scans or parses the whole
+// directory again.
+type diskIndex struct {
+	scanned bool
+	total   int64
+	files   map[string]diskIndexEntry
+}
+
+// scanDiskIndex performs the one expensive cache-directory pass. It removes
+// interrupted temporaries and malformed or orphan cache artifacts, validates
+// sidecars once, and records sizes and use times for later routine pruning.
+func scanDiskIndex(dir string) (diskIndex, error) {
+	index := diskIndex{scanned: true, files: map[string]diskIndexEntry{}}
 	entries, err := os.ReadDir(dir)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil
+		return index, nil
 	}
 	if err != nil {
-		return fmt.Errorf("read image cache directory: %w", err)
+		index.scanned = false
+		return index, fmt.Errorf("read image cache directory: %w", err)
 	}
 
 	bodies := map[string]diskFileInfo{}
@@ -232,6 +266,10 @@ func pruneDiskFiles(dir string, limit int64) error {
 		}
 		file := diskFileInfo{path: path, size: info.Size(), modTime: info.ModTime()}
 		if isCacheBodyName(name) {
+			if file.size == 0 || file.size > maxImageBytes {
+				result = errors.Join(result, removeIfExists(path))
+				continue
+			}
 			bodies[name] = file
 			continue
 		}
@@ -245,50 +283,142 @@ func pruneDiskFiles(dir string, limit int64) error {
 		}
 	}
 
-	var total int64
-	ordered := make([]diskFileInfo, 0, len(bodies))
 	for name, body := range bodies {
-		if body.size == 0 || body.size > maxImageBytes {
-			result = errors.Join(result, removeIfExists(body.path))
-			if sidecar, ok := sidecars[name]; ok {
-				result = errors.Join(result, removeIfExists(sidecar.path))
-				delete(sidecars, name)
-			}
-			delete(bodies, name)
-			continue
-		}
-		total += body.size
+		entry := diskIndexEntry{bodySize: body.size, modTime: body.modTime}
+		index.total += body.size
 		if sidecar, ok := sidecars[name]; ok {
-			total += sidecar.size
+			entry.metaSize = sidecar.size
+			index.total += sidecar.size
+			if sidecar.modTime.After(entry.modTime) {
+				entry.modTime = sidecar.modTime
+			}
 		}
-		ordered = append(ordered, body)
+		index.files[name] = entry
 	}
 	for base, sidecar := range sidecars {
 		if _, ok := bodies[base]; !ok {
 			result = errors.Join(result, removeIfExists(sidecar.path))
 		}
 	}
+	return index, result
+}
 
-	slices.SortFunc(ordered, func(a, b diskFileInfo) int { return a.modTime.Compare(b.modTime) })
-	for _, body := range ordered {
-		if total <= limit {
+type diskPruneCandidate struct {
+	name  string
+	entry diskIndexEntry
+}
+
+// pruneDiskIndex uses only the in-memory index. Routine pruning therefore
+// stats no files and parses no sidecars; it merely unlinks oldest entries
+// until the tracked total fits the configured limit.
+func pruneDiskIndex(dir string, index *diskIndex, limit int64) error {
+	if index.total <= limit {
+		return nil
+	}
+	ordered := make([]diskPruneCandidate, 0, len(index.files))
+	for name, entry := range index.files {
+		ordered = append(ordered, diskPruneCandidate{name: name, entry: entry})
+	}
+	slices.SortFunc(ordered, func(a, b diskPruneCandidate) int {
+		if byTime := a.entry.modTime.Compare(b.entry.modTime); byTime != 0 {
+			return byTime
+		}
+		return strings.Compare(a.name, b.name)
+	})
+
+	var result error
+	for _, candidate := range ordered {
+		if index.total <= limit {
 			break
 		}
-		if err := removeIfExists(body.path); err != nil {
+		bodyPath := filepath.Join(dir, candidate.name)
+		metaPath := filepath.Join(dir, candidate.name+".json")
+		if err := errors.Join(removeIfExists(bodyPath), removeIfExists(metaPath)); err != nil {
 			result = errors.Join(result, err)
 			continue
 		}
-		total -= body.size
-		base := filepath.Base(body.path)
-		if sidecar, ok := sidecars[base]; ok {
-			if err := removeIfExists(sidecar.path); err != nil {
-				result = errors.Join(result, err)
-			} else {
-				total -= sidecar.size
-			}
-		}
+		index.total -= candidate.entry.size()
+		delete(index.files, candidate.name)
 	}
 	return result
+}
+
+// pruneDiskFiles removes cache temporaries, corrupt sidecars, impossible
+// bodies, orphan sidecars, and then oldest bodies until cache-owned files fit
+// limit. Foreign file names are neither counted nor removed. It is kept as a
+// standalone maintenance operation for tests; Cache uses its one-scan index
+// rather than calling this after every write.
+func pruneDiskFiles(dir string, limit int64) error {
+	index, scanErr := scanDiskIndex(dir)
+	return errors.Join(scanErr, pruneDiskIndex(dir, &index, limit))
+}
+
+func (c *Cache) ensureDiskIndexLocked() *diskIndex {
+	if !c.diskIndex.scanned {
+		index, _ := scanDiskIndex(c.dir)
+		c.diskIndex = index
+	}
+	if c.diskIndex.files == nil {
+		c.diskIndex.scanned = true
+		c.diskIndex.files = map[string]diskIndexEntry{}
+	}
+	return &c.diskIndex
+}
+
+func diskIndexKey(dir, rawURL string) string {
+	bodyPath, _ := diskPaths(dir, rawURL)
+	return filepath.Base(bodyPath)
+}
+
+func (c *Cache) noteDiskWriteLocked(rawURL string, bodySize, metaSize int64) {
+	index := c.ensureDiskIndexLocked()
+	key := diskIndexKey(c.dir, rawURL)
+	old := index.files[key]
+	index.total += bodySize + metaSize - old.size()
+	index.files[key] = diskIndexEntry{bodySize: bodySize, metaSize: metaSize, modTime: c.now()}
+}
+
+func (c *Cache) noteDiskMetadataWriteLocked(rawURL string, metaSize int64) {
+	index := c.ensureDiskIndexLocked()
+	key := diskIndexKey(c.dir, rawURL)
+	entry := index.files[key]
+	index.total += metaSize - entry.metaSize
+	entry.metaSize = metaSize
+	entry.modTime = c.now()
+	index.files[key] = entry
+}
+
+func (c *Cache) noteDiskRemoveLocked(rawURL string) {
+	index := c.ensureDiskIndexLocked()
+	key := diskIndexKey(c.dir, rawURL)
+	if entry, ok := index.files[key]; ok {
+		index.total -= entry.size()
+		delete(index.files, key)
+	}
+}
+
+// touchDiskFiles records use of a disk hit. Recency is represented in file
+// mtimes as well as in the in-memory index, so a warm cache scanned by the
+// next instance still knows which long-lived avatars are used often.
+func (c *Cache) touchDiskFiles(rawURL string, token diskToken) {
+	c.diskMu.Lock()
+	defer c.diskMu.Unlock()
+	if !c.diskTokenCurrent(rawURL, token) {
+		return
+	}
+	now := c.now()
+	bodyPath, metaPath := diskPaths(c.dir, rawURL)
+	if err := os.Chtimes(bodyPath, now, now); err != nil {
+		return
+	}
+	_ = os.Chtimes(metaPath, now, now)
+	if c.diskIndex.scanned {
+		key := diskIndexKey(c.dir, rawURL)
+		if entry, ok := c.diskIndex.files[key]; ok {
+			entry.modTime = now
+			c.diskIndex.files[key] = entry
+		}
+	}
 }
 
 // storeIfCurrent serializes with Forget and Clear. The entry and token checks
@@ -303,10 +433,18 @@ func (c *Cache) storeIfCurrent(e *entry, result fetched) {
 	if !current || len(result.data) == 0 || int64(len(result.data)) > maxImageBytes {
 		return
 	}
-	if err := writeDiskFiles(c.dir, e.key.url, result.data, result.metadata); err != nil {
+	rawMeta, err := json.Marshal(result.metadata)
+	if err != nil {
 		return
 	}
-	_ = pruneDiskFiles(c.dir, c.diskByteLimit)
+	index := c.ensureDiskIndexLocked()
+	if err := writeDiskFilesRaw(c.dir, e.key.url, result.data, rawMeta); err != nil {
+		return
+	}
+	c.noteDiskWriteLocked(e.key.url, int64(len(result.data)), int64(len(rawMeta)))
+	if index.total > c.diskByteLimit {
+		_ = pruneDiskIndex(c.dir, index, c.diskByteLimit)
+	}
 }
 
 func (c *Cache) removeDiskFiles(result fetched) {
@@ -315,7 +453,9 @@ func (c *Cache) removeDiskFiles(result fetched) {
 	if !c.diskTokenCurrent(result.url, result.token) {
 		return
 	}
-	_ = removeDiskFiles(c.dir, result.url)
+	if err := removeDiskFiles(c.dir, result.url); err == nil {
+		c.noteDiskRemoveLocked(result.url)
+	}
 }
 
 func (c *Cache) removeDiskFilesIfCurrent(rawURL string, token diskToken) {
@@ -324,5 +464,7 @@ func (c *Cache) removeDiskFilesIfCurrent(rawURL string, token diskToken) {
 	if !c.diskTokenCurrent(rawURL, token) {
 		return
 	}
-	_ = removeDiskFiles(c.dir, rawURL)
+	if err := removeDiskFiles(c.dir, rawURL); err == nil {
+		c.noteDiskRemoveLocked(rawURL)
+	}
 }
