@@ -138,7 +138,7 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, expected := range map[string][]string{
-		"main.go":                  {`"github.com/auron-labs/mygo-framework/v2/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)"},
+		"main.go":                  {`"github.com/auron-labs/mygo-framework/v2/onevra/shells/sidebar"`, "sidebar.NewShell", "s.shellOptions()", `"acme-side"`, "OnClose", "PreventDefault", "mygo.KeepState(&s.kept)", "newLifecycleHelper", "AttachWindow", "WasOpenedAtLogin", "OnActivate"},
 		"sidebar.go":               {`StateKey: "main"`, "MinWidth: minWidth", "LeftToolbar: s.footer", "s.updateView(c)"},
 		"layout.go":                {"railBreakpoint", "SetLeftWidth", "c.Size()"},
 		"pages.go":                 {"homePage", "importPage", "settingsPage"},
@@ -149,14 +149,15 @@ func TestCreateSidebarNativeProject(t *testing.T) {
 		"mcp.go":                   {"nativeFixture", "theme.Apply(c); s.view(c)"},
 		"mcp_test.go":              {"Go to Settings"},
 		".github/workflows/ci.yml": {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
-		"locales/en.json":          {"compactSpacing", "navHome"},
-		"locales/catalog_gen.go":   {"func CompactSpacing()", "func NavHome()"},
+		"locales/en.json":          {"compactSpacing", "closeToTray", "openAtLogin", "navHome"},
+		"locales/catalog_gen.go":   {"func CompactSpacing()", "func CloseToTray()", "func OpenAtLogin()", "func NavHome()"},
 		// Files the variant does not replace come from the plain starter.
 		"mygo.json":      {`"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
 		"desktop.go":     {"support-bundle"},
 		"updates.go":     {"checkForUpdates"},
 		"importjob.go":   {"sampleImport"},
-		"preferences.go": {"native.compact"},
+		"preferences.go": {"native.compact", "native.close_to_tray", "CloseToTray"},
+		"trayicon.go":    {"trayIconPNG", "png.Encode"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
 	}
@@ -209,12 +210,12 @@ func TestCreateNativeProject(t *testing.T) {
 	for path, expected := range map[string][]string{
 		"go.mod":                 {"module acme-native", "go 1.27.3", "github.com/egoist/mygo v0.10.0", "tool (", "github.com/egoist/mygo/cmd/mygo", "github.com/auron-labs/mygo-framework/v2/cmd/framework"},
 		"mygo.json":              {`"name": "Acme Native"`, `"identifier": "com.example.acmenative"`, `"urlSchemes": ["acme-native"]`, `"minimumSystemVersion": "17.0"`, `"minSdk": 26`},
-		"main.go":                {`"github.com/auron-labs/mygo-framework/v2/database"`, `"github.com/auron-labs/mygo-framework/v2/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/v2/onevra/components"`, `"github.com/auron-labs/mygo-framework/v2/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL"},
-		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose"},
+		"main.go":                {`"github.com/auron-labs/mygo-framework/v2/database"`, `"github.com/auron-labs/mygo-framework/v2/settings/sqlite"`, `"github.com/auron-labs/mygo-framework/v2/onevra/components"`, `"github.com/auron-labs/mygo-framework/v2/onevra/shells/plain"`, `"acme-native"`, "plain.NewShell", "OnClose", "PreventDefault", `"data-dir"`, "RequestSingleInstanceLock", "OnOpenURL", "newLifecycleHelper", "AttachWindow", "WasOpenedAtLogin", "OnActivate"},
+		"main_test.go":           {"TestOpenPreferencesMigratesAndPersists", "TestSaveFailureIsVisibleAndBlocksClose", "TestCloseToTrayPreferenceUpdatesAndPersists", "TestLoginLaunchShowDecision"},
 		"importjob.go":           {`"github.com/auron-labs/mygo-framework/v2/jobs"`, "sampleImport", "DroppedFiles", "Dialog.Open"},
 		"updates.go":             {"mygo.Updater.Enabled()", "checkForUpdates"},
-		"locales/en.json":        {"compactSpacing"},
-		"locales/catalog_gen.go": {"func CompactSpacing()"},
+		"locales/en.json":        {"compactSpacing", "closeToTray", "openAtLogin"},
+		"locales/catalog_gen.go": {"func CompactSpacing()", "func CloseToTray()", "func OpenAtLogin()"},
 		"mcp.go":                 {"nativeFixture", "theme.Apply(c); s.view(c)"},
 		"mcp_test.go":            {"TestNativeMCP"},
 		"database/migrations/00001_create_mygo_framework_settings.sql": {"mygo_framework_settings"},
@@ -222,7 +223,8 @@ func TestCreateNativeProject(t *testing.T) {
 		".github/workflows/ci.yml":                                     {"ubuntu-latest", "windows-latest", "golangci-lint run", "go tool mygo generate", "CGO_ENABLED", "git diff --exit-code"},
 		"mise.toml":                                                    {`go = "1.27.3"`, "golangci-lint"},
 		".golangci.yml":                                                {"version: \"2\"", "gosec"},
-		"desktop.go":                                                   {"support-bundle", "diagnostics.Write"},
+		"desktop.go":                                                   {"support-bundle", "diagnostics.Write", "newLifecycleHelper", "NotificationRoutes", "shutdownApplication"},
+		"trayicon.go":                                                  {"trayIconPNG", "png.Encode"},
 	} {
 		assertFileContainsAll(t, result.Path, path, expected...)
 	}

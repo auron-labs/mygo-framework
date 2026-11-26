@@ -35,6 +35,14 @@ func TestNavigationSelectsPages(t *testing.T) {
 	}
 }
 
+func TestImportNotificationSelectsTheImportPage(t *testing.T) {
+	s := newScreen(t, preferences{Profile: "Default"})
+	s.showWindow(pageImport)
+	if s.kept.page != pageImport {
+		t.Fatalf("page = %q, want %q", s.kept.page, pageImport)
+	}
+}
+
 func TestUnknownPageFallsBackToHome(t *testing.T) {
 	s := newScreen(t, preferences{Profile: "Default"})
 	tt := newTester(s, "no-such-page")

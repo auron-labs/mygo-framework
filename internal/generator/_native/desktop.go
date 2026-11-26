@@ -10,9 +10,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 
+	"github.com/auron-labs/mygo-framework/v2/database"
 	"github.com/auron-labs/mygo-framework/v2/diagnostics"
+	"github.com/auron-labs/mygo-framework/v2/errorreport"
 	"github.com/auron-labs/mygo-framework/v2/jobs"
+	"github.com/auron-labs/mygo-framework/v2/lifecycle"
+	"github.com/auron-labs/mygo-framework/v2/state"
 
 	"github.com/egoist/mygo"
 )
@@ -50,14 +55,86 @@ func (s *screen) menu() *mygo.Menu {
 	})
 }
 
-// showWindow brings the window to the front, for a second launch, a deep link
-// or a clicked notification.
-func (s *screen) showWindow() {
+// showWindow selects page and brings the window back to the front, for the
+// tray, a second launch, Dock activation, a deep link or a clicked
+// notification. The plain starter's navigate is inert because it has one page.
+func (s *screen) showWindow(page string) {
+	if page != "" {
+		s.navigate(page)
+	}
 	if s.win == nil {
 		return
 	}
 	s.win.Restore()
+	s.win.Show()
 	s.win.Focus()
+}
+
+// shouldShowAtLaunch reports whether the first frame should present the
+// window. A login launch still creates the window and starts its work, but
+// stays hidden until the tray, Dock, a second instance or a notification opens it.
+func shouldShowAtLaunch(wasOpenedAtLogin func() bool) bool {
+	return !wasOpenedAtLogin()
+}
+
+// newLifecycleHelper connects the application's owned state and shutdown work
+// to the framework lifecycle helper. Notification routes use deterministic ids
+// because a click can arrive after the process was restarted.
+func (s *screen) newLifecycleHelper(shutdown func(context.Context) error) (*lifecycle.Helper, error) {
+	helper, err := lifecycle.New(mygo.App, lifecycle.Options{
+		TrayID:             "main",
+		TrayIcon:           trayIconPNG(),
+		TrayIconIsTemplate: true,
+		TrayTooltip:        appName,
+		OpenLabel:          locales.Open(),
+		OpenAtLoginLabel:   locales.OpenAtLogin(),
+		CloseToTray:        func() bool { return s.prefs.Get().CloseToTray },
+		Open:               s.showWindow,
+		Shutdown:           shutdown,
+		ReportError:        reportLifecycleError,
+		NotificationRoutes: lifecycle.NotificationRoutes{importJobName: pageImport},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create lifecycle helper: %w", err)
+	}
+	return helper, nil
+}
+
+// reportLifecycleError sends lifecycle failures through the same logging and
+// error-reporting boundaries as the rest of the starter.
+func reportLifecycleError(operation string, err error) {
+	log.Printf("%s: %v", operation, err)
+	errorreport.Capture(err, operation, "lifecycle")
+}
+
+// newShutdownOwner threads the whole shutdown sequence through one sync.Once.
+// The deferred cleanup in run remains as the idempotent fallback for startup
+// failures and returns that never ran the application quit sequence.
+func newShutdownOwner(jobManager *jobs.Manager, saver *state.Saver[preferences], db *database.Database) func(context.Context) error {
+	var once sync.Once
+	var shutdownErr error
+	return func(ctx context.Context) error {
+		once.Do(func() {
+			shutdownErr = shutdownApplication(ctx, jobManager, saver, db)
+		})
+		return shutdownErr
+	}
+}
+
+// shutdownApplication stops work before closing the storage it uses. It runs
+// synchronously in MyGo's quit sequence: an operating-system shutdown may end
+// the process as soon as the quit listeners return, so this work must not be
+// left to asynchronous cleanup. Each step keeps the starter's existing bound.
+func shutdownApplication(ctx context.Context, jobManager *jobs.Manager, saver *state.Saver[preferences], db *database.Database) error {
+	jobsCtx, stopJobs := context.WithTimeout(ctx, shutdownTimeout)
+	jobsErr := jobManager.Shutdown(jobsCtx)
+	stopJobs()
+	saveCtx, stopSave := context.WithTimeout(ctx, saveTimeout)
+	saveErr := saver.Close(saveCtx)
+	stopSave()
+	dbErr := db.Close()
+	errorreport.Flush()
+	return errors.Join(jobsErr, saveErr, dbErr)
 }
 
 // openURL handles a deep link. It only selects the folder; the user starts the
@@ -79,7 +156,7 @@ func (s *screen) openURL(raw string) {
 		return
 	}
 	s.prefs.Update(func(p *preferences) { p.ImportFolder = folder })
-	s.showWindow()
+	s.showWindow("")
 }
 
 // notifyImportDone tells the user that a background import ended while the
@@ -99,7 +176,6 @@ func (s *screen) notifyImportDone(status jobs.Status) {
 			body = locales.ImportFailed(status.Err)
 		}
 		n := mygo.NewNotification(mygo.NotificationOptions{ID: importJobName, Title: appName, Body: body})
-		n.OnClick(s.showWindow)
 		if err := n.Show(); err != nil && !errors.Is(err, mygo.ErrNotificationsDenied) {
 			log.Printf("show import notification: %v", err)
 		}
