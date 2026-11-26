@@ -120,8 +120,8 @@ Desktop-only on phones, or compact:
 
 Replace the import prefix `github.com/oneo-me/onevra/source` with
 `github.com/auron-labs/mygo-framework/v2/onevra` throughout your application,
-then run `go mod tidy`. Package names and exported APIs are preserved from the
-imported upstream commit. Update all imports together: named types from the
+then run `go mod tidy`. Package names and exported APIs are preserved from
+upstream release 0.2026.19. Update all imports together: named types from the
 old and new paths are distinct Go types. Dependencies exposing upstream Onevra
 types must migrate too.
 
@@ -132,6 +132,10 @@ The library was imported from
 This directory contains its components, shells, themes, icons, internal
 localization, tests, and icon generator. Upstream's gallery, starter apps,
 website, and application packaging assets are outside this library import.
+
+It was last synced with
+[release 0.2026.19 (`dee6fec4954dc3c958890236bcdf2e79d2c4a802`)](https://github.com/oneo-me/onevra/tree/dee6fec4954dc3c958890236bcdf2e79d2c4a802/source).
+The next sync starts from that commit.
 
 From the framework root, run `go test ./onevra/...`. These packages also run
 through the framework's normal tests and builds.
