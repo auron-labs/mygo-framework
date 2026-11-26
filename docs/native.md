@@ -352,6 +352,81 @@ on screen, so the cost of a frame does not grow with the number of rows. Run
 - A table with many columns or heavy cells (images, rich text) costs
   proportionally more per visible row.
 
+## Remote images
+
+`github.com/auron-labs/mygo-framework/v2/imagecache` loads remote avatars and
+icons for native views without doing network, disk, or decode work in the view
+builder. It fetches through the framework's `httpclient`, stores response bytes
+in a bounded disk cache, decodes on worker goroutines, keeps decoded images in
+a bounded LRU, deduplicates concurrent requests for the same URL, and
+invalidates the view when an image arrives.
+
+Create one cache for the application and shut it down with the rest of the
+runtime. Put it below MyGo's cache directory so the operating system can
+reclaim it when space is needed:
+
+```go
+cacheRoot, err := mygo.App.Path(mygo.PathCache)
+if err != nil {
+	return err
+}
+images, err := imagecache.New(appCtx, imagecache.Options{
+	Client: client, // the app's configured *httpclient.Client
+	Dir:    filepath.Join(cacheRoot, "images"),
+})
+if err != nil {
+	return err
+}
+// During runtime shutdown:
+err = images.Shutdown(shutdownCtx)
+```
+
+The cache intentionally uses the application-provided `httpclient` so same-origin
+image requests keep the app's logging, retry, and authentication behavior. That
+also means client-wide headers are sent to every image URL: if
+`httpclient.Options.Headers` contains `Authorization`, API keys, or other
+credentials, do not use that client for third-party CDN, Gravatar, or user-supplied
+image origins. Create a dedicated `httpclient.Client` without those headers for
+the image cache, or limit it to trusted same-origin images.
+
+`Load` is for custom drawing, including avatars. It returns `nil` while the
+image is loading or after a failure; Onevra's avatar then keeps showing the
+person's initials. The view is rebuilt automatically when the image arrives:
+
+```go
+photo, _ := images.Load(c, person.AvatarURL, imagecache.LoadOptions{
+	MaxSide: 96, // pixels: about 2-3x a 36-40 DIP avatar
+})
+components.Avatar(c, person.Name, components.AvatarOptions{
+	Image: photo,
+	Size:  36,
+})
+```
+
+`Image` is the direct element form. It draws a theme-colored placeholder while
+loading and after a failure, then replaces it with the decoded image:
+
+```go
+images.Image(c, card.IconURL, imagecache.ImageOptions{
+	MaxSide: 144, // pixels: 3x a 48 DIP display size
+	Fit:     ui.Cover,
+}).Size(48, 48).Radius(8)
+```
+
+The exact URL string is the cache key. Different `MaxSide` values have separate
+decoded entries but share one network fetch while they are in flight. Fresh
+disk entries are used without a request; stale entries are revalidated with
+ETag/Last-Modified when available, and stale bytes are used when the network is
+unreachable or the server returns a 5xx response. Responses larger than 64 MiB,
+rasters over 16 million pixels, and undecodable bodies are rejected rather than
+cached. At most two full-size raster decodes run concurrently, bounding the
+transient memory spike before images are scaled down.
+
+The cache key does not include an account or tenant. On logout or account
+switching, call `images.Clear()`; call `images.Forget(url)` for individual
+images that must be removed. Both perform disk I/O, so call them from logout or
+privacy workflows rather than from a view builder.
+
 ## Time-series charts
 
 `github.com/auron-labs/mygo-framework/v2/timechart` draws continuous time series: a clock-aligned time
