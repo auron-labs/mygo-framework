@@ -2,8 +2,10 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
+	"image/png"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,6 +13,24 @@ import (
 
 	"github.com/auron-labs/mygo-framework/v2/jobs"
 )
+
+func TestImportNotificationPageIsInertInThePlainStarter(t *testing.T) {
+	s := newScreen(t, preferences{})
+	// The deterministic notification route targets pageImport here too, but the
+	// starter has one page: opening it only restores and focuses that window.
+	s.showWindow(pageImport)
+}
+
+func TestTrayIconIsATemplatePNG(t *testing.T) {
+	icon := trayIconPNG()
+	img, err := png.Decode(bytes.NewReader(icon))
+	if err != nil {
+		t.Fatalf("decode tray icon: %v", err)
+	}
+	if img.Bounds().Dx() != 16 || img.Bounds().Dy() != 16 {
+		t.Fatalf("tray icon size = %vx%v, want 16x16", img.Bounds().Dx(), img.Bounds().Dy())
+	}
+}
 
 func TestMenuStartsImportOfRememberedFolder(t *testing.T) {
 	folder := t.TempDir()
