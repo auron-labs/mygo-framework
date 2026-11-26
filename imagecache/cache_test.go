@@ -376,34 +376,52 @@ func TestSlowArrivalDoesNotShieldLRUEviction(t *testing.T) {
 	t.Parallel()
 
 	picture := testPNG(t, 8, 8, color.NRGBA{R: 255, A: 255})
-	started := make(chan struct{})
-	release := make(chan struct{})
+	started := map[string]chan struct{}{
+		"/slow.png":   make(chan struct{}),
+		"/first.png":  make(chan struct{}),
+		"/second.png": make(chan struct{}),
+	}
+	release := map[string]chan struct{}{
+		"/slow.png":   make(chan struct{}),
+		"/first.png":  make(chan struct{}),
+		"/second.png": make(chan struct{}),
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/slow.png" {
-			close(started)
-			<-release
+		if start, ok := started[r.URL.Path]; ok {
+			close(start)
+			<-release[r.URL.Path]
 		}
 		_, _ = w.Write(picture)
 	}))
 	t.Cleanup(server.Close)
 	cache := newTestCacheWorkers(t, t.TempDir(), Options{MemoryEntries: 2}, 3)
 	cache.protectFor = 0
+	fixedNow := time.Now()
+	cache.now = func() time.Time { return fixedNow }
 	slowURL := server.URL + "/slow.png"
 	firstURL := server.URL + "/first.png"
 	secondURL := server.URL + "/second.png"
 
-	_, _ = cache.Load(nil, slowURL, LoadOptions{MaxSide: 8})
-	select {
-	case <-started:
-	case <-time.After(time.Second):
-		t.Fatal("slow request did not start")
+	waitStarted := func(path string) {
+		t.Helper()
+		select {
+		case <-started[path]:
+		case <-time.After(time.Second):
+			t.Fatalf("%s request did not start", path)
+		}
 	}
+	_, _ = cache.Load(nil, slowURL, LoadOptions{MaxSide: 8})
+	waitStarted("/slow.png")
 	_, _ = cache.Load(nil, firstURL, LoadOptions{MaxSide: 8})
+	waitStarted("/first.png")
 	_, _ = cache.Load(nil, secondURL, LoadOptions{MaxSide: 8})
-	waitFor(t, "newer images", func() bool {
-		return hasDecoded(cache, firstURL, 8) && hasDecoded(cache, secondURL, 8)
-	})
-	close(release)
+	waitStarted("/second.png")
+
+	close(release["/first.png"])
+	waitFor(t, "first image", func() bool { return hasDecoded(cache, firstURL, 8) })
+	close(release["/second.png"])
+	waitFor(t, "second image", func() bool { return hasDecoded(cache, secondURL, 8) })
+	close(release["/slow.png"])
 	waitFor(t, "slow image", func() bool { return hasDecoded(cache, slowURL, 8) })
 
 	if hasEntry(cache, firstURL, 8) {
@@ -534,11 +552,11 @@ func TestLRUEvictsByCountAndBytesLeastRecentlyUsedFirst(t *testing.T) {
 	}
 	base := time.Now()
 	entries := []*entry{
-		{key: cacheKey{url: "https://example.test/a.png", maxSide: 4}, source: source, memoryBytes: 100, used: base},
-		{key: cacheKey{url: "https://example.test/b.png", maxSide: 4}, source: source, memoryBytes: 100, used: base.Add(2 * time.Second)},
-		{key: cacheKey{url: "https://example.test/c.png", maxSide: 4}, source: source, memoryBytes: 100, used: base.Add(time.Second)},
+		{key: cacheKey{url: "https://example.test/a.png", maxSide: 4}, source: source, memoryBytes: 100, used: base, useOrder: 1},
+		{key: cacheKey{url: "https://example.test/b.png", maxSide: 4}, source: source, memoryBytes: 100, used: base.Add(2 * time.Second), useOrder: 3},
+		{key: cacheKey{url: "https://example.test/c.png", maxSide: 4}, source: source, memoryBytes: 100, used: base.Add(time.Second), useOrder: 2},
 	}
-	// Complete them out of request order. The LRU must still order by use time.
+	// Complete them out of request order. The LRU must still order by request recency.
 	for _, e := range []*entry{entries[0], entries[2], entries[1]} {
 		cache.mu.Lock()
 		cache.entries[e.key] = e
@@ -549,11 +567,14 @@ func TestLRUEvictsByCountAndBytesLeastRecentlyUsedFirst(t *testing.T) {
 	cache.mu.Lock()
 	front := cache.lruList.Front().Value.(*entry)
 	back := cache.lruList.Back().Value.(*entry)
-	if front != entries[1] || back != entries[0] {
+	ordered := front == entries[1] && back == entries[0]
+	if ordered {
+		cache.evictLocked(nil, base.Add(3*time.Second))
+	}
+	cache.mu.Unlock()
+	if !ordered {
 		t.Fatalf("LRU order front=%s back=%s", front.key.url, back.key.url)
 	}
-	cache.evictLocked(nil, base.Add(3*time.Second))
-	cache.mu.Unlock()
 
 	if hasEntry(cache, entries[0].key.url, 4) {
 		t.Fatal("count eviction did not remove the least recently used entry")

@@ -37,9 +37,10 @@ type entry struct {
 	memoryBytes int64
 	err         error
 
-	used   time.Time
-	came   time.Time
-	failed time.Time
+	used     time.Time
+	came     time.Time
+	failed   time.Time
+	useOrder uint64
 
 	loading   bool
 	queued    bool
@@ -82,17 +83,18 @@ type Cache struct {
 	// workers from multiplying the transient decode memory spike.
 	decodeSlots chan struct{}
 
-	mu          sync.Mutex
-	queueCond   *sync.Cond
-	stopped     bool
-	entries     map[cacheKey]*entry
-	queue       []*entry
-	lruList     *list.List
-	memoryBytes int64
-	clearEpoch  uint64
-	urlEpochs   map[string]uint64
-	retryTimer  *time.Timer
-	retryAt     time.Time
+	mu           sync.Mutex
+	queueCond    *sync.Cond
+	stopped      bool
+	entries      map[cacheKey]*entry
+	queue        []*entry
+	lruList      *list.List
+	memoryBytes  int64
+	clearEpoch   uint64
+	urlEpochs    map[string]uint64
+	retryTimer   *time.Timer
+	retryAt      time.Time
+	nextUseOrder uint64
 
 	// These durations are fields rather than constants so focused tests can
 	// shorten them before the first request.
@@ -150,6 +152,8 @@ func (c *Cache) load(uiContext *ui.Context, rawURL string, maxSide int) (ui.Imag
 		c.entries[key] = e
 	}
 	e.used = now
+	c.nextUseOrder++
+	e.useOrder = c.nextUseOrder
 	if e.source != nil {
 		if e.lru != nil {
 			c.lruList.MoveToFront(e.lru)
@@ -380,7 +384,7 @@ func (c *Cache) retryBackoffExpired() {
 func (c *Cache) insertLRULocked(e *entry) {
 	for position := c.lruList.Front(); position != nil; position = position.Next() {
 		other, _ := position.Value.(*entry)
-		if other == nil || e.used.After(other.used) {
+		if other == nil || e.useOrder > other.useOrder {
 			e.lru = c.lruList.InsertBefore(e, position)
 			return
 		}
